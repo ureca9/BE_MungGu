@@ -84,36 +84,19 @@ jobs:
               exit 1
             fi
 
-      # 8. 현재 활성화된 Target Group 확인 및 설정
-      - name: Determine Active Target Group
-        run: |
-          echo "Determining active target group..."
-          CURRENT_TARGET_GROUP=$(aws elbv2 describe-target-health --target-group-arn ${{ secrets.TARGET_GROUP_BLUE_ARN }} | jq -r '.TargetHealthDescriptions[].TargetHealth.State' | grep -m 1 "healthy" && echo "blue" || echo "green")
-          echo "CURRENT_TARGET_GROUP=$CURRENT_TARGET_GROUP" >> $GITHUB_ENV
-
-          if [ "$CURRENT_TARGET_GROUP" = "blue" ]; then
-            echo "NEXT_TARGET_GROUP=${{ secrets.TARGET_GROUP_GREEN_ARN }}" >> $GITHUB_ENV
-            echo "NEXT_PORT=8081" >> $GITHUB_ENV
-          else
-            echo "NEXT_TARGET_GROUP=${{ secrets.TARGET_GROUP_BLUE_ARN }}" >> $GITHUB_ENV
-            echo "NEXT_PORT=8080" >> $GITHUB_ENV
-          fi
-          echo "Current Target Group: $CURRENT_TARGET_GROUP"
-          echo "Next Target Group: $NEXT_TARGET_GROUP"
-
-      # 9. EC2에서 새 애플리케이션 실행
-      - name: Start New Application on EC2
+      # 8. EC2에서 애플리케이션 실행
+      - name: Start Application on EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Stopping existing application on port ${{ env.NEXT_PORT }}..."
-            pkill -f "java -jar -Dserver.port=${{ env.NEXT_PORT }}" || true
+            echo "Stopping existing application (if any)..."
+            pkill -f "java -jar" || true
 
-            echo "Starting new application on port ${{ env.NEXT_PORT }}..."
-            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=${{ env.NEXT_PORT }} /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app_${{ env.NEXT_PORT }}.log 2>&1 &
+            echo "Starting new application..."
+            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=8080 /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
 
             echo "Sleeping for 10 seconds..."
             sleep 10
@@ -121,39 +104,10 @@ jobs:
             echo "Checking if the application is running..."
             ps -ef | grep java
 
-      # 10. 헬스 체크 수행
-      - name: Health Check
-        run: |
-          ATTEMPTS=0
-          until [ $ATTEMPTS -ge 10 ]; do
-            STATUS=$(aws elbv2 describe-target-health --target-group-arn ${{ env.NEXT_TARGET_GROUP }} | jq -r '.TargetHealthDescriptions[].TargetHealth.State' | grep "healthy" || echo "unhealthy")
-            if [[ "$STATUS" == *"healthy"* ]]; then
-              echo "Health check passed!"
-              exit 0
+            echo "Checking if the log file exists..."
+            if [ -f /home/ubuntu/deployments/app.log ]; then
+              echo "Log file found. Displaying the last 10 lines:"
+              tail -n 10 /home/ubuntu/deployments/app.log
+            else
+              echo "Log file not found! The application might have failed to start."
             fi
-            ATTEMPTS=$((ATTEMPTS+1))
-            sleep 10
-          done
-          echo "Health check failed"
-          exit 1
-
-      # 11. ELB Listener 업데이트
-      - name: Update ELB Listener
-        run: |
-          echo "Updating ELB Listener to point to new target group..."
-          aws elbv2 modify-listener --listener-arn ${{ secrets.ELB_LISTENER_ARN }} \
-            --default-actions Type=forward,TargetGroupArn=${{ env.NEXT_TARGET_GROUP }}
-          echo "ELB Listener updated to point to ${{ env.NEXT_TARGET_GROUP }}."
-
-      # 12. 이전 애플리케이션 종료
-      - name: Stop Previous Application
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_PROD }}
-          username: ubuntu
-          key: ${{ secrets.PRIVATE_KEY }}
-          script: |
-            CURRENT_PORT=$(if [ "${{ env.CURRENT_TARGET_GROUP }}" = "blue" ]; then echo "8080"; else echo "8081"; fi)
-            echo "Stopping previous application on port $CURRENT_PORT..."
-            pkill -f "java -jar -Dserver.port=$CURRENT_PORT" || echo "No application running on port $CURRENT_PORT"
-            echo "Previous application stopped."
