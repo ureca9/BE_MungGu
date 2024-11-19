@@ -50,6 +50,7 @@ jobs:
           script: |
             echo "Creating deployments directory on EC2..."
             mkdir -p /home/ubuntu/deployments
+            
             echo "Generating .env file on EC2..."
             echo "DB_URL=${{ secrets.DB_URL }}" > /home/ubuntu/deployments/.env
             echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> /home/ubuntu/deployments/.env
@@ -58,10 +59,12 @@ jobs:
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> /home/ubuntu/deployments/.env
             echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> /home/ubuntu/deployments/.env
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> /home/ubuntu/deployments/.env
+            
             echo "Uploading JAR file to EC2..."
-            scp -o StrictHostKeyChecking=no backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:/home/ubuntu/deployments/
-            echo "Environment file and JAR uploaded successfully."
-
+            scp -o StrictHostKeyChecking=no /home/ubuntu/BE_MungGu/backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:/home/ubuntu/deployments/
+            
+            echo "Verifying JAR file on EC2..."
+            ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.HOST_PROD }} "if [ -f /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar ]; then echo 'JAR file successfully uploaded!'; else echo 'JAR file upload failed!' && exit 1; fi"
 
       # 7. 현재 활성화된 Target Group 확인 및 설정
       - name: Determine Active Target Group
