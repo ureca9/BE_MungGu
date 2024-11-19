@@ -99,4 +99,19 @@ jobs:
             pkill -9 -f java || true
       
             echo "Starting new application..."
-            nohup java -jar -Dspring.config.import=file:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=8080 /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+            nohup java -Dspring.profiles.active=aws -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+
+            echo "Sleeping for 10 seconds to allow the application to start..."
+            sleep 10
+
+            echo "Checking if the application is running..."
+            ps -ef | grep java
+
+            echo "Checking if the log file exists..."
+            if [ -f /home/ubuntu/deployments/app.log ]; then
+              echo "Log file found. Displaying the last 10 lines:"
+              tail -n 10 /home/ubuntu/deployments/app.log
+            else
+              echo "Log file not found. Application might have failed to start."
+              exit 1
+            fi
