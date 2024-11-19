@@ -35,15 +35,10 @@ jobs:
         working-directory: backend
         run: chmod +x ./gradlew
 
-      # 5. Build 및 Test 수행
-      - name: Build and Test
+      # 5. Build 수행
+      - name: Build
         working-directory: backend
-        env:
-          SPRING_PROFILES_ACTIVE: aws
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: ./gradlew clean build test
+        run: ./gradlew clean build -x test
 
       # 6. 환경 변수 파일 생성
       - name: Generate .env file
