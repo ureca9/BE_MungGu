@@ -40,18 +40,24 @@ jobs:
         working-directory: backend
         run: ./gradlew clean build -x test
 
-      # 6. 환경 변수 파일 생성 및 JAR 파일 업로드
-      - name: Generate .env and Deploy JAR to EC2
+      # 6. JAR 파일 S3 업로드
+      - name: Upload JAR to S3
+        run: |
+          echo "Uploading JAR file to S3..."
+          aws s3 cp backend/build/libs/backend-0.0.1-SNAPSHOT.jar s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar
+
+      # 7. EC2에서 환경 변수 파일 생성 및 JAR 다운로드
+      - name: Setup Environment and Download JAR
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Creating deployments directory on EC2..."
+            echo "Creating deployments directory..."
             mkdir -p /home/ubuntu/deployments
-            
-            echo "Generating .env file on EC2..."
+
+            echo "Generating .env file..."
             echo "DB_URL=${{ secrets.DB_URL }}" > /home/ubuntu/deployments/.env
             echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> /home/ubuntu/deployments/.env
             echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/deployments/.env
@@ -59,18 +65,25 @@ jobs:
             echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> /home/ubuntu/deployments/.env
             echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> /home/ubuntu/deployments/.env
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> /home/ubuntu/deployments/.env
-            
-            echo "Uploading JAR file to EC2..."
-            scp -o StrictHostKeyChecking=no /home/ubuntu/BE_MungGu/backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:/home/ubuntu/deployments/
-            
-            echo "Verifying JAR file on EC2..."
-            ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.HOST_PROD }} "if [ -f /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar ]; then echo 'JAR file successfully uploaded!'; else echo 'JAR file upload failed!' && exit 1; fi"
 
-      # 7. 현재 활성화된 Target Group 확인 및 설정
+            echo "Downloading JAR file from S3..."
+            aws s3 cp s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar
+
+            echo "Verifying JAR file..."
+            if [ -f /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar ]; then
+              echo "JAR file successfully downloaded!"
+            else
+              echo "JAR file download failed!"
+              exit 1
+            fi
+
+      # 8. 현재 활성화된 Target Group 확인 및 설정
       - name: Determine Active Target Group
         run: |
+          echo "Determining active target group..."
           CURRENT_TARGET_GROUP=$(aws elbv2 describe-target-health --target-group-arn ${{ secrets.TARGET_GROUP_BLUE_ARN }} | jq -r '.TargetHealthDescriptions[].TargetHealth.State' | grep -m 1 "healthy" && echo "blue" || echo "green")
           echo "CURRENT_TARGET_GROUP=$CURRENT_TARGET_GROUP" >> $GITHUB_ENV
+
           if [ "$CURRENT_TARGET_GROUP" = "blue" ]; then
             echo "NEXT_TARGET_GROUP=${{ secrets.TARGET_GROUP_GREEN_ARN }}" >> $GITHUB_ENV
             echo "NEXT_PORT=8081" >> $GITHUB_ENV
@@ -81,7 +94,7 @@ jobs:
           echo "Current Target Group: $CURRENT_TARGET_GROUP"
           echo "Next Target Group: $NEXT_TARGET_GROUP"
 
-      # 8. EC2에서 새 애플리케이션 실행
+      # 9. EC2에서 새 애플리케이션 실행
       - name: Start New Application on EC2
         uses: appleboy/ssh-action@master
         with:
@@ -89,27 +102,19 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Stopping existing application (if any)..."
+            echo "Stopping existing application on port ${{ env.NEXT_PORT }}..."
             pkill -f "java -jar -Dserver.port=${{ env.NEXT_PORT }}" || true
 
-            echo "Starting new application..."
-            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=${{ env.NEXT_PORT }} /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+            echo "Starting new application on port ${{ env.NEXT_PORT }}..."
+            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=${{ env.NEXT_PORT }} /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app_${{ env.NEXT_PORT }}.log 2>&1 &
 
-            echo "Sleeping for 5 seconds to allow the application to start..."
-            sleep 5
+            echo "Sleeping for 10 seconds..."
+            sleep 10
 
             echo "Checking if the application is running..."
             ps -ef | grep java
 
-            echo "Checking if the log file exists..."
-            if [ -f /home/ubuntu/deployments/app.log ]; then
-              echo "Log file found. Displaying the last 10 lines:"
-              tail -n 10 /home/ubuntu/deployments/app.log
-            else
-              echo "Log file not found! The application might have failed to start."
-            fi
-
-      # 9. 헬스 체크 수행
+      # 10. 헬스 체크 수행
       - name: Health Check
         run: |
           ATTEMPTS=0
@@ -125,14 +130,15 @@ jobs:
           echo "Health check failed"
           exit 1
 
-      # 10. ELB Listener 업데이트
-      - name: Update ELB to New Target Group
+      # 11. ELB Listener 업데이트
+      - name: Update ELB Listener
         run: |
+          echo "Updating ELB Listener to point to new target group..."
           aws elbv2 modify-listener --listener-arn ${{ secrets.ELB_LISTENER_ARN }} \
             --default-actions Type=forward,TargetGroupArn=${{ env.NEXT_TARGET_GROUP }}
-          echo "ELB listener updated to point to ${{ env.NEXT_TARGET_GROUP }}"
+          echo "ELB Listener updated to point to ${{ env.NEXT_TARGET_GROUP }}."
 
-      # 11. 이전 애플리케이션 종료
+      # 12. 이전 애플리케이션 종료
       - name: Stop Previous Application
         uses: appleboy/ssh-action@master
         with:
@@ -141,5 +147,6 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             CURRENT_PORT=$(if [ "${{ env.CURRENT_TARGET_GROUP }}" = "blue" ]; then echo "8080"; else echo "8081"; fi)
+            echo "Stopping previous application on port $CURRENT_PORT..."
             pkill -f "java -jar -Dserver.port=$CURRENT_PORT" || echo "No application running on port $CURRENT_PORT"
-            echo "Previous application stopped on port $CURRENT_PORT"
+            echo "Previous application stopped."
