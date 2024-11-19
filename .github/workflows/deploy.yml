@@ -50,15 +50,15 @@ jobs:
 
       # 7. EC2로 JAR 파일 및 .env 파일 배포
       - name: Deploy JAR and .env file to EC2
-        uses: appleboy/scp-action@v0.2.3
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
-          source: |
-            build/libs/your-application.jar
-            .env
-          target: "~/"
+          script: |
+            echo "Uploading JAR and .env files to EC2..."
+            scp -o StrictHostKeyChecking=no build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
+            scp -o StrictHostKeyChecking=no .env ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
 
       # 8. 현재 활성화된 Target Group 확인 및 설정
       - name: Determine Active Target Group
@@ -83,8 +83,10 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            echo "Stopping existing application (if any)..."
             pkill -f "java -jar -Dserver.port=${{ env.NEXT_PORT }}" || true
-            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/.env -Dserver.port=${{ env.NEXT_PORT }} ~/your-application.jar > ~/app.log 2>&1 &
+            echo "Starting new application..."
+            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dserver.port=${{ env.NEXT_PORT }} ~/deployments/backend-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &
             echo "New application started on port ${{ env.NEXT_PORT }}"
 
       # 10. 헬스 체크 수행
