@@ -88,9 +88,23 @@ jobs:
           script: |
             echo "Stopping existing application (if any)..."
             pkill -f "java -jar -Dserver.port=${{ env.NEXT_PORT }}" || true
+
             echo "Starting new application..."
-            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dserver.port=${{ env.NEXT_PORT }} ~/deployments/backend-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &
-            echo "New application started on port ${{ env.NEXT_PORT }}"
+            nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -Dserver.port=${{ env.NEXT_PORT }} /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+
+            echo "Sleeping for 5 seconds to allow the application to start..."
+            sleep 5
+
+            echo "Checking if the application is running..."
+            ps -ef | grep java
+
+            echo "Checking if the log file exists..."
+            if [ -f /home/ubuntu/deployments/app.log ]; then
+              echo "Log file found. Displaying the last 10 lines:"
+              tail -n 10 /home/ubuntu/deployments/app.log
+            else
+              echo "Log file not found! The application might have failed to start."
+            fi
 
       # 9. 헬스 체크 수행
       - name: Health Check
