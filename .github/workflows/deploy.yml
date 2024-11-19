@@ -101,7 +101,8 @@ jobs:
             fi
       
             echo "Starting new application..."
-            nohup java -Dspring.profiles.active=aws -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+            nohup java -Dspring.config.import=file:/home/ubuntu/deployments/.env -Dspring.profiles.active=aws -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+
       
             echo "Sleeping for 10 seconds to allow the application to start..."
             sleep 10
