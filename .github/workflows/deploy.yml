@@ -39,7 +39,10 @@ jobs:
       - name: Build and Test
         working-directory: backend
         env:
-          SPRING_PROFILES_ACTIVE: test
+          SPRING_PROFILES_ACTIVE: aws
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: ./gradlew clean build test
 
       # 6. 환경 변수 파일 생성
