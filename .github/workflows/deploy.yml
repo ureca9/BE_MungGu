@@ -92,26 +92,31 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Stopping existing application (if any)..."
-            pkill -f "backend-0.0.1-SNAPSHOT.jar" || true
-            
-            echo "Killing any remaining Java processes..."
-            pkill -9 -f java || true
+            echo "Checking for existing application on port 8080..."
+
+            # Find and kill the process using port 8080, if any
+            PID=$(sudo lsof -t -i:8080) || true
+            if [ -n "$PID" ]; then
+              echo "Port 8080 is in use by process $PID. Stopping it..."
+              sudo kill -9 $PID
+              echo "Process $PID stopped."
+            else
+              echo "No process found using port 8080."
+            fi
+
+            echo "Ensuring no lingering Java processes are running..."
+            pkill -f "java" || true
       
             echo "Starting new application..."
             nohup java -Dspring.profiles.active=aws -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
-
+      
             echo "Sleeping for 10 seconds to allow the application to start..."
             sleep 10
-
+      
             echo "Checking if the application is running..."
-            ps -ef | grep java
-
-            echo "Checking if the log file exists..."
-            if [ -f /home/ubuntu/deployments/app.log ]; then
-              echo "Log file found. Displaying the last 10 lines:"
-              tail -n 10 /home/ubuntu/deployments/app.log
+            if ps -ef | grep -v grep | grep -q "backend-0.0.1-SNAPSHOT.jar"; then
+              echo "Application started successfully."
             else
-              echo "Log file not found. Application might have failed to start."
+              echo "Application failed to start. Check logs for details."
               exit 1
             fi
