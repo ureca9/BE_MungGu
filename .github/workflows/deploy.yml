@@ -40,32 +40,30 @@ jobs:
         working-directory: backend
         run: ./gradlew clean build -x test
 
-      # 6. 환경 변수 파일 생성
-      - name: Generate .env file
-        working-directory: backend
-        run: |
-          echo "DB_URL=${{ secrets.DB_URL }}" > .env
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> .env
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
-          echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
-
-      # 7. EC2로 JAR 파일 및 .env 파일 배포
-      - name: Deploy JAR and .env file to EC2
+      # 6. 환경 변수 파일 생성 및 JAR 파일 업로드
+      - name: Generate .env and Deploy JAR to EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Uploading JAR and .env files to EC2..."
-            scp -o StrictHostKeyChecking=no backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
-            scp -o StrictHostKeyChecking=no backend/.env ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
-            echo "Files uploaded to EC2 successfully."
+            echo "Creating deployments directory on EC2..."
+            mkdir -p /home/ubuntu/deployments
+            echo "Generating .env file on EC2..."
+            echo "DB_URL=${{ secrets.DB_URL }}" > /home/ubuntu/deployments/.env
+            echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> /home/ubuntu/deployments/.env
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> /home/ubuntu/deployments/.env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> /home/ubuntu/deployments/.env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> /home/ubuntu/deployments/.env
+            echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> /home/ubuntu/deployments/.env
+            echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> /home/ubuntu/deployments/.env
+            echo "Uploading JAR file to EC2..."
+            scp -o StrictHostKeyChecking=no backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:/home/ubuntu/deployments/
+            echo "Environment file and JAR uploaded successfully."
 
-      # 8. 현재 활성화된 Target Group 확인 및 설정
+
+      # 7. 현재 활성화된 Target Group 확인 및 설정
       - name: Determine Active Target Group
         run: |
           CURRENT_TARGET_GROUP=$(aws elbv2 describe-target-health --target-group-arn ${{ secrets.TARGET_GROUP_BLUE_ARN }} | jq -r '.TargetHealthDescriptions[].TargetHealth.State' | grep -m 1 "healthy" && echo "blue" || echo "green")
@@ -80,7 +78,7 @@ jobs:
           echo "Current Target Group: $CURRENT_TARGET_GROUP"
           echo "Next Target Group: $NEXT_TARGET_GROUP"
 
-      # 9. EC2에서 새 애플리케이션 실행
+      # 8. EC2에서 새 애플리케이션 실행
       - name: Start New Application on EC2
         uses: appleboy/ssh-action@master
         with:
@@ -94,7 +92,7 @@ jobs:
             nohup java -jar --spring.config.import=optional:envfile:/home/ubuntu/deployments/.env -Dserver.port=${{ env.NEXT_PORT }} ~/deployments/backend-0.0.1-SNAPSHOT.jar > ~/app.log 2>&1 &
             echo "New application started on port ${{ env.NEXT_PORT }}"
 
-      # 10. 헬스 체크 수행
+      # 9. 헬스 체크 수행
       - name: Health Check
         run: |
           ATTEMPTS=0
@@ -110,14 +108,14 @@ jobs:
           echo "Health check failed"
           exit 1
 
-      # 11. ELB Listener 업데이트
+      # 10. ELB Listener 업데이트
       - name: Update ELB to New Target Group
         run: |
           aws elbv2 modify-listener --listener-arn ${{ secrets.ELB_LISTENER_ARN }} \
             --default-actions Type=forward,TargetGroupArn=${{ env.NEXT_TARGET_GROUP }}
           echo "ELB listener updated to point to ${{ env.NEXT_TARGET_GROUP }}"
 
-      # 12. 이전 애플리케이션 종료
+      # 11. 이전 애플리케이션 종료
       - name: Stop Previous Application
         uses: appleboy/ssh-action@master
         with:
