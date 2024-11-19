@@ -93,19 +93,12 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             echo "Checking for existing application on port 8080..."
-
-            # Find and kill the process using port 8080, if any
-            PID=$(sudo lsof -t -i:8080) || true
-            if [ -n "$PID" ]; then
-              echo "Port 8080 is in use by process $PID. Stopping it..."
-              sudo kill -9 $PID
-              echo "Process $PID stopped."
+            if lsof -i:8080; then
+              echo "Stopping existing application on port 8080..."
+              pkill -f "backend-0.0.1-SNAPSHOT.jar" || true
             else
               echo "No process found using port 8080."
             fi
-
-            echo "Ensuring no lingering Java processes are running..."
-            pkill -f "java" || true
       
             echo "Starting new application..."
             nohup java -Dspring.profiles.active=aws -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
