@@ -38,6 +38,8 @@ jobs:
       # 5. Build 및 Test 수행
       - name: Build and Test
         working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
         run: ./gradlew clean build test
 
       # 6. 환경 변수 파일 생성
