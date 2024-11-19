@@ -42,6 +42,7 @@ jobs:
 
       # 6. 환경 변수 파일 생성
       - name: Generate .env file
+        working-directory: backend
         run: |
           echo "DB_URL=${{ secrets.DB_URL }}" > .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
@@ -60,8 +61,9 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             echo "Uploading JAR and .env files to EC2..."
-            scp -o StrictHostKeyChecking=no build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
-            scp -o StrictHostKeyChecking=no .env ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
+            scp -o StrictHostKeyChecking=no backend/build/libs/backend-0.0.1-SNAPSHOT.jar ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
+            scp -o StrictHostKeyChecking=no backend/.env ubuntu@${{ secrets.HOST_PROD }}:~/deployments/
+            echo "Files uploaded to EC2 successfully."
 
       # 8. 현재 활성화된 Target Group 확인 및 설정
       - name: Determine Active Target Group
