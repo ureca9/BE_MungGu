@@ -84,7 +84,12 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             echo "Stopping existing application (if any)..."
-            pkill -f "backend-0.0.1-SNAPSHOT.jar" || true
+            if lsof -i:8080; then
+              echo "Stopping existing application on port 8080..."
+              pkill -f "backend-0.0.1-SNAPSHOT.jar" || true
+            else
+              echo "No process found using port 8080."
+            fi
             
             echo "Starting new application with environment variables..."
             nohup java \
