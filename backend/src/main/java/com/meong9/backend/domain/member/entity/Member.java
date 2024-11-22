@@ -1,20 +1,18 @@
 package com.meong9.backend.domain.member.entity;
 
-import com.meong9.backend.global.entity.BaseEntity;
-import com.meong9.backend.global.entity.MediaFile;
+import com.meong9.backend.global.entity.BaseTimeEntity;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
-public class Member extends BaseEntity {
+public class Member extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long memberId;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -26,12 +24,26 @@ public class Member extends BaseEntity {
 
     private String provider;
 
+    private String phone;
+
     @Column(nullable = false)
-    private boolean isDeleted = false;
+    private Boolean isDeleted = false;
 
     @Column(length = 50, unique = true)
     private String providerId;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private MediaFile profileImageUrl;
+    @OneToOne(cascade = CascadeType.ALL)
+    private MediaFile profileImage;
+
+    private String roleCode = "010";
+
+    @Builder
+    public Member (String email, String name, String nickname, String provider, String providerId, MediaFile profileImage) {
+        this.email = email;
+        this.name = name;
+        this.nickname = nickname;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.profileImage = profileImage;
+    }
 }
