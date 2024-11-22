@@ -1,5 +1,6 @@
-package com.meong9.backend.image;
+package com.meong9.backend.global.mediafile.controller;
 
+import com.meong9.backend.global.mediafile.service.MediaFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -9,13 +10,12 @@ import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
-public class ImageController {
+public class MediaFileController {
 
-    private final ImageService imageService;
+    private final MediaFileService imageService;
 
     @PostMapping("/upload")
     public String upload(MultipartFile image) throws IOException {
-        /* 이미지 업로드 로직 */
         return imageService.upload(image);
     }
 }
