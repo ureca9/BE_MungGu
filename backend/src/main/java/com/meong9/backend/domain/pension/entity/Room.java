@@ -1,18 +1,19 @@
 package com.meong9.backend.domain.pension.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long roomId;
 
     @Column(name = "room_name")
     private String name;
@@ -38,5 +39,5 @@ public class Room {
     private Integer basicPrice;
 
     @Column(nullable = false)
-    private boolean isSoldOut = false;
+    private Boolean isSoldOut = false;
 }
