@@ -1,6 +1,6 @@
 package com.meong9.backend.global.auth.config;
 
-import com.meong9.backend.global.auth.filter.JwtAuthorizationFilter;
+import com.meong9.backend.global.auth.filter.JwtAuthenticationFilter;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.auth.service.MemberDetailsService;
 import com.meong9.backend.global.auth.utils.JwtProvider;
@@ -98,7 +98,7 @@ public class SecurityConfig {
 //                .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 인증 실패 처리
 //        );
 
-        http.addFilterBefore(new JwtAuthorizationFilter(jwtProvider, memberDetailsService, ignoredRequests),
+        http.addFilterBefore(new JwtAuthenticationFilter(jwtProvider, memberDetailsService, ignoredRequests),
                 UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
