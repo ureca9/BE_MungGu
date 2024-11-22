@@ -1,8 +1,9 @@
 package com.meong9.backend.domain.puppy.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
-import com.meong9.backend.global.entity.MediaFile;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,24 +11,24 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
 public class Puppy {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long puppyId;
 
     @Column(name = "puppy_name")
     private String name;
 
     private LocalDate birthDate;
 
-    private char gender;
+    private Character gender;
 
-    private double weight;
+    private Double weight;
 
-    private boolean neutered;
+    private Boolean neutered;
 
     @JoinColumn(name = "member_id")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,5 +38,5 @@ public class Puppy {
     private Breed breed;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private MediaFile profileImageUrl;
+    private MediaFile profileImageId;
 }
