@@ -32,7 +32,7 @@ public class Member extends BaseTimeEntity {
     @Column(length = 50, unique = true)
     private String providerId;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private MediaFile profileImage;
 
     private String roleCode = "010";
