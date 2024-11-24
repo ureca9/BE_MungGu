@@ -2,6 +2,7 @@ package com.meong9.backend.domain.member.controller;
 
 import com.meong9.backend.domain.member.dto.InterestDto;
 import com.meong9.backend.domain.member.dto.LoginResponseDto;
+import com.meong9.backend.domain.member.dto.RegionDto;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.auth.entity.MemberDetails;
@@ -48,10 +49,23 @@ public class MemberController {
                 .body(Map.of("message", "Access Token이 재발급되었습니다."));
     }
 
-    @PostMapping("/members/interests")
-    public ResponseEntity<?> insertInterests(@RequestBody InterestDto dto,
-                                             @AuthenticationPrincipal MemberDetails memberDetails) {
-        memberService.insertInterests(dto, memberDetails.member());
+    /**
+     * 회원 선호시설 추가 컨트롤러
+     */
+    @PostMapping("/members/interests/places")
+    public ResponseEntity<?> insertPreferredPlaces(@RequestBody InterestDto dto,
+                                                   @AuthenticationPrincipal MemberDetails memberDetails) {
+        memberService.insertPreferredPlaces(dto, memberDetails.member());
+        return CommonResponse.ok("success");
+    }
+
+    /**
+     * 회원 선호지역 추가 컨트롤러
+     */
+    @PostMapping("/members/interests/regions")
+    public ResponseEntity<?> insertPreferredRegions(@RequestBody RegionDto dto,
+                                                    @AuthenticationPrincipal MemberDetails memberDetails) {
+        memberService.insertPreferredRegions(dto, memberDetails.member());
         return CommonResponse.ok("success");
     }
 }
