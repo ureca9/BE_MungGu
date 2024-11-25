@@ -198,11 +198,22 @@ public class KakaoService {
             throw ConflictException.emailAlreadyInUse(sameEmailUser.getEmail());
         }
 
-        // 3. 신규 카카오 회원 등록 (프로필 사진 S3에 업로드 후 사진 + 멤버 저장)
+        // 3. 신규 카카오 회원 등록 (멤버 먼저 저장 후 memberId를 키값으로 s3에 사진 업로드)
+        kakaoUser = Member.builder()
+                .email(kakaoUserInfo.getEmail())
+                .provider(PROVIDER_KAKAO)
+                .providerId(kakaoUserInfo.getId())
+                .nickname(kakaoUserInfo.getNickname())
+                .build();
+
+        Member savedMember = memberRepository.save(kakaoUser);
+
+        // 4. S3에 프로필 사진 업로드 및 DB 저장
         S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
                 kakaoUserInfo.getProfileImageUrl(),
-                kakaoUserInfo.getNickname()
+                savedMember.getMemberId()
         );
+
         ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());
 
         MediaFile mediaFile = MediaFile.builder()
@@ -217,15 +228,9 @@ public class KakaoService {
 
         mediaFileRepository.save(mediaFile);
 
-        kakaoUser = Member.builder()
-                .email(kakaoUserInfo.getEmail())
-                .provider(PROVIDER_KAKAO)
-                .providerId(kakaoUserInfo.getId())
-                .nickname(kakaoUserInfo.getNickname())
-                .profileImage(mediaFile)
-                .build();
-
-        Member savedMember = memberRepository.save(kakaoUser);
+        // 5. 멤버 업데이트 (프로필 이미지 연결)
+        savedMember.setProfileImage(mediaFile);
+        memberRepository.save(savedMember);
 
         return KakaoRegisterResultDto.builder()
                 .isNewMember(true)
