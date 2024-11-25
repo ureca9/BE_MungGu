@@ -2,6 +2,7 @@ package com.meong9.backend.domain.member.controller;
 
 import com.meong9.backend.domain.member.dto.InterestDto;
 import com.meong9.backend.domain.member.dto.LoginResponseDto;
+import com.meong9.backend.domain.member.dto.MemberInfoDto;
 import com.meong9.backend.domain.member.dto.RegionDto;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
@@ -66,6 +68,26 @@ public class MemberController {
     public ResponseEntity<?> insertPreferredRegions(@RequestBody RegionDto dto,
                                                     @AuthenticationPrincipal MemberDetails memberDetails) {
         memberService.insertPreferredRegions(dto, memberDetails.member());
+        return CommonResponse.ok("success");
+    }
+
+    /**
+     * 회원 정보 등록 요청 컨트롤러
+     */
+    @PostMapping("/members/info")
+    public ResponseEntity<?> insertMemberInfo(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
+                                              @RequestPart(name = "MemberInfoDto") MemberInfoDto dto,
+                                              @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+        memberService.insertMemberInfo(profileImage, dto, memberDetails.member());
+        return CommonResponse.ok("success");
+    }
+
+    /**
+     * 프로필 사진 삭제 요청 컨트롤러
+     */
+    @DeleteMapping("/members/images")
+    public ResponseEntity<?> deleteProfileImage(@AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+        memberService.deleteProfileImage(memberDetails.member());
         return CommonResponse.ok("success");
     }
 }
