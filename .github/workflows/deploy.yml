@@ -5,10 +5,12 @@ on:
   push:
     branches:
       - main
+      - dev
   # main 브랜치로 PR이 병합될 때 (pull request가 closed 될 때) 실행
   pull_request:
     branches:
       - main
+      - dev
     types:
       - closed
 
