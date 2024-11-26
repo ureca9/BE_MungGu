@@ -28,7 +28,6 @@ public class MemberService {
 
         if (!refreshTokenService.validateRefreshToken(email, refreshToken.substring(7))) {
             refreshTokenService.removeRefreshToken(storedRefreshToken);
-            System.out.println("bearer 없고2");
             throw AuthenticationException.unauthenticatedToken(refreshToken);
         }
 

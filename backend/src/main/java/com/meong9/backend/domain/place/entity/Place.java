@@ -25,6 +25,7 @@ public class Place {
     @Column(length = 20)
     private String telNo;
 
+    @Column(columnDefinition = "TEXT")
     private String hmpgUrl;
 
     private String closedDays;

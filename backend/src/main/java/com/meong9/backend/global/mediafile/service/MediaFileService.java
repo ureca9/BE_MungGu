@@ -98,4 +98,40 @@ public class MediaFileService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         return originalFileName + "_" + LocalDateTime.now().format(formatter);
     }
+
+    /**
+     * S3에 파일 업로드 및 URL 반환 (사용자 지정 키 사용)
+     */
+    public String uploadToS3WithCustomKey(MultipartFile image, String fileKey) throws IOException {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType(image.getContentType());
+        metadata.setContentLength(image.getSize());
+
+        s3Client.putObject(bucket, fileKey, image.getInputStream(), metadata);
+
+        return s3Client.getUrl(bucket, fileKey).toString();
+    }
+
+
+    /**
+     * MultipartFile에서 이미지 메타데이터 추출
+     */
+    public ImageMetadataDto extractImageMetadata(MultipartFile image) throws IOException {
+        BufferedImage bufferedImage = ImageIO.read(image.getInputStream());
+
+        int width = bufferedImage.getWidth();
+        int height = bufferedImage.getHeight();
+
+        return new ImageMetadataDto(width, height, image.getSize());
+    }
+
+    // S3에서 파일 삭제
+    public void deleteFromS3(String fileKey) {
+        if (s3Client.doesObjectExist(bucket, fileKey)) {
+            s3Client.deleteObject(bucket, fileKey);
+        } else {
+            throw new IllegalArgumentException("S3에 파일이 존재하지 않습니다: " + fileKey);
+        }
+    }
+
 }
