@@ -10,6 +10,7 @@ import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.auth.utils.JwtProvider;
 import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -76,7 +77,7 @@ public class MemberController {
      */
     @PostMapping("/members/info")
     public ResponseEntity<?> insertMemberInfo(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
-                                              @RequestPart(name = "MemberInfoDto") MemberInfoDto dto,
+                                              @Valid @RequestPart(name = "MemberInfoDto") MemberInfoDto dto,
                                               @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
         memberService.insertMemberInfo(profileImage, dto, memberDetails.member());
         return CommonResponse.ok("success");

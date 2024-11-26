@@ -111,9 +111,9 @@ public class MemberService {
      * 사용자 정보를 등록하는 서비스 메서드
      */
     public void insertMemberInfo(MultipartFile profileImage,MemberInfoDto dto, Member member) throws IOException {
-        member.setName(dto.getName());
-        member.setPhone(dto.getPhone());
-        member.setNickname(dto.getNickname());
+        member.setName(dto.getName().trim());
+        member.setPhone(dto.getPhone().trim());
+        member.setNickname(dto.getNickname().trim());
 
         if (profileImage != null) {
             mediaFileService.uploadProfileImage(profileImage, member.getMemberId());
