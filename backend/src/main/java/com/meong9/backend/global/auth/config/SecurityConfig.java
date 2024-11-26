@@ -35,7 +35,6 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final MemberDetailsService memberDetailsService;
-    private final RefreshTokenService refreshTokenService;
     private final AuthenticationConfiguration authenticationConfiguration;
 
     @Bean
