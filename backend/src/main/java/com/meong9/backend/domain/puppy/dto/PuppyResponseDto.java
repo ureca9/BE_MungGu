@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class PuppyResponseDto {
-    private Long puppyId;
+    private final Long puppyId;
 }
