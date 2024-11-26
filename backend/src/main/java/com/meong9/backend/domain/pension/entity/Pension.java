@@ -1,18 +1,19 @@
 package com.meong9.backend.domain.pension.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
 public class Pension {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long pensionId;
 
     @Column(name = "pension_name")
     private String name;
@@ -36,7 +37,7 @@ public class Pension {
     @Column(nullable = false)
     private Integer reviewCount = 0;
 
-    @Column(nullable = false, precision = 2, scale = 1)
+    @Column(nullable = false)
     private Double reviewAvg = 0.0; // 정수부 + 소수부 합쳐서 2자리. 소수부 1자리
 
     private String startTime;
@@ -44,5 +45,5 @@ public class Pension {
     private String endTime;
 
     @Column(nullable = false)
-    private boolean isSoldOut = false;
+    private Boolean isSoldOut = false;
 }

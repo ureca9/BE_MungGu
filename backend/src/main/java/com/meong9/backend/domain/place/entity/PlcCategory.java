@@ -1,4 +1,4 @@
-package com.meong9.backend.domain.puppy.entity;
+package com.meong9.backend.domain.place.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -10,13 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
-public class Breed {
+public class PlcCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long breedId;
+    private Long plcCategoryId;
 
-    @Column(name = "breed_name")
+    @Column(name = "plc_category_name")
     private String name;
-
-    private Boolean isFrequented;
 }
