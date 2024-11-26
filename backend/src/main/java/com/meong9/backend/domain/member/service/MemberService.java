@@ -6,7 +6,6 @@ import com.meong9.backend.domain.member.dto.RegionDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.repository.FavoriteRegionRepository;
 import com.meong9.backend.domain.member.repository.MemberRepository;
-import com.meong9.backend.domain.member.repository.PlcFavCategoryJdbcRepositoryImpl;
 import com.meong9.backend.domain.member.repository.PlcFavCategoryRepository;
 import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
@@ -125,5 +124,9 @@ public class MemberService {
 
     public void deleteProfileImage(Member member) {
         mediaFileService.deleteProfileImage(member.getMemberId());
+    }
+
+    public boolean isNicknameAvailable(String nickname) {
+        return !memberRepository.existsByNickname(nickname);
     }
 }

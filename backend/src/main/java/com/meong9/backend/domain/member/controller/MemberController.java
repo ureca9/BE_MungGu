@@ -86,8 +86,18 @@ public class MemberController {
      * 프로필 사진 삭제 요청 컨트롤러
      */
     @DeleteMapping("/members/images")
-    public ResponseEntity<?> deleteProfileImage(@AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+    public ResponseEntity<?> deleteProfileImage(@AuthenticationPrincipal MemberDetails memberDetails) {
         memberService.deleteProfileImage(memberDetails.member());
         return CommonResponse.ok("success");
+    }
+
+    /**
+     * 닉네임 중복 여부 확인 컨트롤러
+     */
+    @GetMapping("/members/check")
+    public ResponseEntity<?> checkNicknameAvailability(@RequestParam(name = "nickname") String nickname) {
+        boolean isAvailable = memberService.isNicknameAvailable(nickname);
+        String message = isAvailable ? "사용 가능한 닉네임입니다." : "중복된 닉네임입니다.";
+        return CommonResponse.ok(message);
     }
 }
