@@ -3,3 +3,5 @@ spring:
     name: backend
   profiles:
     active: aws
+server:
+  port: 8080
