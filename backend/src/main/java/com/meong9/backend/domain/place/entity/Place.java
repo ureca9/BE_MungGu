@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -51,4 +53,8 @@ public class Place {
 
     @Column(nullable = false)
     private Integer likeCount = 0;
+
+    public void increaseLikeCount(){
+        this.likeCount++;
+    }
 }
