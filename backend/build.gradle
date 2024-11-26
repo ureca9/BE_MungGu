@@ -24,6 +24,9 @@ repositories {
 }
 
 dependencies {
+	// Validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
 	// JWT
 	compileOnly group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.11.5'
 	runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.11.5'
