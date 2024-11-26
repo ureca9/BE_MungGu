@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kakao Login Test</title>
+    <script>
+        // Kakao 인증 요청 URL 구성
+        const REST_API_KEY = "f5073399aab84d115f651941e6f66e5c"; // 카카오 REST API 키로 변경
+        const REDIRECT_URI = "http://localhost:8080/api/v1/auth/callback/kakao"; // 콜백 URL로 변경
+
+        function loginWithKakao() {
+            const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${REST_API_KEY}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+            window.location.href = kakaoAuthUrl; // Kakao 로그인 페이지로 리다이렉트
+        }
+    </script>
+</head>
+<body>
+<h1>Kakao Login Test</h1>
+<button onclick="loginWithKakao()">Login with Kakao</button>
+</body>
+</html>

@@ -46,4 +46,11 @@ public class Pension {
 
     @Column(nullable = false)
     private Boolean isSoldOut = false;
+
+    @Column(nullable = false)
+    private Integer likeCount = 0;
+
+    public void increaseLikeCount(){
+        this.likeCount++;
+    }
 }
