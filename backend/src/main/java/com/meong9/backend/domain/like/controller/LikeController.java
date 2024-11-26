@@ -24,7 +24,7 @@ public class LikeController {
     private final LikeService likeService;
     private final MemberService memberService;
 
-    @PostMapping("/likes/places/{placeId}")
+    @PostMapping("/places/likes/{placeId}")
     public ResponseEntity<?> togglePlaceLike(@AuthenticationPrincipal MemberDetails memberDetails,@PathVariable Long placeId) {
         Member member=memberDetails.member();
         log.debug("회원 이메일 = {}", member.getEmail());
@@ -32,7 +32,7 @@ public class LikeController {
         return CommonResponse.created("success");
     }
 
-    @PostMapping("/likes/pensions/{pensionId}")
+    @PostMapping("/pensions/likes/{pensionId}")
     public ResponseEntity<?> togglePensionLike(@AuthenticationPrincipal MemberDetails memberDetails, @PathVariable Long pensionId) {
         Member member=memberDetails.member();
         String message = likeService.togglePensionLike(member, pensionId);
