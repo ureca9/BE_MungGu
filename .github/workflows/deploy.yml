@@ -1,9 +1,16 @@
-name: Build and Deploy to EC2 with Blue-Green Strategy
+name: Build and Deploy to EC2 with Predefined Environment Variables
 
 on:
+  # main 브랜치로 코드가 푸시될 때 실행
   push:
     branches:
-      - main # main 브랜치에 push될 때 실행
+      - main
+  # main 브랜치로 PR이 병합될 때 (pull request가 closed 될 때) 실행
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
 
 jobs:
   deploy:
@@ -14,33 +21,24 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      # 2. Gradle 캐시 활성화
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # 3. Java 17 설치
+      # 2. Java 17 설치
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: 17
           distribution: 'zulu'
 
-      # 4. Gradle 실행 권한 부여
+      # 3. Gradle 실행 권한 부여
       - name: Grant execute permission for gradlew
         working-directory: backend
         run: chmod +x ./gradlew
 
-      # 5. Build 수행
+      # 4. Build 수행
       - name: Build
         working-directory: backend
         run: ./gradlew clean build -x test
 
-      # 6. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
+      # 5. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -53,8 +51,8 @@ jobs:
           echo "Uploading JAR file to S3..."
           aws s3 cp backend/build/libs/backend-0.0.1-SNAPSHOT.jar s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar
 
-      # 7. EC2에서 환경 변수 파일 생성 및 JAR 다운로드
-      - name: Setup Environment and Download JAR
+      # 6. EC2에서 JAR 다운로드
+      - name: Download JAR from S3
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
@@ -75,7 +73,7 @@ jobs:
               exit 1
             fi
 
-      # 8. EC2에서 애플리케이션 실행
+      # 7. EC2에서 애플리케이션 실행
       - name: Start Application on EC2
         uses: appleboy/ssh-action@master
         with:
@@ -85,7 +83,6 @@ jobs:
           script: |
             echo "Stopping existing application (if any)..."
             if lsof -i:8080; then
-              echo "Stopping existing application on port 8080..."
               PID=$(lsof -t -i:8080)
               kill -15 $PID
               sleep 5
@@ -93,17 +90,8 @@ jobs:
               echo "No process found using port 8080."
             fi
             
-            echo "Starting new application with environment variables..."
-            nohup java \
-              -Dspring.profiles.active=aws \
-              -DDB_URL=${{ secrets.DB_URL }} \
-              -DDB_USERNAME=${{ secrets.DB_USERNAME }} \
-              -DDB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-              -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-              -DAWS_REGION=${{ secrets.AWS_REGION }} \
-              -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }} \
-              -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+            echo "Starting new application..."
+            nohup java -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
       
             echo "Sleeping for 10 seconds to allow the application to start..."
             sleep 10
