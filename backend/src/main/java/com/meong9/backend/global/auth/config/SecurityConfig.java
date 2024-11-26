@@ -1,7 +1,6 @@
 package com.meong9.backend.global.auth.config;
 
 import com.meong9.backend.global.auth.filter.JwtAuthenticationFilter;
-import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.auth.service.MemberDetailsService;
 import com.meong9.backend.global.auth.utils.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +34,6 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final MemberDetailsService memberDetailsService;
-    private final RefreshTokenService refreshTokenService;
     private final AuthenticationConfiguration authenticationConfiguration;
 
     @Bean
@@ -63,6 +61,7 @@ public class SecurityConfig {
         final RequestMatcher ignoredRequests = new OrRequestMatcher(
                 List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.POST.name()),
                         new AntPathRequestMatcher("/api/v1/auth/token", HttpMethod.POST.name()),
+                        new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/places", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/pensions", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/rankings", HttpMethod.GET.name()),
@@ -70,7 +69,8 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/pensions/{pensionId}", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/{placeId}", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/{placeId}/reviews", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/", HttpMethod.GET.name())
+                        new AntPathRequestMatcher("/", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name())
                 ));
 
         // 요청별 권한 관리
@@ -91,12 +91,6 @@ public class SecurityConfig {
 
         // 로그인 폼 비활성화
         http.formLogin(AbstractHttpConfigurer::disable);
-
-        // 예외 처리
-//        http.exceptionHandling(exception -> exception
-//                .accessDeniedHandler(new CustomAccessDeniedHandler()) // 권한 없음 처리
-//                .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 인증 실패 처리
-//        );
 
         http.addFilterBefore(new JwtAuthenticationFilter(jwtProvider, memberDetailsService, ignoredRequests),
                 UsernamePasswordAuthenticationFilter.class);

@@ -2,6 +2,7 @@ package com.meong9.backend.global.mediafile.service;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import lombok.RequiredArgsConstructor;
@@ -10,13 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,53 +28,62 @@ public class MediaFileService {
     @Value("${s3.bucket}")
     private String bucket;
 
-    public String upload(MultipartFile image) throws IOException {
-        // 1. 업로드할 파일의 이름을 변경
-        String originalFileName = image.getOriginalFilename();
-        String fileName = generateFileName(originalFileName);
+    /**
+     * 유저가 등록한 프로필 이미지를 S3에 업로드
+     */
+    public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId) throws IOException {
+        validateImage(image);
 
-        // 2. S3에 업로드할 파일의 메타데이터 생성
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(image.getContentType());
-        metadata.setContentLength(image.getSize());
+        // 이미지 변환 처리 (PNG -> JPG)
+        BufferedImage originalImage = ImageIO.read(image.getInputStream());
+        BufferedImage rgbImage = convertToRgbImage(originalImage);
 
-        // 3. S3에 업로드
-        s3Client.putObject(bucket, fileName, image.getInputStream(), metadata);
-
-        // 4. 업로드한 파일의 S3 url 주소 반환
-        return s3Client.getUrl(bucket, fileName).toString();
+        return uploadImageToS3(memberId, rgbImage);
     }
 
     /**
      * 카카오에서 받은 이미지 URL로 S3에 업로드
      */
-    public S3UploadResultDto uploadFromUrl(String imageUrl, String nickname) throws IOException {
-        // 1. URL에서 이미지 다운로드
+    public S3UploadResultDto uploadFromUrl(String imageUrl, Long memberId) throws IOException {
+        // URL에서 이미지 다운로드
         URL url = new URL(imageUrl);
         BufferedImage bufferedImage = ImageIO.read(url);
 
-        // 2. 이미지 메타데이터 추출
+        return uploadImageToS3(memberId, bufferedImage);
+    }
+
+    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage) throws IOException {
+        // 1. 이미지 메타데이터 추출
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(bufferedImage, "jpg", baos);
+        ImageIO.write(rgbImage, "jpg", baos);
         byte[] imageBytes = baos.toByteArray();
 
-        // 3. S3 메타데이터 설정
+        // 2. S3 메타데이터 설정
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType("image/jpeg");
         metadata.setContentLength(imageBytes.length);
 
-        // 4. 파일 키 생성
-        String fileKey = "Mprofile/" + nickname + "_profile.jpg";
+        // 3. S3 파일 키 생성
+        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
 
-        // 5. S3 업로드
+        // 4. S3 업로드
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
         s3Client.putObject(bucket, fileKey, inputStream, metadata);
 
-        // 6. S3 URL 생성
+        // 5. S3 URL 생성 및 파일 키 반환
         String s3Url = s3Client.getUrl(bucket, fileKey).toString();
-
-        // 7. S3 URL과 파일 키 반환
         return new S3UploadResultDto(s3Url, fileKey);
+    }
+
+    private static void validateImage(MultipartFile image) {
+        String originalFilename = image.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw BadRequestException.invalidImageFormat();
+        }
+        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+        if (!List.of("jpg", "jpeg", "png").contains(fileExtension)) {
+            throw BadRequestException.invalidImageFormat();
+        }
     }
 
     /**
@@ -91,11 +101,27 @@ public class MediaFileService {
     }
 
     /**
-     * 파일 이름과 생성 시간을 결합해 이름을 생성
+     * 그림 투명도 제거
      */
-    private String generateFileName(String originalFileName) {
-        /* 업로드할 파일의 이름을 변경하는 로직 */
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        return originalFileName + "_" + LocalDateTime.now().format(formatter);
+    private BufferedImage convertToRgbImage(BufferedImage originalImage) {
+        // RGB 형식의 빈 이미지 생성
+        BufferedImage rgbImage = new BufferedImage(
+                originalImage.getWidth(),
+                originalImage.getHeight(),
+                BufferedImage.TYPE_INT_RGB
+        );
+
+        // 기존 이미지를 새 RGB 이미지에 그리기 (투명도 제거)
+        Graphics2D g2d = rgbImage.createGraphics();
+        g2d.drawImage(originalImage, 0, 0, Color.WHITE, null); // 투명한 부분은 흰색으로
+        g2d.dispose();
+
+        return rgbImage;
     }
+
+    public void deleteProfileImage(Long memberId) {
+        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+        s3Client.deleteObject(bucket, fileKey);
+    }
+
 }

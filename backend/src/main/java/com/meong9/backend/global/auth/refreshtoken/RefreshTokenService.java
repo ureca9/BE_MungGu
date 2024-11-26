@@ -1,6 +1,5 @@
 package com.meong9.backend.global.auth.refreshtoken;
 
-import com.meong9.backend.global.auth.utils.JwtProvider;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
