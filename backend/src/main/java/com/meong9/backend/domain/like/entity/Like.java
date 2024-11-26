@@ -8,10 +8,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn
 @NoArgsConstructor(access=AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
-@Table(name = "likes")
+@Table(
+        name = "likes",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"member_id", "pension_id"}),
+                @UniqueConstraint(columnNames = {"member_id", "place_id"})
+        }
+)
 public class Like {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
