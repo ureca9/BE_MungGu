@@ -17,13 +17,16 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Setter
     private String name;
 
     @Column(nullable = false, length = 20, unique = true)
+    @Setter
     private String nickname;
 
     private String provider;
 
+    @Setter
     private String phone;
 
     @Column(nullable = false)
@@ -32,7 +35,8 @@ public class Member extends BaseTimeEntity {
     @Column(length = 50, unique = true)
     private String providerId;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Setter
     private MediaFile profileImage;
 
     private String roleCode = "010";
