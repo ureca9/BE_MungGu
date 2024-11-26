@@ -15,11 +15,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Getter
 public class Puppy {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long puppyId;
 
-    @Column(name = "puppy_name")
+    @Column(name = "puppy_name", nullable = false)
     private String name;
 
     private LocalDate birthDate;
@@ -34,9 +35,22 @@ public class Puppy {
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "breed_id", nullable = false) // Breed에 대한 외래 키
     private Breed breed;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "profile_image_id") // 외래 키 이름 명시
     private MediaFile profileImageId;
+
+    // 수정 메서드
+    public void update(String name, LocalDate birthDate, Character gender, Double weight, Boolean neutered, Breed breed, MediaFile profileImageId) {
+        this.name = name;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.weight = weight;
+        this.neutered = neutered;
+        this.breed = breed;
+        this.profileImageId = profileImageId;
+    }
 }
