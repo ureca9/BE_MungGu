@@ -80,11 +80,16 @@ public class MediaFileService {
         if (originalFilename == null || !originalFilename.contains(".")) {
             throw BadRequestException.invalidImageFormat();
         }
+
+        // 파일 확장자 추출 후 소문자로 변환
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+
+        // 허용 확장자를 소문자로 비교
         if (!List.of("jpg", "jpeg", "png").contains(fileExtension)) {
             throw BadRequestException.invalidImageFormat();
         }
     }
+
 
     /**
      * URL에서 이미지의 메타데이터 추출
@@ -127,16 +132,24 @@ public class MediaFileService {
 
     /**
      * S3에 파일 업로드 및 URL 반환 (사용자 지정 키 사용)
+     * 업로드 전 파일 유효성 검증 및 메타데이터 설정 포함
      */
     public String uploadToS3WithCustomKey(MultipartFile image, String fileKey) throws IOException {
+        // 파일 유효성 검증
+        validateImage(image);
+
+        // S3 메타데이터 설정
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(image.getContentType());
         metadata.setContentLength(image.getSize());
 
+        // S3에 파일 업로드
         s3Client.putObject(bucket, fileKey, image.getInputStream(), metadata);
 
+        // S3 URL 반환
         return s3Client.getUrl(bucket, fileKey).toString();
     }
+
 
 
     /**
