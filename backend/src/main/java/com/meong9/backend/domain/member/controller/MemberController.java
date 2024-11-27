@@ -1,9 +1,10 @@
 package com.meong9.backend.domain.member.controller;
 
 import com.meong9.backend.domain.member.dto.*;
+import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
-import com.meong9.backend.global.auth.entity.MemberDetails;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.auth.utils.JwtProvider;
 import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,10 +40,12 @@ public class MemberController {
      * access token 재발급 요청 처리 컨트롤러
      */
     @PostMapping("/auth/token")
-    public ResponseEntity<?> refreshAccessToken(@RequestHeader("Refresh-Token") String refreshToken) {
+    public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "Refresh-token") String refreshToken) {
         String newAccessToken = memberService.refreshAccessToken(refreshToken);
+
         HttpHeaders headers = new HttpHeaders();
         headers.set(JwtProvider.AUTHORIZATION_HEADER, newAccessToken);
+
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(Map.of("message", "Access Token이 재발급되었습니다."));
@@ -54,8 +56,8 @@ public class MemberController {
      */
     @PostMapping("/members/interests/places")
     public ResponseEntity<?> insertPreferredPlaces(@RequestBody InterestDto dto,
-                                                   @AuthenticationPrincipal MemberDetails memberDetails) {
-        memberService.insertPreferredPlaces(dto, memberDetails.member());
+                                                   @CurrentMember Member member) {
+        memberService.insertPreferredPlaces(dto, member);
         return CommonResponse.ok("success");
     }
 
@@ -64,8 +66,8 @@ public class MemberController {
      */
     @PostMapping("/members/interests/regions")
     public ResponseEntity<?> insertPreferredRegions(@RequestBody RegionDto dto,
-                                                    @AuthenticationPrincipal MemberDetails memberDetails) {
-        memberService.insertPreferredRegions(dto, memberDetails.member());
+                                                    @CurrentMember Member member) {
+        memberService.insertPreferredRegions(dto, member);
         return CommonResponse.ok("success");
     }
 
@@ -75,8 +77,8 @@ public class MemberController {
     @PostMapping("/members/info")
     public ResponseEntity<?> insertMemberInfo(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
                                               @Valid @RequestPart(name = "MemberInfoDto") MemberInfoDto dto,
-                                              @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
-        memberService.insertMemberInfo(profileImage, dto, memberDetails.member());
+                                              @CurrentMember Member member) throws IOException {
+        memberService.insertMemberInfo(profileImage, dto, member);
         return CommonResponse.ok("success");
     }
 
@@ -84,8 +86,8 @@ public class MemberController {
      * 프로필 사진 삭제 요청 컨트롤러
      */
     @DeleteMapping("/members/images")
-    public ResponseEntity<?> deleteProfileImage(@AuthenticationPrincipal MemberDetails memberDetails) {
-        memberService.deleteProfileImage(memberDetails.member());
+    public ResponseEntity<?> deleteProfileImage(@CurrentMember Member member) {
+        memberService.deleteProfileImage(member);
         return CommonResponse.ok("success");
     }
 
@@ -103,8 +105,8 @@ public class MemberController {
      * 마이페이지 조회 컨트롤러
      */
     @GetMapping("/members")
-    public ResponseEntity<?> getMyPage(@AuthenticationPrincipal MemberDetails memberDetails) {
-        MypageDto dto = memberService.getMyPage(memberDetails.member());
+    public ResponseEntity<?> getMyPage(@CurrentMember Member member) {
+        MypageDto dto = memberService.getMyPage(member);
         return CommonResponse.ok("success", dto);
     }
 
@@ -112,8 +114,8 @@ public class MemberController {
      * 마이페이지 상세 조회 컨트롤러
      */
     @GetMapping("/members/detail")
-    public ResponseEntity<?> getMyPageDetail(@AuthenticationPrincipal MemberDetails memberDetails) {
-        MyPageDetailDto dto = memberService.getMyPageDetail(memberDetails.member());
+    public ResponseEntity<?> getMyPageDetail(@CurrentMember Member member) {
+        MyPageDetailDto dto = memberService.getMyPageDetail(member);
         return CommonResponse.ok("success", dto);
     }
 
@@ -123,8 +125,8 @@ public class MemberController {
     @PatchMapping("/members")
     public ResponseEntity<?> updateMyPage(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
                                           @Valid @RequestPart(name = "UpdateMyPageRequestDto") MemberInfoDto requestDto,
-                                          @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
-        UpdateMyPageResponseDto dto = memberService.updateMyPage(profileImage, requestDto, memberDetails.member());
+                                          @CurrentMember Member member) throws IOException {
+        UpdateMyPageResponseDto dto = memberService.updateMyPage(profileImage, requestDto, member);
         return CommonResponse.ok("success", dto);
     }
 
@@ -132,8 +134,8 @@ public class MemberController {
      * 선호 지역 조회 컨트롤러
      */
     @GetMapping("/members/interests/regions")
-    public ResponseEntity<?> getPreferredRegions(@AuthenticationPrincipal MemberDetails memberDetails){
-        RegionDto dto = memberService.getPreferredRegions(memberDetails.member());
+    public ResponseEntity<?> getPreferredRegions(@CurrentMember Member member){
+        RegionDto dto = memberService.getPreferredRegions(member);
         return CommonResponse.ok("success", dto);
     }
 
@@ -142,8 +144,8 @@ public class MemberController {
      */
     @PatchMapping("/members/interests/regions")
     public ResponseEntity<?> updatePreferredRegions(@RequestBody RegionDto regionDto,
-                                                 @AuthenticationPrincipal MemberDetails memberDetails){
-        memberService.insertPreferredRegions(regionDto, memberDetails.member());
+                                                    @CurrentMember Member member){
+        memberService.insertPreferredRegions(regionDto, member);
         return CommonResponse.ok("success");
     }
 
@@ -151,8 +153,8 @@ public class MemberController {
      * 선호 시설 조회 컨트롤러
      */
     @GetMapping("/members/interests/places")
-    public ResponseEntity<?> getPreferredPlaces(@AuthenticationPrincipal MemberDetails memberDetails){
-        InterestDto dto = memberService.getPreferredPlaces(memberDetails.member());
+    public ResponseEntity<?> getPreferredPlaces(@CurrentMember Member member){
+        InterestDto dto = memberService.getPreferredPlaces(member);
         return CommonResponse.ok("success", dto);
     }
 
@@ -161,8 +163,8 @@ public class MemberController {
      */
     @PatchMapping("/members/interests/places")
     public ResponseEntity<?> updatePreferredPlaces(@RequestBody InterestDto interestDto,
-                                                    @AuthenticationPrincipal MemberDetails memberDetails){
-        memberService.insertPreferredPlaces(interestDto, memberDetails.member());
+                                                   @CurrentMember Member member){
+        memberService.insertPreferredPlaces(interestDto, member);
         return CommonResponse.ok("success");
     }
 }
