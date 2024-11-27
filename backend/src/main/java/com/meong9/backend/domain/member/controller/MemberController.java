@@ -1,9 +1,6 @@
 package com.meong9.backend.domain.member.controller;
 
-import com.meong9.backend.domain.member.dto.InterestDto;
-import com.meong9.backend.domain.member.dto.LoginResponseDto;
-import com.meong9.backend.domain.member.dto.MemberInfoDto;
-import com.meong9.backend.domain.member.dto.RegionDto;
+import com.meong9.backend.domain.member.dto.*;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.auth.entity.MemberDetails;
@@ -100,5 +97,72 @@ public class MemberController {
         boolean isAvailable = memberService.isNicknameAvailable(nickname);
         String message = isAvailable ? "사용 가능한 닉네임입니다." : "중복된 닉네임입니다.";
         return CommonResponse.ok(message);
+    }
+
+    /**
+     * 마이페이지 조회 컨트롤러
+     */
+    @GetMapping("/members")
+    public ResponseEntity<?> getMyPage(@AuthenticationPrincipal MemberDetails memberDetails) {
+        MypageDto dto = memberService.getMyPage(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 마이페이지 상세 조회 컨트롤러
+     */
+    @GetMapping("/members/detail")
+    public ResponseEntity<?> getMyPageDetail(@AuthenticationPrincipal MemberDetails memberDetails) {
+        MyPageDetailDto dto = memberService.getMyPageDetail(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 마이페이지 수정 컨트롤러
+     */
+    @PatchMapping("/members")
+    public ResponseEntity<?> updateMyPage(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
+                                          @Valid @RequestPart(name = "UpdateMyPageRequestDto") MemberInfoDto requestDto,
+                                          @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+        UpdateMyPageResponseDto dto = memberService.updateMyPage(profileImage, requestDto, memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 선호 지역 조회 컨트롤러
+     */
+    @GetMapping("/members/interests/regions")
+    public ResponseEntity<?> getPreferredRegions(@AuthenticationPrincipal MemberDetails memberDetails){
+        RegionDto dto = memberService.getPreferredRegions(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 선호 지역 수정 컨트롤러
+     */
+    @PatchMapping("/members/interests/regions")
+    public ResponseEntity<?> updatePreferredRegions(@RequestBody RegionDto regionDto,
+                                                 @AuthenticationPrincipal MemberDetails memberDetails){
+        memberService.insertPreferredRegions(regionDto, memberDetails.member());
+        return CommonResponse.ok("success");
+    }
+
+    /**
+     * 선호 시설 조회 컨트롤러
+     */
+    @GetMapping("/members/interests/places")
+    public ResponseEntity<?> getPreferredPlaces(@AuthenticationPrincipal MemberDetails memberDetails){
+        InterestDto dto = memberService.getPreferredPlaces(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 선호 시설 수정 컨트롤러
+     */
+    @PatchMapping("/members/interests/places")
+    public ResponseEntity<?> updatePreferredPlaces(@RequestBody InterestDto interestDto,
+                                                    @AuthenticationPrincipal MemberDetails memberDetails){
+        memberService.insertPreferredPlaces(interestDto, memberDetails.member());
+        return CommonResponse.ok("success");
     }
 }
