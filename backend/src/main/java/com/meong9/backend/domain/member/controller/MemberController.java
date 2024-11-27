@@ -155,4 +155,14 @@ public class MemberController {
         InterestDto dto = memberService.getPreferredPlaces(memberDetails.member());
         return CommonResponse.ok("success", dto);
     }
+
+    /**
+     * 선호 시설 수정 컨트롤러
+     */
+    @PatchMapping("/members/interests/places")
+    public ResponseEntity<?> updatePreferredPlaces(@RequestBody InterestDto interestDto,
+                                                    @AuthenticationPrincipal MemberDetails memberDetails){
+        memberService.insertPreferredPlaces(interestDto, memberDetails.member());
+        return CommonResponse.ok("success");
+    }
 }
