@@ -3,6 +3,7 @@ package com.meong9.backend.domain.member.service;
 import com.meong9.backend.domain.member.dto.*;
 import com.meong9.backend.domain.member.entity.FavoriteRegion;
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.member.entity.PlcFavCategory;
 import com.meong9.backend.domain.member.repository.FavoriteRegionRepository;
 import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.domain.member.repository.PlcFavCategoryRepository;
@@ -190,6 +191,13 @@ public class MemberService {
         List<FavoriteRegion> favRegionList = favoriteRegionRepository.findByMemberId(member.getMemberId());
         return new RegionDto(favRegionList.stream()
                 .map(favoriteRegion -> favoriteRegion.getRegion().getName())
+                .collect(Collectors.toSet()));
+    }
+
+    public InterestDto getPreferredPlaces(Member member) {
+        List<PlcFavCategory> favCategoryList = plcFavCategoryRepository.findByMemberId(member.getMemberId());
+        return new InterestDto(favCategoryList.stream()
+                .map(favoritePlace -> favoritePlace.getPlcCategory().getName())
                 .collect(Collectors.toSet()));
     }
 }

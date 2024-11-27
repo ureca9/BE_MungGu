@@ -7,9 +7,13 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface PlcFavCategoryRepository extends JpaRepository<PlcFavCategory, PlcFavCategoryId>, PlcFavCategoryJdbcRepository{
     @Modifying
     @Query("DELETE FROM PlcFavCategory p WHERE p.member.memberId = :memberId")
     void deleteByMemberId(@Param("memberId") Long memberId);
 
+    @Query("SELECT p FROM PlcFavCategory p where p.member.memberId = :memberId")
+    List<PlcFavCategory> findByMemberId(Long memberId);
 }

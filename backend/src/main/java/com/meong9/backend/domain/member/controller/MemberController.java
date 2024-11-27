@@ -146,4 +146,13 @@ public class MemberController {
         memberService.insertPreferredRegions(regionDto, memberDetails.member());
         return CommonResponse.ok("success");
     }
+
+    /**
+     * 선호 시설 조회 컨트롤러
+     */
+    @GetMapping("/members/interests/places")
+    public ResponseEntity<?> getPreferredPlaces(@AuthenticationPrincipal MemberDetails memberDetails){
+        InterestDto dto = memberService.getPreferredPlaces(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
 }
