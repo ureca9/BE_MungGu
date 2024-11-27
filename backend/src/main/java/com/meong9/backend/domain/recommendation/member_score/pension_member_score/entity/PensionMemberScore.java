@@ -1,27 +1,23 @@
-package com.meong9.backend.domain.member_score.place_member_score.entity;
+package com.meong9.backend.domain.recommendation.member_score.pension_member_score.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
-import com.meong9.backend.domain.member_score.id_class.PlaceMemberId;
-import com.meong9.backend.domain.place.entity.Place;
+import com.meong9.backend.domain.recommendation.id_class.PensionMemberId;
+import com.meong9.backend.domain.pension.entity.Pension;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-
-@AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "place_member_score")
-@Getter
+@Table(name = "pension_member_score")
 @Builder
-public class PlaceMemberScore {
-
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Getter
+public class PensionMemberScore {
     @EmbeddedId
-    private PlaceMemberId placeMemberId;
+    private PensionMemberId pensionMemberId;
 
-//    @Column(precision = 10, scale = 4, nullable = false)
-//    private BigDecimal score;
     private float score;
 
     private LocalDateTime lastUpdatedAt;
@@ -32,9 +28,9 @@ public class PlaceMemberScore {
     private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("placeId")
-    @JoinColumn(name = "place_id", nullable = false)
-    private Place place;
+    @MapsId("pensionId")
+    @JoinColumn(name = "pension_id", nullable = false)
+    private Pension pension;
 
     public void setScore(float score) {
         this.score = score;

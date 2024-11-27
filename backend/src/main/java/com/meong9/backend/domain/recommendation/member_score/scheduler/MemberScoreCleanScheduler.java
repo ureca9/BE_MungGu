@@ -1,7 +1,7 @@
-package com.meong9.backend.domain.member_score.scheduler;
+package com.meong9.backend.domain.recommendation.member_score.scheduler;
 
-import com.meong9.backend.domain.member_score.pension_member_score.repository.PensionMemberScoreRepository;
-import com.meong9.backend.domain.member_score.place_member_score.repository.PlaceMemberScoreRepository;
+import com.meong9.backend.domain.recommendation.member_score.pension_member_score.repository.PensionMemberScoreRepository;
+import com.meong9.backend.domain.recommendation.member_score.place_member_score.repository.PlaceMemberScoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
