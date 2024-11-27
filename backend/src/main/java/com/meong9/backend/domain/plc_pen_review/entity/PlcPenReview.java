@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class PlcPenReview {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long plcPenReviewId;
     private String type;
     private Long plcPenId;
 
