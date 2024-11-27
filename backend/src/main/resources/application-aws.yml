@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -19,3 +19,12 @@ s3:
     secret-key: ${AWS_SECRET_ACCESS_KEY}
     region: ${AWS_REGION}
   bucket: ${S3_BUCKET_NAME}
+
+kakao:
+  client-id: ${KAKAO_REST_API_KEY}
+  redirect-uri: http://localhost:8080/api/v1/auth/callback/kakao
+  client-secret: ${KAKAO_CLIENT_SECRET}
+
+jwt:
+  token:
+    secretKey: ${JWT_SECRET}
