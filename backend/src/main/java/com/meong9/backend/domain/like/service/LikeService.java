@@ -12,8 +12,6 @@ import com.meong9.backend.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +40,7 @@ public class LikeService {
 
     @Transactional
     public String togglePensionLike(Member member, Long pensionId) {
-        Pension pension=pensionRepository.findById(pensionId).orElseThrow(()->NotFoundException.entityNotFound("장소"));
+        Pension pension=pensionRepository.findById(pensionId).orElseThrow(()->NotFoundException.entityNotFound("펜션"));
         return likeRepository.findByMemberAndPension(member, pension)
                 .map(like -> {
                     pension.decreaseLikeCount();
@@ -54,5 +52,17 @@ public class LikeService {
                     likeRepository.save(new PensionLike(member, pension));
                     return "찜하기가 등록되었습니다.";
                 });
+    }
+
+    // Place 즐겨찾기 여부 확인
+    @Transactional(readOnly = true)
+    public boolean isPlaceLikedByMember(Member member, Long placeId) {
+        return likeRepository.existsByMemberAndPlaceId(member, placeId);
+    }
+
+    // Pension 즐겨찾기 여부 확인
+    @Transactional(readOnly = true)
+    public boolean isPensionLikedByMember(Member member, Long pensionId) {
+        return likeRepository.existsByMemberAndPensionId(member, pensionId);
     }
 }

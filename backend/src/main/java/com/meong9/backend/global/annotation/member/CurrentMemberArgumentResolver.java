@@ -2,6 +2,7 @@ package com.meong9.backend.global.annotation.member;
 
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.global.auth.entity.MemberDetails;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;

@@ -18,6 +18,12 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"member_id", "pension_id"}),
                 @UniqueConstraint(columnNames = {"member_id", "place_id"})
+        },
+        indexes = {
+                @Index(name = "idx_member_pension", columnList = "member_id, pension_id"),
+                @Index(name = "idx_member_place", columnList = "member_id, place_id"),
+//                @Index(name = "idx_pension_id", columnList = "pension_id"),
+//                @Index(name = "idx_place_id", columnList = "place_id")
         }
 )
 public class Like {
