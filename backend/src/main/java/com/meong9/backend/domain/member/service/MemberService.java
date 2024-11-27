@@ -112,13 +112,7 @@ public class MemberService {
      * 사용자 정보를 등록하는 서비스 메서드
      */
     public void insertMemberInfo(MultipartFile profileImage,MemberInfoDto dto, Member member) throws IOException {
-        member.setName(dto.getName().trim());
-        member.setPhone(dto.getPhone().trim());
-        member.setNickname(dto.getNickname().trim());
-
-        if (profileImage != null) {
-            mediaFileService.uploadProfileImage(profileImage, member.getMemberId());
-        }
+        updateMember(profileImage, dto, member);
 
         memberRepository.save(member);
     }
@@ -167,5 +161,27 @@ public class MemberService {
                 .phone(foundMember.getPhone())
                 .profileImageUrl(foundMember.getProfileImage().getFileUrl())
                 .build();
+    }
+
+    public UpdateMyPageResponseDto updateMyPage(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
+        updateMember(profileImage, dto, member);
+
+        Member savedMember = memberRepository.save(member);
+        return UpdateMyPageResponseDto.builder()
+                .name(savedMember.getName())
+                .phone(savedMember.getPhone())
+                .nickname(savedMember.getNickname())
+                .profileImageUrl(savedMember.getProfileImage().getFileUrl())
+                .build();
+    }
+
+    private void updateMember(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
+        member.setName(dto.getName().trim());
+        member.setPhone(dto.getPhone().trim());
+        member.setNickname(dto.getNickname().trim());
+
+        if (profileImage != null) {
+            mediaFileService.uploadProfileImage(profileImage, member.getMemberId());
+        }
     }
 }

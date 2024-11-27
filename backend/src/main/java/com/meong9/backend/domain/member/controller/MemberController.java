@@ -116,4 +116,15 @@ public class MemberController {
         MyPageDetailDto dto = memberService.getMyPageDetail(memberDetails.member());
         return CommonResponse.ok("success", dto);
     }
+
+    /**
+     * 마이페이지 수정 컨트롤러
+     */
+    @PatchMapping("/members")
+    public ResponseEntity<?> updateMyPage(@RequestPart(name = "ProfileImage", required = false) MultipartFile profileImage,
+                                          @Valid @RequestPart(name = "UpdateMyPageRequestDto") MemberInfoDto requestDto,
+                                          @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+        UpdateMyPageResponseDto dto = memberService.updateMyPage(profileImage, requestDto, memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
 }
