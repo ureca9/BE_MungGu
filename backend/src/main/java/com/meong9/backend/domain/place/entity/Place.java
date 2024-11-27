@@ -58,4 +58,8 @@ public class Place {
     public void increaseLikeCount(){
         this.likeCount++;
     }
+
+    public void decreaseLikeCount(){
+        this.likeCount=Math.max(this.likeCount-1,0);
+    }
 }
