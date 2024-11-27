@@ -5,6 +5,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.place.entity.Place;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,14 +26,12 @@ public class LikeController {
     private final MemberService memberService;
 
     @PostMapping("/places/likes/{placeId}")
-    public ResponseEntity<?> togglePlaceLike(@AuthenticationPrincipal MemberDetails memberDetails,@PathVariable Long placeId) {
-        Member member=memberDetails.member();
+    public ResponseEntity<?> togglePlaceLike(@CurrentMember Member member,@PathVariable Long placeId) {
         return CommonResponse.created(likeService.togglePlaceLike(member, placeId));
     }
 
     @PostMapping("/pensions/likes/{pensionId}")
-    public ResponseEntity<?> togglePensionLike(@AuthenticationPrincipal MemberDetails memberDetails, @PathVariable Long pensionId) {
-        Member member=memberDetails.member();
+    public ResponseEntity<?> togglePensionLike(@CurrentMember Member member, @PathVariable Long pensionId) {
         return CommonResponse.created(likeService.togglePensionLike(member, pensionId));
     }
 
