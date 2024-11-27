@@ -5,7 +5,6 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
-import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.auth.utils.JwtProvider;
 import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
