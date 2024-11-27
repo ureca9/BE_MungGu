@@ -108,4 +108,12 @@ public class MemberController {
         return CommonResponse.ok("success", dto);
     }
 
+    /**
+     * 마이페이지 상세 조회 컨트롤러
+     */
+    @GetMapping("/members/detail")
+    public ResponseEntity<?> getMyPageDetail(@AuthenticationPrincipal MemberDetails memberDetails) {
+        MyPageDetailDto dto = memberService.getMyPageDetail(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
 }

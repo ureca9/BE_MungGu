@@ -157,4 +157,15 @@ public class MemberService {
                 .puppyList(puppyList)
                 .build();
     }
+
+    public MyPageDetailDto getMyPageDetail(Member member) {
+        Member foundMember = memberRepository.findMemberWithProfileImage(member.getMemberId()).orElseThrow();
+        return MyPageDetailDto.builder()
+                .email(foundMember.getEmail())
+                .name(foundMember.getName())
+                .nickname(foundMember.getNickname())
+                .phone(foundMember.getPhone())
+                .profileImageUrl(foundMember.getProfileImage().getFileUrl())
+                .build();
+    }
 }
