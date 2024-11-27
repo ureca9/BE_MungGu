@@ -19,10 +19,26 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     Optional<PensionLike> findByMemberAndPension(Member member, Pension pension);
 
     // Place 즐겨찾기 상태 확인
-    @Query("SELECT COUNT(*) > 0 FROM PlaceLike pl WHERE pl.member = :member AND pl.place.placeId = :placeId")
+    @Query("""
+            SELECT CASE 
+                WHEN COUNT(pl) > 0 
+                THEN true 
+                ELSE false 
+                END
+            FROM PlaceLike pl
+            WHERE pl.member = :member AND pl.place.placeId = :placeId
+            """)
     boolean existsByMemberAndPlaceId(@Param("member") Member member, @Param("placeId") Long placeId);
 
     // Pension 즐겨찾기 상태 확인
-    @Query("SELECT COUNT(*) > 0 FROM PensionLike pl WHERE pl.member = :member AND pl.pension.pensionId = :pensionId")
+    @Query("""
+            SELECT CASE 
+                WHEN COUNT(pl) > 0 
+                THEN true 
+                ELSE false 
+                END
+            FROM PensionLike pl
+            WHERE pl.member = :member AND pl.pension.pensionId = :pensionId
+            """)
     boolean existsByMemberAndPensionId(@Param("member") Member member, @Param("pensionId") Long pensionId);
 }
