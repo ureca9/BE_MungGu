@@ -19,6 +19,7 @@ import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.ConflictException;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +85,7 @@ public class KakaoService {
         response.addHeader(JwtProvider.AUTHORIZATION_HEADER, accessToken);
 
         String refreshToken = jwtProvider.createRefreshToken(kakaoUser.getEmail(), kakaoUser.getRoleCode());
-        response.addHeader(JwtProvider.REFRESH_TOKEN_HEADER, refreshToken);
+        jwtProvider.addJwtToCookie(refreshToken, response);
 
         refreshTokenService.insertRefreshToken(kakaoUser.getEmail(), refreshToken.substring(7));
 

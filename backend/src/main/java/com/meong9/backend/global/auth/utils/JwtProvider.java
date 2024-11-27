@@ -6,12 +6,17 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -106,5 +111,19 @@ public class JwtProvider {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public void addJwtToCookie(String token, HttpServletResponse res) {
+        token = URLEncoder.encode(token, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        Cookie cookie = new Cookie(JwtProvider.REFRESH_TOKEN_HEADER, token);
+
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setAttribute("SameSite", "None");
+
+        int maxAgeInSeconds = 3600; // 1시간
+        cookie.setMaxAge(7 * 24 * maxAgeInSeconds);
+        res.addCookie(cookie);
     }
 }
