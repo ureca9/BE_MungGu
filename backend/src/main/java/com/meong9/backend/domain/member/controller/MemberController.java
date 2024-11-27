@@ -40,10 +40,12 @@ public class MemberController {
      * access token 재발급 요청 처리 컨트롤러
      */
     @PostMapping("/auth/token")
-    public ResponseEntity<?> refreshAccessToken(@RequestHeader("Refresh-Token") String refreshToken) {
+    public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "Refresh-token") String refreshToken) {
         String newAccessToken = memberService.refreshAccessToken(refreshToken);
+
         HttpHeaders headers = new HttpHeaders();
         headers.set(JwtProvider.AUTHORIZATION_HEADER, newAccessToken);
+
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(Map.of("message", "Access Token이 재발급되었습니다."));
