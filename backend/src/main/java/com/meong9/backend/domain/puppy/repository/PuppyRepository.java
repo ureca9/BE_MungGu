@@ -19,10 +19,10 @@ public interface PuppyRepository extends JpaRepository<Puppy, Long> {
             "p.neutered, " +
             "p.breed.breedId, " +
             "p.breed.name, " +
-            "p.profileImageId.fileUrl) " +
+            "p.profileImage.fileUrl) " +
             "FROM Puppy p " +
             "LEFT JOIN p.breed " +
-            "LEFT JOIN p.profileImageId " +
+            "LEFT JOIN p.profileImage " +
             "WHERE p.puppyId = :puppyId")
     Optional<PuppyProfileResponseDto> findPuppyProfileById(@Param("puppyId") Long puppyId);
 

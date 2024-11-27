@@ -4,7 +4,6 @@ import org.springframework.http.HttpStatus;
 
 public class NotFoundException extends BaseException {
     static private final String ENTITY_NOT_FOUND = "찾으시는 %s(이)가 없습니다.";
-
     public NotFoundException(String message) {
         super(HttpStatus.NOT_FOUND, message);
     }

@@ -169,7 +169,7 @@ public class MediaFileService {
         if (s3Client.doesObjectExist(bucket, fileKey)) {
             s3Client.deleteObject(bucket, fileKey);
         } else {
-            throw new IllegalArgumentException("S3에 파일이 존재하지 않습니다: " + fileKey);
+            throw BadRequestException.invalidFilekeyFormat(fileKey);
         }
     }
 

@@ -19,8 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -36,19 +34,23 @@ public class PuppyService {
      */
     @Transactional
     public PuppyResponseDto createPuppy(PuppyRequestDto puppyRequestDto, MultipartFile image, Member currentMember) throws IOException {
-        MediaFile profileImage = null; // 업로드된 파일을 추적하기 위한 변수
+        MediaFile profileImage = null;
         try {
-            // 1. 이미지 업로드 처리
-            profileImage = handleImageUpload(image, puppyRequestDto.getName());
-
-            // 2. 품종 조회
+            // 1. 품종 조회
             Breed breed = findBreed(puppyRequestDto.getBreedId());
 
-            // 3. Puppy 엔티티 생성
-            Puppy puppy = createPuppyEntity(puppyRequestDto, currentMember, breed, profileImage);
+            // 2. Puppy 엔티티 생성 및 초기 저장
+            Puppy puppy = createPuppyEntity(puppyRequestDto, currentMember, breed);
+            Puppy savedPuppy = puppyRepository.save(puppy); // puppyId 생성됨
 
-            // 4. 저장 후 응답 반환
-            Puppy savedPuppy = puppyRepository.save(puppy);
+            // 3. 이미지 업로드 처리
+            profileImage = handleImageUpload(image, savedPuppy.getPuppyId());
+            savedPuppy.setProfileImage(profileImage);
+
+            // 4. Puppy 엔티티 업데이트
+            puppyRepository.save(savedPuppy);
+
+            // 5. 응답 반환
             return new PuppyResponseDto(savedPuppy.getPuppyId());
 
         } catch (Exception e) {
@@ -60,6 +62,7 @@ public class PuppyService {
         }
     }
 
+
     /**
      * 강아지 프로필 조회
      */
@@ -67,15 +70,16 @@ public class PuppyService {
     public PuppyProfileResponseDto getPuppyProfile(Long puppyId) {
         // PuppyRepository에서 강아지 프로필 조회
         return puppyRepository.findPuppyProfileById(puppyId)
-                .orElseThrow(() -> new IllegalArgumentException("강아지를 찾을 수 없습니다."));
+                .orElseThrow(() -> NotFoundException.entityNotFound("강아지"));
     }
+
 
     /**
      * 강아지 프로필 수정
      */
     @Transactional
     public PuppyResponseDto updatePuppy(Long puppyId, PuppyRequestDto updateRequest, MultipartFile image) throws IOException {
-        MediaFile profileImage = null; // 업로드된 새 파일을 추적하기 위한 변수
+        MediaFile profileImage = null;
         try {
             // 1. 강아지 조회
             Puppy puppy = findPuppyById(puppyId);
@@ -83,12 +87,19 @@ public class PuppyService {
             // 2. 품종 조회
             Breed breed = findBreed(updateRequest.getBreedId());
 
-            // 3. 이미지 업데이트 처리
-            profileImage = handleImageUpdate(image, updateRequest.getName(), puppy.getProfileImageId());
+            if (image != null && !image.isEmpty()) {
+                // 기존 이미지 삭제
+                // 3. 이미지 업데이트 처리
+                profileImage = handleImageUpdate(image, puppyId, puppy.getProfileImage());
 
-            // 4. 엔티티 업데이트
-            puppy.update(updateRequest.getName(), updateRequest.getBirthDate(), updateRequest.getGender(),
-                    updateRequest.getWeight(), updateRequest.getNeutered(), breed, profileImage);
+                // 4-1. 엔티티 업데이트(이미지 포함)
+                puppy.updateWithImg(updateRequest.getName(), updateRequest.getBirthDate(), updateRequest.getGender(),
+                        updateRequest.getWeight(), updateRequest.getNeutered(), breed, profileImage);
+            }else{
+                // 4-2. 엔티티 업데이트(이미지 미포함, 기존 이미지 유지)
+                puppy.update(updateRequest.getName(), updateRequest.getBirthDate(), updateRequest.getGender(),
+                        updateRequest.getWeight(), updateRequest.getNeutered(), breed);
+            }
 
             // 5. 수정된 강아지 ID 반환
             return new PuppyResponseDto(puppy.getPuppyId());
@@ -111,7 +122,7 @@ public class PuppyService {
         Puppy puppy = findPuppyById(puppyId);
 
         // 2. 프로필 이미지 삭제
-        deleteImage(puppy.getProfileImageId());
+        deleteImage(puppy.getProfileImage());
 
         // 3. 강아지 엔티티 삭제
         puppyRepository.delete(puppy);
@@ -131,41 +142,38 @@ public class PuppyService {
      * @param puppyId 강아지 ID
      * @return 조회된 Puppy 엔티티
      */
-    private Puppy findPuppyById(Long puppyId) {
+    @Transactional(readOnly = true)
+    public Puppy findPuppyById(Long puppyId) {
         return puppyRepository.findById(puppyId).orElseThrow(()-> NotFoundException.entityNotFound("Puppy"));
     }
 
     /**
      * 이미지 업로드 처리
      * @param image 업로드할 이미지
-     * @param name 강아지 이름
+     * @param puppyId 강아지 ID
      * @return 저장된 MediaFile 엔티티
      * @throws IOException 이미지 처리 오류
      */
-    private MediaFile handleImageUpload(MultipartFile image, String name) throws IOException {
+    private MediaFile handleImageUpload(MultipartFile image, Long puppyId) throws IOException {
         if (image == null || image.isEmpty()) {
             return null; // 이미지가 없으면 null 반환
         }
-        String fileKey = generateFileKey(name); // S3 파일 키 생성
+        String fileKey = generateFileKey(puppyId); // S3 파일 키 생성
         return saveImage(image, fileKey); // 이미지 저장
     }
 
     /**
      * 이미지 업데이트 처리
      * @param image 업로드할 새 이미지
-     * @param name 강아지 이름
+     * @param puppyId 강아지 ID
      * @param existingImage 기존 MediaFile 엔티티
      * @return 저장된 MediaFile 엔티티
      * @throws IOException 이미지 처리 오류
      */
-    private MediaFile handleImageUpdate(MultipartFile image, String name, MediaFile existingImage) throws IOException {
-        if (image != null && !image.isEmpty()) {
-            // 기존 이미지 삭제
+    private MediaFile handleImageUpdate(MultipartFile image, Long puppyId, MediaFile existingImage) throws IOException {
             deleteImage(existingImage);
-            String fileKey = generateFileKey(name); // 새 파일 키 생성
+            String fileKey = generateFileKey(puppyId); // 새 파일 키 생성
             return saveImage(image, fileKey); // 새 이미지 저장
-        }
-        return existingImage; // 새 이미지가 없으면 기존 이미지 반환
     }
 
     /**
@@ -211,13 +219,11 @@ public class PuppyService {
 
     /**
      * S3 파일 키 생성
-     * @param name 강아지 이름
+     * @param puppyId 강아지 ID
      * @return 생성된 파일 키
      */
-    private String generateFileKey(String name) {
-        // 현재 시간 기반으로 파일 키 생성
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-        return "Pprofile/" + name + "_" + LocalDateTime.now().format(formatter) + "_profile.jpg";
+    private String generateFileKey(Long puppyId) {
+        return "Pprofile/" + puppyId + "_profile.jpg";
     }
 
     /**
@@ -225,12 +231,18 @@ public class PuppyService {
      * @param dto 강아지 요청 데이터
      * @param member 강아지를 소유한 회원
      * @param breed 품종 정보
-     * @param profileImage 프로필 이미지
      * @return 생성된 Puppy 엔티티
      */
-    private Puppy createPuppyEntity(PuppyRequestDto dto, Member member, Breed breed, MediaFile profileImage) {
+    private Puppy createPuppyEntity(PuppyRequestDto dto, Member member, Breed breed) {
         // Puppy 엔티티 생성 및 반환
-        return new Puppy(null, dto.getName(), dto.getBirthDate(), dto.getGender(), dto.getWeight(),
-                dto.getNeutered(), member, breed, profileImage);
+        return  Puppy.builder()
+                .name(dto.getName())
+                .birthDate(dto.getBirthDate())
+                .gender(dto.getGender())
+                .weight(dto.getWeight())
+                .neutered(dto.getNeutered())
+                .breed(breed)
+                .member(member)
+                .build();
     }
 }
