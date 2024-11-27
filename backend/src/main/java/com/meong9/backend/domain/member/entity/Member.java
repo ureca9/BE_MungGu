@@ -5,6 +5,8 @@ import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -36,6 +38,8 @@ public class Member extends BaseTimeEntity {
     private MediaFile profileImage;
 
     private String roleCode = "010";
+
+    private LocalDateTime lastActivity;
 
     @Builder
     public Member (String email, String name, String nickname, String provider, String providerId, MediaFile profileImage) {
