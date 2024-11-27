@@ -25,13 +25,16 @@ public class LikeService {
     @Transactional
     public String togglePlaceLike(Member member, Long placeId) {
         Place place=placeRepository.findById(placeId).orElseThrow(()->NotFoundException.entityNotFound("장소"));
+
         place.increaseLikeCount();
         return likeRepository.findByMemberAndPlace(member, place)
                 .map(like -> {
+                    place.decreaseLikeCount();
                     likeRepository.delete(like);
                     return "찜하기가 취소되었습니다.";
                 })
                 .orElseGet(() -> {
+                    place.increaseLikeCount();
                     likeRepository.save(new PlaceLike(member, place));
                     return "찜하기가 등록되었습니다.";
                 });
@@ -40,13 +43,14 @@ public class LikeService {
     @Transactional
     public String togglePensionLike(Member member, Long pensionId) {
         Pension pension=pensionRepository.findById(pensionId).orElseThrow(()->NotFoundException.entityNotFound("장소"));
-        pension.increaseLikeCount();
         return likeRepository.findByMemberAndPension(member, pension)
                 .map(like -> {
+                    pension.decreaseLikeCount();
                     likeRepository.delete(like);
                     return "찜하기가 취소되었습니다.";
                 })
                 .orElseGet(() -> {
+                    pension.increaseLikeCount();
                     likeRepository.save(new PensionLike(member, pension));
                     return "찜하기가 등록되었습니다.";
                 });
