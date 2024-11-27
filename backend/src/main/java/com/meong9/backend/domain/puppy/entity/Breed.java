@@ -13,10 +13,12 @@ import lombok.NoArgsConstructor;
 public class Breed {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long breedId;
 
     @Column(name = "breed_name")
     private String name;
 
     private Boolean isFrequented;
+
 }
