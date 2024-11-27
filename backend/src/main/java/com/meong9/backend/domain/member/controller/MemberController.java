@@ -127,4 +127,13 @@ public class MemberController {
         UpdateMyPageResponseDto dto = memberService.updateMyPage(profileImage, requestDto, memberDetails.member());
         return CommonResponse.ok("success", dto);
     }
+
+    /**
+     * 선호 지역 조회 컨트롤러
+     */
+    @GetMapping("/members/interests/places")
+    public ResponseEntity<?> getPreferredRegions(@AuthenticationPrincipal MemberDetails memberDetails){
+        RegionDto dto = memberService.getPreferredRegions( memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
 }
