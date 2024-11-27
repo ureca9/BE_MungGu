@@ -1,8 +1,6 @@
-package com.meong9.backend.domain.member_score.id_class;
+package com.meong9.backend.domain.recommendation.id_class;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import lombok.*;
 
 import java.io.Serializable;
@@ -12,8 +10,7 @@ import java.io.Serializable;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode
 @Getter
-@Builder
-public class PlaceMemberId implements Serializable {
+public class PensionMemberId implements Serializable {
+    private Long pensionId;
     private Long memberId;
-    private Long placeId;
 }
