@@ -1,9 +1,12 @@
 package com.meong9.backend.domain.member.entity;
 
+import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -40,6 +43,9 @@ public class Member extends BaseTimeEntity {
     private MediaFile profileImage;
 
     private String roleCode = "010";
+
+    @OneToMany(mappedBy = "member", orphanRemoval = true)
+    private List<Puppy> puppies;
 
     @Builder
     public Member (String email, String name, String nickname, String provider, String providerId, MediaFile profileImage) {

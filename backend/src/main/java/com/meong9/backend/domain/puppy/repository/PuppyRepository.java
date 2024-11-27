@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PuppyRepository extends JpaRepository<Puppy, Long> {
@@ -26,4 +27,6 @@ public interface PuppyRepository extends JpaRepository<Puppy, Long> {
             "WHERE p.puppyId = :puppyId")
     Optional<PuppyProfileResponseDto> findPuppyProfileById(@Param("puppyId") Long puppyId);
 
+    @Query("SELECT p FROM Puppy p JOIN FETCH p.profileImage WHERE p.member.memberId = :memberId")
+    List<Puppy> findByMemberIdWithPuppyProfileImage(Long memberId);
 }
