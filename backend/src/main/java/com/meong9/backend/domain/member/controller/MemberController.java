@@ -131,9 +131,19 @@ public class MemberController {
     /**
      * 선호 지역 조회 컨트롤러
      */
-    @GetMapping("/members/interests/places")
+    @GetMapping("/members/interests/regions")
     public ResponseEntity<?> getPreferredRegions(@AuthenticationPrincipal MemberDetails memberDetails){
-        RegionDto dto = memberService.getPreferredRegions( memberDetails.member());
+        RegionDto dto = memberService.getPreferredRegions(memberDetails.member());
         return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 선호 지역 수정 컨트롤러
+     */
+    @PatchMapping("/members/interests/regions")
+    public ResponseEntity<?> updatePreferredRegions(@RequestBody RegionDto regionDto,
+                                                 @AuthenticationPrincipal MemberDetails memberDetails){
+        memberService.insertPreferredRegions(regionDto, memberDetails.member());
+        return CommonResponse.ok("success");
     }
 }
