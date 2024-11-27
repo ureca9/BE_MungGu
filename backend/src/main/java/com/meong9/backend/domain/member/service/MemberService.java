@@ -1,14 +1,14 @@
 package com.meong9.backend.domain.member.service;
 
-import com.meong9.backend.domain.member.dto.InterestDto;
-import com.meong9.backend.domain.member.dto.MemberInfoDto;
-import com.meong9.backend.domain.member.dto.RegionDto;
+import com.meong9.backend.domain.member.dto.*;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.repository.FavoriteRegionRepository;
 import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.domain.member.repository.PlcFavCategoryRepository;
 import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
+import com.meong9.backend.domain.puppy.entity.Puppy;
+import com.meong9.backend.domain.puppy.repository.PuppyRepository;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.auth.utils.JwtProvider;
@@ -41,6 +41,7 @@ public class MemberService {
     private final FavoriteRegionRepository favoriteRegionRepository;
     private final RegionRepository regionRepository;
     private final MediaFileService mediaFileService;
+    private final PuppyRepository puppyRepository;
 
     /**
      * refresh token 사용하여 access token 재발급하는 서비스 메서드
@@ -122,11 +123,38 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+    /**
+     * 프로필 이미지를 삭제하는 서비스 메서드
+     */
     public void deleteProfileImage(Member member) {
         mediaFileService.deleteProfileImage(member.getMemberId());
     }
 
+    /**
+     * 닉네임 중복을 확인하는 서비스 메서드
+     */
     public boolean isNicknameAvailable(String nickname) {
         return !memberRepository.existsByNickname(nickname);
+    }
+
+    /**
+     * 마이페이지를 조회하는 서비스 메서드
+     */
+    public MypageDto getMyPage(Member member) {
+        List<Puppy> puppies = puppyRepository.findByMemberIdWithPuppyProfileImage(member.getMemberId());
+        Member foundMember = memberRepository.findMemberWithProfileImage(member.getMemberId()).orElseThrow();
+        List<MypagePuppyDto> puppyList = puppies.stream()
+                .map(puppy -> MypagePuppyDto.builder()
+                        .puppyId(puppy.getPuppyId())
+                        .puppyName(puppy.getName())
+                        .puppyImageUrl(puppy.getProfileImage().getFileUrl())
+                        .build())
+                .toList();
+        return MypageDto.builder()
+                .memberId(foundMember.getMemberId())
+                .nickname(foundMember.getNickname())
+                .profileImageUrl(foundMember.getProfileImage().getFileUrl())
+                .puppyList(puppyList)
+                .build();
     }
 }

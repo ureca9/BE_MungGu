@@ -1,9 +1,6 @@
 package com.meong9.backend.domain.member.controller;
 
-import com.meong9.backend.domain.member.dto.InterestDto;
-import com.meong9.backend.domain.member.dto.LoginResponseDto;
-import com.meong9.backend.domain.member.dto.MemberInfoDto;
-import com.meong9.backend.domain.member.dto.RegionDto;
+import com.meong9.backend.domain.member.dto.*;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.auth.entity.MemberDetails;
@@ -101,4 +98,14 @@ public class MemberController {
         String message = isAvailable ? "사용 가능한 닉네임입니다." : "중복된 닉네임입니다.";
         return CommonResponse.ok(message);
     }
+
+    /**
+     * 마이페이지 조회 컨트롤러
+     */
+    @GetMapping("/members")
+    public ResponseEntity<?> getMyPage(@AuthenticationPrincipal MemberDetails memberDetails) {
+        MypageDto dto = memberService.getMyPage(memberDetails.member());
+        return CommonResponse.ok("success", dto);
+    }
+
 }
