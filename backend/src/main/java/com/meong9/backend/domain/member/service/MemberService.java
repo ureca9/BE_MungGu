@@ -13,7 +13,7 @@ import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.domain.puppy.repository.PuppyRepository;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.entity.Region;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;
@@ -49,6 +49,10 @@ public class MemberService {
      * refresh token 사용하여 access token 재발급하는 서비스 메서드
      */
     public String refreshAccessToken(String refreshToken) {
+        if (refreshToken == null) {
+            throw AuthenticationException.noRefreshToken();
+        }
+
         jwtProvider.validateToken(refreshToken);
         String email = jwtProvider.getSubjectFromToken(refreshToken);
 
@@ -64,6 +68,18 @@ public class MemberService {
                 .orElseThrow(() -> NotFoundException.entityNotFound("멤버"));
 
         return jwtProvider.createAccessToken(email, member.getRoleCode());
+    }
+
+    /**
+     * refresh token의 Max age를 0으로 만들어 로그아웃 시키는 메서드
+     */
+    public void logout(String refreshToken) {
+        if (refreshToken == null) {
+            throw AuthenticationException.noRefreshToken();
+        }
+
+        jwtProvider.validateToken(refreshToken);
+        refreshTokenService.removeRefreshTokenByKeyEmail(jwtProvider.getSubjectFromToken(refreshToken));
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.meong9.backend.global.auth.filter;
 
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.exception.AuthenticationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
