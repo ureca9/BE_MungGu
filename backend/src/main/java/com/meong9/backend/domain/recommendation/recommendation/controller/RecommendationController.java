@@ -12,7 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -24,13 +26,18 @@ public class RecommendationController {
     @GetMapping("/spots/recommendations")
     public ResponseEntity<?> recommendPensions(@CurrentMember Member member) {
         List<RecommendationDto> recommendItem = recommendationService.getPensionRecommendations(member, 5);
-
+        Map<String, List<RecommendationDto>> recommend = new HashMap<>();
+        recommend.put("recommend", recommendItem);
         return CommonResponse.ok("success", recommendItem);
     }
 
     @GetMapping("/pensions/{pensionId}/recommendations")
     public ResponseEntity<?> recommendPlaces(@PathVariable long pensionId) {
         List<RecommendationDto> recommendItem = recommendationService.getPlacecommendations(pensionId, 5);
-        return CommonResponse.ok("success", recommendItem);
+
+        Map<String, List<RecommendationDto>> recommend = new HashMap<>();
+        recommend.put("recommend", recommendItem);
+
+        return CommonResponse.ok("success", recommend);
     }
 }
