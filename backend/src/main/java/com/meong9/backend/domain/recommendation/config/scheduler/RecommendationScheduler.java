@@ -20,8 +20,8 @@ public class RecommendationScheduler {
     @Qualifier("recommendationJob")
     private final Job recommendationJob;
 
-//    @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
-    @Scheduled(cron = "0 */1 * * * ?") // 1분마다
+    @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
+//    @Scheduled(cron = "0 */1 * * * ?") // 1분마다
     public void runRecommendationBatch() {
         try {
             JobParameters jobParameters = new JobParametersBuilder()

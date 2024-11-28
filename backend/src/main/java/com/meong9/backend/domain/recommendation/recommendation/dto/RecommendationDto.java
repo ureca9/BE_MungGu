@@ -7,11 +7,11 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class PlaceRecommendationDto {
+public class RecommendationDto {
     private Long id;
     private String name;
     private String address;
     private String img;
-    private Float reviewAvg;
+    private String reviewAvg;
     private Integer reviewCount;
 }
