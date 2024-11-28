@@ -3,6 +3,9 @@ package com.meong9.backend.domain.pension.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Collections;
+import java.util.List;
+
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -47,6 +50,14 @@ public class Pension {
 
     @Column(nullable = false)
     private Integer likeCount = 0;
+
+    @Column(name = "latitude", length = 20)
+    private String latitude;
+    @Column(name = "longitude", length = 20)
+    private String longitude;
+
+    @OneToMany(mappedBy = "pension", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PensionFile> pensionFiles = Collections.emptyList(); // 펜션 파일 리스트
 
     public void increaseLikeCount(){
         this.likeCount++;
