@@ -8,6 +8,8 @@ import lombok.*;
 
 import java.util.List;
 
+import java.time.LocalDateTime;
+
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -46,6 +48,8 @@ public class Member extends BaseTimeEntity {
 
     @OneToMany(mappedBy = "member", orphanRemoval = true)
     private List<Puppy> puppies;
+
+    private LocalDateTime lastActivity;
 
     @Builder
     public Member (String email, String name, String nickname, String provider, String providerId, MediaFile profileImage) {
