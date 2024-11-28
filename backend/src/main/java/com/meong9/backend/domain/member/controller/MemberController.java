@@ -31,7 +31,7 @@ public class MemberController {
     /**
      * 카카오 로그인 처리 컨트롤러
      */
-    @PostMapping("/auth/callback/kakao")
+    @GetMapping("/auth/callback/kakao")
     public ResponseEntity<?> kakaoLogin(@RequestParam(name = "code") String code, HttpServletResponse response) throws IOException {
         LoginResponseDto dto = kakaoService.kakaoLogin(code, response);
         return CommonResponse.ok("success", dto);
