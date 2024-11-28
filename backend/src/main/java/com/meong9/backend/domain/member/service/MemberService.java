@@ -13,7 +13,7 @@ import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.domain.puppy.repository.PuppyRepository;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.entity.Region;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;

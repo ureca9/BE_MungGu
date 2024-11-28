@@ -5,7 +5,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;

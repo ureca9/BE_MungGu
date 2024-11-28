@@ -2,7 +2,7 @@ package com.meong9.backend.global.auth.config;
 
 import com.meong9.backend.global.auth.filter.JwtAuthenticationFilter;
 import com.meong9.backend.global.auth.service.MemberDetailsService;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
