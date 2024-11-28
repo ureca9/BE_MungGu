@@ -21,6 +21,7 @@ public class ItemBasedRecommendation {
     public List<RecommendedItem> recommend(DataModel dataModel, long pensionId, int numRecommendations) throws Exception {
         // 시설 간 유사도 계산
         ItemSimilarity similarity = new PearsonCorrelationSimilarity(dataModel);
+
         // Item-Based 객체 초기화
         GenericItemBasedRecommender recommender = new GenericItemBasedRecommender(dataModel, similarity);
         // 추천 생성
@@ -28,6 +29,7 @@ public class ItemBasedRecommendation {
 
         log.info("item base 추천 pensionId: {}", pensionId);
         recommendations.forEach(item -> log.info("추천된 place ID: {}, score: {}", item.getItemID(), item.getValue()));
+        System.out.println("isEmpty(): "+recommendations.isEmpty());
 
         return recommendations;
 
