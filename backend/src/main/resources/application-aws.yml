@@ -22,7 +22,7 @@ s3:
 
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
-  redirect-uri: http://localhost:8080/auth/callback/kakao
+  redirect-uri: http://localhost:5173/login
   client-secret: ${KAKAO_CLIENT_SECRET}
 
 jwt:
