@@ -15,8 +15,6 @@ import java.util.List;
 
 public interface PensionRecommendationRepository extends JpaRepository<PensionRecommendation, Long> {
 
-
-    @Query("SELECT pr FROM PensionRecommendation pr WHERE pr.pensionMemberId.memberId = :memberId ORDER BY pr.score DESC")
-    Page<PensionRecommendation> findByMemberId(@Param("memberId") Long memberId, Pageable pageable);
-
+    @Query("SELECT p FROM PensionRecommendation p WHERE p.member.memberId = :memberId ORDER BY p.score DESC")
+    List<PensionRecommendation> findByMemberId(Long memberId, Sort score);
 }
