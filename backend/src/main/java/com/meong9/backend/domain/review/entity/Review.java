@@ -41,8 +41,9 @@ public class Review extends BaseTimeEntity {
     @Column(name = "plc_pen_id")
     private Long placePensionId; // 시설 또는 펜션 아이디
 
+    @Setter
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
+    private List<ReviewFile> reviewFiles; // 후기 파일 리스트
 
     @Builder
     public Review(Member member, String content, String nickname, Float score, Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
@@ -55,4 +56,5 @@ public class Review extends BaseTimeEntity {
         this.placePensionId = placePensionId;
         this.reviewFiles = reviewFiles;
     }
+
 }

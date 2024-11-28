@@ -3,6 +3,8 @@ package com.meong9.backend.domain.review.service;
 
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
+import com.meong9.backend.domain.review.entity.Review;
+import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,35 +30,28 @@ public class ReviewService {
     private final MediaFileRepository mediaFileRepository;
 
     @Transactional
-    public void createPuppy(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
-        MediaFile images = null;
-        for (MultipartFile file : files) { // 파일 저장
+    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
 
+        List<ReviewFile> reviewFiles=new ArrayList<>();
+        Review review=Review.builder()
+                .member(member)
+                .content(reviewRequestDto.getContent())
+                .nickname(member.getNickname())
+                .score(reviewRequestDto.getScore())
+                .type(reviewRequestDto.getType())
+                .placePensionId(reviewRequestDto.getPlcPenId())
+                .reviewFiles(new ArrayList<>())
+                .build();
+
+        Review savedReview = reviewRepository.save(review);
+
+        // ReviewFile들을 생성
+        for (MultipartFile mf : files) { // 파일들 저장
+            MediaFile file = handleImageUpload(mf,savedReview.getReviewId());
+            reviewFileRepository.save(new ReviewFile(file));
+            reviewFiles.add(new ReviewFile(file));
         }
-        try {
-            // 1. 품종 조회
-            Breed breed = findBreed(puppyRequestDto.getBreedId());
-
-            // 2. Puppy 엔티티 생성 및 초기 저장
-            Puppy puppy = createPuppyEntity(puppyRequestDto, currentMember, breed);
-            Puppy savedPuppy = puppyRepository.save(puppy); // puppyId 생성됨
-
-            // 3. 이미지 업로드 처리
-            profileImage = handleImageUpload(image, savedPuppy.getPuppyId());
-            savedPuppy.setProfileImage(profileImage);
-
-            // 4. Puppy 엔티티 업데이트
-            puppyRepository.save(savedPuppy);
-
-
-
-        } catch (Exception e) {
-            // 트랜잭션 실패 시 업로드된 파일 삭제
-            if (profileImage != null && profileImage.getFileKey() != null) {
-                mediaFileService.deleteFromS3(profileImage.getFileKey());
-            }
-            throw e; // 예외 다시 던짐
-        }
+        review.setReviewFiles(reviewFiles);
     }
 
 

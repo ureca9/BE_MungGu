@@ -2,6 +2,7 @@ package com.meong9.backend.domain.review.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
+import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -23,14 +24,16 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewController {
-
+    private final ReviewService reviewService;
 
     @PostMapping
     public ResponseEntity<?> createReview(
             @RequestPart("data") ReviewRequestDto reviewRequestDto,
-            @RequestPart(value = "image", required = false) List<MultipartFile> image,
+            @RequestPart(value = "image", required = false) List<MultipartFile> files,
             @CurrentMember Member member) throws IOException {
 
+        reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.ok("success");
     }
+
 }
