@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -47,16 +50,30 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
+        List<MediaFile> mediaFiles=new ArrayList<>();
         // ReviewFile들을 생성
         if(files != null) {
             for (MultipartFile mf : files) { // 파일들 저장
                 MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
+                mediaFiles.add(file);
                 ReviewFile reviewFile=new ReviewFile(file);
                 reviewFileRepository.save(reviewFile);
                 reviewFiles.add(reviewFile);
             }
         }
         review.setReviewFiles(reviewFiles);
+
+        // 트랜잭션 동기화
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
+                        }
+                    }
+                }
+        );
     }
 
 
