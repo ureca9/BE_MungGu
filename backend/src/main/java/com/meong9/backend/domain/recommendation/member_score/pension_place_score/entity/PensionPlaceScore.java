@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode
 @Getter
 @Builder
+@ToString
 public class PensionPlaceScore {
     @EmbeddedId
     private PensionPlaceId pensionPlaceId;

@@ -22,4 +22,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     @Query("SELECT m FROM Member m JOIN FETCH m.profileImage WHERE m.memberId = :memberId")
     Optional<Member> findMemberWithProfileImage(Long memberId);
+    @Query("select m.memberId from Member m where m.memberId <= :i")
+    List<Long> findByMemberId(int i);
 }
