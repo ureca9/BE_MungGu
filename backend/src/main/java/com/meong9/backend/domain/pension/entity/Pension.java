@@ -1,15 +1,13 @@
 package com.meong9.backend.domain.pension.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Getter
+@Builder
 public class Pension {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
