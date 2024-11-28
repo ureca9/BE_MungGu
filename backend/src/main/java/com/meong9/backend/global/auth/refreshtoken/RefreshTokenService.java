@@ -37,4 +37,8 @@ public class RefreshTokenService {
     public void removeRefreshToken(RefreshToken refreshToken) {
         refreshTokenRepository.delete(refreshToken);
     }
+
+    public void removeRefreshTokenByKeyEmail(String keyEmail) {
+        refreshTokenRepository.deleteById(keyEmail);
+    }
 }

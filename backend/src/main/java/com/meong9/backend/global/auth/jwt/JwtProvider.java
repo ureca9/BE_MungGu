@@ -1,4 +1,4 @@
-package com.meong9.backend.global.auth.utils;
+package com.meong9.backend.global.auth.jwt;
 
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.utils.RoleCodeMapper;
@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
