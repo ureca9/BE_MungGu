@@ -4,7 +4,6 @@ import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
-import com.meong9.backend.domain.plc_pen_review.repository.PlcPenReviewRepository;
 import com.meong9.backend.domain.recommendation.id_class.PensionPlaceId;
 import com.meong9.backend.domain.recommendation.member_score.pension_member_score.repository.PensionMemberScoreRepository;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.entity.PensionPlaceScore;
@@ -13,9 +12,12 @@ import com.meong9.backend.domain.recommendation.member_score.place_member_score.
 import com.meong9.backend.domain.recommendation.member_score.place_member_score.repository.PlaceMemberScoreRepository;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PlaceRecommendation;
 import com.meong9.backend.domain.recommendation.recommendation.service.RecommendationService;
+import com.meong9.backend.domain.review.repository.ReviewRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,14 +34,15 @@ public class PensionPlaceScoreService {
     private final PensionRepository pensionRepository;
     private final PlaceRepository placeRepository;
     private final RecommendationService recommendationService;
-    private final PlcPenReviewRepository plcPenReviewRepository;
+    private final ReviewRepository reviewRepository;
     private final PensionMemberScoreRepository pensionMemberScoreRepository;
+
 
     // 펜션-시설 점수를 초기화하고 업데이트하는 메서드
     // 리뷰가 있는 펜션을 대상으로 점수 초기화, 업데이트
     @Transactional
     public void initializeAndUpdateScores() {
-        List<Long> pensionIds = plcPenReviewRepository.findPensionReviewCount(1);
+        List<Long> pensionIds = reviewRepository.findPensionReviewCount(1);
         for (Long pensionId : pensionIds) {
             initializeOrUpdateScoresForPension(pensionId);
         }
@@ -50,6 +53,7 @@ public class PensionPlaceScoreService {
         List<Long> placeIds = placeMemberScoreRepository.findAllPlaceIds();
         for (Long placeId : placeIds) {
             List<Long> commonMembers = findCommonMembers(pensionId, placeId);
+
             if (!commonMembers.isEmpty()) {
                 float score = calculateScore(commonMembers, pensionId, placeId);
                 saveOrUpdatePensionPlaceScore(pensionId, placeId, score);
@@ -103,22 +107,41 @@ public class PensionPlaceScoreService {
     }
 
     // 펜션-시설 점수 저장, 업데이트
-    private void saveOrUpdatePensionPlaceScore(Long pensionId, Long placeId, float score) {
-        Pension pension = pensionRepository.getReferenceById(pensionId);
-        Place place = placeRepository.getReferenceById(placeId);
+    @Transactional
+    public void saveOrUpdatePensionPlaceScore(Long pensionId, Long placeId, float score) {
 
+        // 복합 키 객체 생성
         PensionPlaceId pensionPlaceId = new PensionPlaceId(pensionId, placeId);
-        PensionPlaceScore pensionPlaceScore = pensionPlaceScoreRepository.findById(pensionPlaceId)
-                .orElse(PensionPlaceScore.builder()
-                        .pensionPlaceId(pensionPlaceId)
-                        .pension(pension)
-                        .place(place)
-                        .score(0.0f)
-                        .lastUpdatedAt(LocalDateTime.now())
-                        .build());
 
+        Pension pension = pensionRepository.findById(pensionId)
+                .orElseThrow(() -> new IllegalArgumentException("Pension not found: " + pensionId));
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new IllegalArgumentException("Place not found: " + placeId));
+
+        // 엔티티 조회 (없으면 새로 생성)
+        // PensionPlaceScore 조회 또는 생성
+        PensionPlaceScore pensionPlaceScore = pensionPlaceScoreRepository.findById(pensionPlaceId).orElse(null);
+
+        if (pensionPlaceScore == null) {
+
+            pensionPlaceScore = PensionPlaceScore.builder()
+                    .pensionPlaceId(pensionPlaceId)
+                    .pension(pension)
+                    .place(place)
+                    .score(0.0f)
+                    .lastUpdatedAt(LocalDateTime.now())
+                    .build();
+
+            log.info("Created new PensionPlaceScore: {}", pensionPlaceScore);
+        } else {
+            log.info("Found existing PensionPlaceScore: {}", pensionPlaceScore);
+        }
+
+        // 값 업데이트
         pensionPlaceScore.setScore(score);
         pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
+
+        // 저장 (새로 생성된 경우 Insert, 기존에 있으면 Update)
         pensionPlaceScoreRepository.save(pensionPlaceScore);
     }
 }
