@@ -59,7 +59,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // 필터링에서 제외할 요청들
         final RequestMatcher ignoredRequests = new OrRequestMatcher(
-                List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.POST.name()),
+                List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/places", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/pensions", HttpMethod.GET.name()),
