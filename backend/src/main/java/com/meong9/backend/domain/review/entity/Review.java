@@ -1,0 +1,50 @@
+package com.meong9.backend.domain.review.entity;
+
+import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.global.entity.BaseTimeEntity;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+@Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
+public class Review extends BaseTimeEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long reviewId; // 후기 아이디
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
+
+    @Column(columnDefinition = "TEXT")
+    private String content; // 내용
+
+    @Column(name = "m_nickname", length = 20)
+    private String nickname; // 작성자 닉네임
+
+    @Column(name = "score")
+    private Float score; // 별점
+
+    @Temporal(TemporalType.DATE)
+    private Date visitDate; // 방문일
+
+    @Column(name = "type", length = 3)
+    private String type; // 시설 or 펜션 구분
+
+    @Column(name = "plc_pen_id")
+    private Long placePensionId; // 시설 또는 펜션 아이디
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
+
+}
