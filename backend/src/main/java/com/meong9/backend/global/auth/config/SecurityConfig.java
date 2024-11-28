@@ -2,7 +2,7 @@ package com.meong9.backend.global.auth.config;
 
 import com.meong9.backend.global.auth.filter.JwtAuthenticationFilter;
 import com.meong9.backend.global.auth.service.MemberDetailsService;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -60,7 +60,6 @@ public class SecurityConfig {
         // 필터링에서 제외할 요청들
         final RequestMatcher ignoredRequests = new OrRequestMatcher(
                 List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.POST.name()),
-                        new AntPathRequestMatcher("/api/v1/auth/token", HttpMethod.POST.name()),
                         new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/places", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/searches/pensions", HttpMethod.GET.name()),

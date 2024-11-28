@@ -5,8 +5,9 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.service.KakaoService;
 import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
-import com.meong9.backend.global.auth.utils.JwtProvider;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.dto.CommonResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class MemberController {
     /**
      * 카카오 로그인 처리 컨트롤러
      */
-    @PostMapping("/auth/callback/kakao")
+    @GetMapping("/auth/callback/kakao")
     public ResponseEntity<?> kakaoLogin(@RequestParam(name = "code") String code, HttpServletResponse response) throws IOException {
         LoginResponseDto dto = kakaoService.kakaoLogin(code, response);
         return CommonResponse.ok("success", dto);
@@ -49,6 +50,23 @@ public class MemberController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(Map.of("message", "Access Token이 재발급되었습니다."));
+    }
+
+    /**
+     * 로그아웃 처리 컨트롤러
+     */
+    @PostMapping("/auth/logout")
+    public ResponseEntity<?> logout(@CookieValue(name = "Refresh-token") String refreshToken,
+                                    HttpServletResponse response) {
+        memberService.logout(refreshToken);
+        Cookie cookie = new Cookie(JwtProvider.REFRESH_TOKEN_HEADER, "");
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setAttribute("SameSite", "None");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return CommonResponse.ok("success");
     }
 
     /**
