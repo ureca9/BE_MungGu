@@ -211,7 +211,9 @@ public class KakaoService {
         // 4. S3에 프로필 사진 업로드 및 DB 저장
         S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
                 kakaoUserInfo.getProfileImageUrl(),
-                savedMember.getMemberId()
+                savedMember.getMemberId(),
+                "Mprofile/",
+                "_profile.jpg"
         );
 
         ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());

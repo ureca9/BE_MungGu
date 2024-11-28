@@ -30,6 +30,7 @@ public class ReviewService {
     public void createPuppy(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
         MediaFile images = null;
         for (MultipartFile file : files) { // 파일 저장
+
         }
         try {
             // 1. 품종 조회
@@ -77,29 +78,29 @@ public class ReviewService {
     /**
      * 이미지 업데이트 처리
      * @param image 업로드할 새 이미지
-     * @param puppyId 강아지 ID
+     * @param reviewId 리뷰 ID
      * @param existingImage 기존 MediaFile 엔티티
      * @return 저장된 MediaFile 엔티티
      * @throws IOException 이미지 처리 오류
      */
-    private MediaFile handleImageUpdate(MultipartFile image, Long puppyId, MediaFile existingImage) throws IOException {
+    private MediaFile handleImageUpdate(MultipartFile image, Long reviewId, MediaFile existingImage) throws IOException {
         deleteImage(existingImage);
-        String fileKey = generateFileKey(puppyId); // 새 파일 키 생성
+        String fileKey = generateFileKey(reviewId); // 새 파일 키 생성
         return saveImage(image, fileKey); // 새 이미지 저장
     }
 
     /**
      * 이미지 삭제
-     * @param profileImage 삭제할 MediaFile 엔티티
+     * @param reviewImage 삭제할 MediaFile 엔티티
      */
-    private void deleteImage(MediaFile profileImage) {
-        if (profileImage != null) {
+    private void deleteImage(MediaFile reviewImage) {
+        if (reviewImage != null) {
             // S3에서 파일 삭제
-            if (profileImage.getFileKey() != null) {
-                mediaFileService.deleteFromS3(profileImage.getFileKey());
+            if (reviewImage.getFileKey() != null) {
+                mediaFileService.deleteFromS3(reviewImage.getFileKey());
             }
             // 데이터베이스에서 MediaFile 삭제
-            mediaFileRepository.delete(profileImage);
+            mediaFileRepository.delete(reviewImage);
         }
     }
 
@@ -131,11 +132,10 @@ public class ReviewService {
 
     /**
      * S3 파일 키 생성
-     * @param domain 경로 지정
-     * @param id 강아지 ID
+     * @param reviewId 강아지 ID
      * @return 생성된 파일 키
      */
-    private String generateFileKey(String domain,Long id) {
-        return "Profile/" + puppyId + "_profile.jpg";
+    private String generateFileKey(Long reviewId) {
+        return "Review/" + reviewId + "_review.jpg";
     }
 }

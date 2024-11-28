@@ -4,10 +4,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -47,4 +44,15 @@ public class Review extends BaseTimeEntity {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
+    @Builder
+    public Review(Member member, String content, String nickname, Float score, Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
+        this.member = member;
+        this.content = content;
+        this.nickname = nickname;
+        this.score = score;
+        this.visitDate = visitDate;
+        this.type = type;
+        this.placePensionId = placePensionId;
+        this.reviewFiles = reviewFiles;
+    }
 }
