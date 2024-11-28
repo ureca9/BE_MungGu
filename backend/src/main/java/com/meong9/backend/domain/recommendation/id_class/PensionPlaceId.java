@@ -10,6 +10,7 @@ import java.io.Serializable;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode
 @Getter
+@ToString
 public class PensionPlaceId implements Serializable {
     private Long pensionId;
     private Long placeId;

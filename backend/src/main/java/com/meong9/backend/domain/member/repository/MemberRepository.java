@@ -17,4 +17,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("SELECT m.memberId FROM Member m WHERE m.lastActivity >= :week")
     List<Long> findActiveMembers(@Param("week") LocalDateTime week);
 
+    @Query("select m.memberId from Member m where m.memberId <= :i")
+    List<Long> findByMemberId(int i);
 }

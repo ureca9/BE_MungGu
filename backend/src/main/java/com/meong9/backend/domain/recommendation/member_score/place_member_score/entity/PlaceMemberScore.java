@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "place_member_score")
 @Getter
+@Builder
 public class PlaceMemberScore {
 
     @EmbeddedId
@@ -41,10 +42,5 @@ public class PlaceMemberScore {
         this.lastUpdatedAt = lastUpdatedAt;
     }
 
-    @Builder
-    public PlaceMemberScore(PlaceMemberId placeMemberId, float score, LocalDateTime lastUpdatedAt) {
-        this.placeMemberId = placeMemberId;
-        this.score = score;
-        this.lastUpdatedAt = lastUpdatedAt;
-    }
+
 }
