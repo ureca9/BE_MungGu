@@ -26,9 +26,11 @@ public class RecommendationController {
     @GetMapping("/spots/recommendations")
     public ResponseEntity<?> recommendPensions(@CurrentMember Member member) {
         List<RecommendationDto> recommendItem = recommendationService.getPensionRecommendations(member, 5);
+
         Map<String, List<RecommendationDto>> recommend = new HashMap<>();
         recommend.put("recommend", recommendItem);
-        return CommonResponse.ok("success", recommendItem);
+
+        return CommonResponse.ok("success", recommend);
     }
 
     @GetMapping("/pensions/{pensionId}/recommendations")
