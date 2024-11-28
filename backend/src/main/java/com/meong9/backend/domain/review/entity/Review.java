@@ -45,6 +45,6 @@ public class Review extends BaseTimeEntity {
     private Long placePensionId; // 시설 또는 펜션 아이디
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MediaFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
+    private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
 }

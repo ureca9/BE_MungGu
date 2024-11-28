@@ -22,4 +22,9 @@ public class ReviewFile extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile file; // 연관된 파일
+
+    public ReviewFile(Review review, MediaFile file) {
+        this.review = review;
+        this.file = file;
+    }
 }

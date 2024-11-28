@@ -52,7 +52,7 @@ public class MediaFileService {
         return uploadImageToS3(memberId, bufferedImage);
     }
 
-    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage) throws IOException {
+    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage,String prefix,String suffix) throws IOException {
         // 1. 이미지 메타데이터 추출
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(rgbImage, "jpg", baos);
@@ -64,7 +64,8 @@ public class MediaFileService {
         metadata.setContentLength(imageBytes.length);
 
         // 3. S3 파일 키 생성
-        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+//        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+        String fileKey = prefix + memberId + suffix;
 
         // 4. S3 업로드
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);

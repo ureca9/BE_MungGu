@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn
 @NoArgsConstructor(access=AccessLevel.PROTECTED)
+@AllArgsConstructor
 @Getter
 @Table(
         name = "likes",
