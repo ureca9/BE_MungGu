@@ -43,6 +43,7 @@ public class Review extends BaseTimeEntity {
 
     @Setter
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "review_id")
     private List<ReviewFile> reviewFiles; // 후기 파일 리스트
 
     @Builder

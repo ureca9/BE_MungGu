@@ -13,6 +13,7 @@ import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
@@ -46,10 +48,13 @@ public class ReviewService {
         Review savedReview = reviewRepository.save(review);
 
         // ReviewFile들을 생성
-        for (MultipartFile mf : files) { // 파일들 저장
-            MediaFile file = handleImageUpload(mf,savedReview.getReviewId());
-            reviewFileRepository.save(new ReviewFile(file));
-            reviewFiles.add(new ReviewFile(file));
+        if(files != null) {
+            for (MultipartFile mf : files) { // 파일들 저장
+                MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
+                ReviewFile reviewFile=new ReviewFile(file);
+                reviewFileRepository.save(reviewFile);
+                reviewFiles.add(reviewFile);
+            }
         }
         review.setReviewFiles(reviewFiles);
     }
