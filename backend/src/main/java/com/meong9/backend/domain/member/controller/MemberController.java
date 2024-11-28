@@ -33,6 +33,7 @@ public class MemberController {
      */
     @GetMapping("/auth/callback/kakao")
     public ResponseEntity<?> kakaoLogin(@RequestParam(name = "code") String code, HttpServletResponse response) throws IOException {
+        System.out.println("code: " + code);
         LoginResponseDto dto = kakaoService.kakaoLogin(code, response);
         return CommonResponse.ok("success", dto);
     }
