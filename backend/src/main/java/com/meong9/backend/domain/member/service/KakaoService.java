@@ -67,19 +67,25 @@ public class KakaoService {
 
     public LoginResponseDto kakaoLogin(String code, HttpServletResponse response) throws IOException {
         // 1. 카카오 액세스 토큰 가져오기
+        log.info("code : " + code);
+        log.info("카카오 code 도착. getToken() 실행");
         String kakaoAccessToken = getToken(code);
 
         // 2. 카카오 사용자 정보 가져오기
+        log.info("카카오 사용자 정보 가져오기 실행");
         KakaoUserInfoDto kakaoUserInfo = getKakaoUserInfo(kakaoAccessToken);
 
         // 3. 회원가입 필요 여부 확인 및 회원 정보 반환
+        log.info("회원가입 필요 여부 확인 및 회원 정보 반환");
         KakaoRegisterResultDto kakaoRegisterResultDto = registerKakaoUserIfNeeded(kakaoUserInfo);
 
         // 4. 로그인 처리
+        log.info("로그인 처리");
         Member kakaoUser = kakaoRegisterResultDto.getMember();
         forceLogin(kakaoUser);
 
         // 5. JWT 토큰 생성 및 응답 헤더 설정
+        log.info("JWT 토큰 생성 및 응답 헤더 설정");
         String accessToken = jwtProvider.createAccessToken(kakaoUser.getEmail(), kakaoUser.getRoleCode());
         response.addHeader(JwtProvider.AUTHORIZATION_HEADER, accessToken);
 
@@ -89,6 +95,7 @@ public class KakaoService {
         refreshTokenService.insertRefreshToken(kakaoUser.getEmail(), refreshToken.substring(7));
 
         // 6. LoginResponseDto 구성
+        log.info("LoginResponseDto 구성");
         LoginResponseDto.LoginResponseDtoBuilder responseBuilder = LoginResponseDto.builder()
                 .memberId(kakaoUser.getMemberId())
                 .email(kakaoUser.getEmail())
@@ -134,7 +141,8 @@ public class KakaoService {
             // HTTP 응답 (JSON) -> 액세스 토큰 파싱
             JsonNode jsonNode = new ObjectMapper().readTree(response.getBody());
             return jsonNode.get("access_token").asText();
-        } catch (RestClientException e){
+        } catch (RestClientException e) {
+            e.printStackTrace();
             throw AuthenticationException.socialLoginError();
         }
     }
@@ -176,7 +184,8 @@ public class KakaoService {
             log.info("카카오 사용자 정보: " + id + ", " + nickname + ", " + email);
             return new KakaoUserInfoDto(id, nickname, email, profileImageUrl);
         } catch (RestClientException e) {
-            throw AuthenticationException.socialLoginError();
+            e.printStackTrace();
+            throw AuthenticationException.fetchUserdataError();
         }
     }
 
