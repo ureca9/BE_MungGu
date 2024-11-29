@@ -6,7 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -16,6 +17,10 @@ public class Place {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long placeId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plc_category_id")
+    private PlcCategory plcCategory;
 
     @Column(nullable = false, length = 200, name = "place_name")
     private String name;
@@ -55,11 +60,18 @@ public class Place {
     @Column(nullable = false)
     private Integer likeCount = 0;
 
-    public void increaseLikeCount(){
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlaceTag> placeTags = new ArrayList<>();
+
+    @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlaceFile> placeFiles = new ArrayList<>();
+
+
+    public void increaseLikeCount() {
         this.likeCount++;
     }
 
-    public void decreaseLikeCount(){
-        this.likeCount=Math.max(this.likeCount-1,0);
+    public void decreaseLikeCount() {
+        this.likeCount = Math.max(this.likeCount - 1, 0);
     }
 }
