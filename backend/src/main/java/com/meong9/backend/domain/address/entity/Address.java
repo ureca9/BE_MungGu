@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.address.entity;
 
+import com.meong9.backend.global.entity.Region;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -31,4 +32,7 @@ public class Address {
     @Column(name = "zip_no", length = 5)
     private String zipNo;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
 }
