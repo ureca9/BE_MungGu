@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.place.entity;
 
 import com.meong9.backend.domain.place.entity.id.PlaceTagKey;
+import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,14 +21,14 @@ public class PlaceTag {
     @JoinColumn(name = "place_id")
     private Place place;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @MapsId("tagId") // PlaceTagKey의 tagId와 매핑
-//    @JoinColumn(name = "tag_id")
-//    private Tag tag;
-//
-//    public PlaceTag(Place place, Tag tag) {
-//        this.id = new PlaceTagKey(place.getPlaceId(), tag.getTagId());
-//        this.place = place;
-//        this.tag = tag;
-//    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("tagId") // PlaceTagKey의 tagId와 매핑
+    @JoinColumn(name = "tag_id")
+    private Tag tag;
+
+    public PlaceTag(Place place, Tag tag) {
+        this.id = new PlaceTagKey(place.getPlaceId(), tag.getTagId());
+        this.place = place;
+        this.tag = tag;
+    }
 }
