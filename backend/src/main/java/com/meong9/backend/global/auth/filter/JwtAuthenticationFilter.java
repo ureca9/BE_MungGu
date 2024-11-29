@@ -42,6 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if (req.getRequestURI().startsWith("/api/v1/search") || req.getRequestURI().equals("/api/v1/spots/recommendations")) {
+                if (req.getHeader("Authorization") == null) {
+                    filterChain.doFilter(req, res);
+                    return;
+                }
+            }
+
             // 3. Access Token 인증 처리
             String tokenValue = jwtProvider.getTokenFromRequest(req, JwtProvider.AUTHORIZATION_HEADER);
             if (!StringUtils.hasText(tokenValue)) {
