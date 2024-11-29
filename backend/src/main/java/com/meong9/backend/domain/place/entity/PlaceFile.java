@@ -27,4 +27,10 @@ public class PlaceFile {
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile mediaFile;
 
+    @Builder
+    public PlaceFile(Place place, MediaFile mediaFile) {
+        this.id = new PlaceFileId(place.getPlaceId(), mediaFile.getMediaFileId());
+        this.place = place;
+        this.mediaFile = mediaFile;
+    }
 }

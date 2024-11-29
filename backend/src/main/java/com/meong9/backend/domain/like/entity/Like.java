@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.like.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,7 +27,7 @@ import lombok.NoArgsConstructor;
 //                @Index(name = "idx_place_id", columnList = "place_id")
         }
 )
-public class Like {
+public class Like extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long likeId;

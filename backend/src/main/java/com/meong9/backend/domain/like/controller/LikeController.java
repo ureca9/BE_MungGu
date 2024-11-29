@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Slf4j
 public class LikeController {
     private final LikeService likeService;
 
@@ -37,14 +36,14 @@ public class LikeController {
 
     // Place 즐겨찾기 상태 조회
     @GetMapping("/places/likes/{placeId}")
-    public ResponseEntity<?> getPlaceLikeStatus(@PathVariable Long placeId, @CurrentMember Member member) {
+    public ResponseEntity<?> getPlaceLikeStatus(@CurrentMember Member member,@PathVariable Long placeId) {
         return CommonResponse.ok(likeService.isPlaceLikedByMember(member, placeId) ? "찜한 시설입니다." : "찜하지 않은 시설입니다.");
 
     }
 
     // Pension 즐겨찾기 상태 조회
     @GetMapping("/pensions/likes/{pensionId}")
-    public ResponseEntity<?> getPensionLikeStatus(@PathVariable Long pensionId, @CurrentMember Member member) {
+    public ResponseEntity<?> getPensionLikeStatus(@CurrentMember Member member, @PathVariable Long pensionId) {
         return CommonResponse.ok(likeService.isPensionLikedByMember(member, pensionId) ? "찜한 펜션입니다." : "찜하지 않은 펜션입니다.");
     }
 }

@@ -31,28 +31,28 @@ public class MediaFileService {
     /**
      * 유저가 등록한 프로필 이미지를 S3에 업로드
      */
-    public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId) throws IOException {
+    public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId,String prefix,String suffix) throws IOException {
         validateImage(image);
 
         // 이미지 변환 처리 (PNG -> JPG)
         BufferedImage originalImage = ImageIO.read(image.getInputStream());
         BufferedImage rgbImage = convertToRgbImage(originalImage);
 
-        return uploadImageToS3(memberId, rgbImage);
+        return uploadImageToS3(memberId, rgbImage,prefix,suffix);
     }
 
     /**
      * 카카오에서 받은 이미지 URL로 S3에 업로드
      */
-    public S3UploadResultDto uploadFromUrl(String imageUrl, Long memberId) throws IOException {
+    public S3UploadResultDto uploadFromUrl(String imageUrl, Long memberId,String prefix,String suffix) throws IOException {
         // URL에서 이미지 다운로드
         URL url = new URL(imageUrl);
         BufferedImage bufferedImage = ImageIO.read(url);
 
-        return uploadImageToS3(memberId, bufferedImage);
+        return uploadImageToS3(memberId, bufferedImage,prefix,suffix);
     }
 
-    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage) throws IOException {
+    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage,String prefix,String suffix) throws IOException {
         // 1. 이미지 메타데이터 추출
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(rgbImage, "jpg", baos);
@@ -64,7 +64,8 @@ public class MediaFileService {
         metadata.setContentLength(imageBytes.length);
 
         // 3. S3 파일 키 생성
-        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+//        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+        String fileKey = prefix + memberId + suffix;
 
         // 4. S3 업로드
         ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
@@ -124,8 +125,8 @@ public class MediaFileService {
         return rgbImage;
     }
 
-    public void deleteProfileImage(Long memberId) {
-        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
+    public void deleteProfileImage(Long memberId,String prefix,String suffix) {
+        String fileKey = prefix + memberId + suffix;
         s3Client.deleteObject(bucket, fileKey);
     }
 

@@ -139,7 +139,7 @@ public class MemberService {
      * 프로필 이미지를 삭제하는 서비스 메서드
      */
     public void deleteProfileImage(Member member) {
-        mediaFileService.deleteProfileImage(member.getMemberId());
+        mediaFileService.deleteProfileImage(member.getMemberId(),"Mprofile/","_profile.jpg");
     }
 
     /**
@@ -199,7 +199,7 @@ public class MemberService {
         member.setNickname(dto.getNickname().trim());
 
         if (profileImage != null) {
-            mediaFileService.uploadProfileImage(profileImage, member.getMemberId());
+            mediaFileService.uploadProfileImage(profileImage, member.getMemberId(),"Mprofile/","_profile.jpg");
         }
     }
 
