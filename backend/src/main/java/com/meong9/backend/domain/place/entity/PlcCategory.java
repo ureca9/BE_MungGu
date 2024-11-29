@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class PlcCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "plc_category_id")
     private Long plcCategoryId;
 
     @Column(name = "plc_category_name")
