@@ -15,11 +15,6 @@ public class ReviewFile extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // 후기 파일 아이디
 
-    // 양방향 연관관계가 필요한가...?
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "review_id", nullable = false)
-//    private Review review; // 연관된 후기
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile file; // 연관된 파일
