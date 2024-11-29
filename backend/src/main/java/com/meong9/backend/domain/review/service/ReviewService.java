@@ -80,14 +80,14 @@ public class ReviewService {
 
     @Transactional
     public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException {
-        // 1. 기존 리뷰 조회 및 권한 검증
+        // 리뷰 조회 및 권한 검증
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NotFoundException("리뷰"));
         if (!review.getMember().equals(member)) {
             throw new IllegalAccessException("리뷰 작성자만 수정이 가능합니다"); // 임시로 씀
         }
 
-        // 2. 기존 파일 관리
+        // 파일 관리
         List<ReviewFile> existingReviewFiles = review.getReviewFiles();
         List<ReviewFile> newReviewFiles = new ArrayList<>();
         List<MediaFile> mediaFiles=new ArrayList<>();
@@ -111,6 +111,28 @@ public class ReviewService {
         // 리뷰 정보 업데이트
         review.update(reviewRequestDto);
     }
+
+    @Transactional
+    public void deleteReview(Long reviewId, Member member) throws IllegalAccessException {
+        // 리뷰 조회 및 권한 확인
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new NotFoundException("리뷰"));
+
+        if (!review.getMember().equals(member)) {
+            throw new IllegalAccessException("리뷰 작성자만 삭제가 가능합니다"); // 임시로 씀
+        }
+
+        // 연관된 파일 삭제
+        if (review.getReviewFiles() != null) {
+            for (ReviewFile reviewFile : review.getReviewFiles()) {
+                mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey());
+            }
+        }
+
+        // 리뷰 삭제 (ReviewFile은 CascadeType.ALL로 자동 삭제)
+        reviewRepository.delete(review);
+    }
+
 
     private void deleteReviewFile(ReviewFile reviewFile) {
         mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey());

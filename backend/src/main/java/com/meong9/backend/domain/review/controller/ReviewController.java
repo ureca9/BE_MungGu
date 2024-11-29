@@ -43,4 +43,12 @@ public class ReviewController {
         return CommonResponse.ok("success");
     }
 
+
+    @DeleteMapping("/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable Long reviewId,
+            @CurrentMember Member member) throws IOException, IllegalAccessException {
+        reviewService.deleteReview(reviewId, member);
+        return CommonResponse.ok("success");
+    }
 }
