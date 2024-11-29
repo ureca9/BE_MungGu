@@ -12,6 +12,7 @@ import com.meong9.backend.domain.recommendation.recommendation.entity.PlaceRecom
 import com.meong9.backend.domain.recommendation.recommendation.repository.PensionRecommendationRepository;
 import com.meong9.backend.domain.recommendation.recommendation.repository.PlaceRecommendationRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
+import com.meong9.backend.global.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.impl.model.jdbc.ReloadFromJDBCDataModel;
 import org.apache.mahout.cf.taste.model.DataModel;
@@ -119,12 +120,10 @@ public class RecommendationService {
         List<RecommendationDto> pensionRecommendationList = new ArrayList<>();
 
         for(PensionRecommendation pensionRecommendation : recommendations){
-            PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020");
-            // 주소 null 체크
-            String address = "";
-            if(plcPenAddress != null){
-                address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
-            }
+            PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020")
+                    .orElseThrow(() -> NotFoundException.entityNotFound("시설 주소"));
+
+            String address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
 
             // 이미지 null 체크
             String img = null;
@@ -170,11 +169,12 @@ public class RecommendationService {
         List<RecommendationDto> placeRecommendationList = new ArrayList<>();
 
         for(PlaceRecommendation placeRecommendation : recommendations){
-            PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(placeRecommendation.getPlace().getPlaceId(), "010");
+            PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(placeRecommendation.getPlace().getPlaceId(), "010")
+                    .orElseThrow(() -> NotFoundException.entityNotFound("펜션 주소"));
 
             // 주소 null 체크
             String address = "";
-            if (plcPenAddress != null && plcPenAddress.getAddress() != null) {
+            if (plcPenAddress.getAddress() != null) {
                 address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
             }
 
