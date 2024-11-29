@@ -7,6 +7,7 @@ import com.meong9.backend.domain.puppy.dto.PuppyResponseDto;
 import com.meong9.backend.domain.puppy.entity.Breed;
 import com.meong9.backend.domain.puppy.service.BreedService;
 import com.meong9.backend.domain.puppy.service.PuppyService;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.dto.CommonResponse;
 import com.meong9.backend.domain.member.entity.Member;
@@ -20,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/v1/puppies")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Slf4j
 public class PuppyController {
@@ -28,11 +29,11 @@ public class PuppyController {
     private final PuppyService puppyService;
     private final BreedService breedService;
 
-    @PostMapping
+    @PostMapping("/puppies)")
     public ResponseEntity<?> createPuppy(
             @RequestPart("data") PuppyRequestDto puppyRequestDto,
             @RequestPart(value = "image", required = false) MultipartFile image,
-            @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
+            @CurrentMember Member member) throws IOException {
         log.debug("Received data: {}", puppyRequestDto);
         if (image != null) {
             log.debug("Received image: {}", image.getOriginalFilename());
@@ -40,17 +41,14 @@ public class PuppyController {
             log.debug("No image received");
         }
 
-        // 현재 사용자 정보(Member) 가져오기
-        Member currentMember = memberDetails.member();
-
         // PuppyService를 통해 강아지 프로필 생성
-        PuppyResponseDto responseDto = puppyService.createPuppy(puppyRequestDto, image, currentMember);
+        PuppyResponseDto responseDto = puppyService.createPuppy(puppyRequestDto, image, member);
 
         // CommonResponse로 응답 반환
         return CommonResponse.created("success", responseDto);
     }
 
-    @GetMapping
+    @GetMapping("/puppies")
     public ResponseEntity<?> getPuppyProfile(@RequestParam Long puppyId) {
         // PuppyService를 통해 강아지 프로필 조회
         PuppyProfileResponseDto puppyProfileResponseDto = puppyService.getPuppyProfile(puppyId);
@@ -59,7 +57,7 @@ public class PuppyController {
         return CommonResponse.ok("success", puppyProfileResponseDto);
     }
 
-    @PatchMapping
+    @PatchMapping("/puppies")
     public ResponseEntity<?> updatePuppy(
             @RequestParam Long puppyId,
             @RequestPart("data") PuppyRequestDto updateRequest,
@@ -73,13 +71,13 @@ public class PuppyController {
         return CommonResponse.ok("success", updatedPuppy);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/puppies")
     public ResponseEntity<?> deletePuppy(@RequestParam Long puppyId) {
         puppyService.deletePuppyById(puppyId);
         return CommonResponse.ok("success");
     }
 
-    @GetMapping("/types")
+    @GetMapping("/puppies/types")
     public ResponseEntity<?> getBreeds() {
         return CommonResponse.ok("success", breedService.findAllBreeds());
     }

@@ -31,6 +31,7 @@ public class PlaceDetailResponseDto {
     private String price;
     private String limitInfo;
     private String description;
+    private String enterPetSize;
     private List<String> images;
 
     private List<PhotoReviewSummaryResponseDto> photoReviewList;

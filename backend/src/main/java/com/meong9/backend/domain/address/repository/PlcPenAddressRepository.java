@@ -11,11 +11,16 @@ import java.util.Optional;
 
 @Repository
 public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Long> {
+
     @Query("""
-    SELECT ppa FROM PlcPenAddress ppa
-    LEFT JOIN FETCH ppa.address a
+    SELECT CASE
+        WHEN a.address IS NOT NULL AND a.address <> '' THEN a.address
+        ELSE CONCAT(a.province, ' ', a.cityDistrict, ' ', a.subdistrict, ' ', COALESCE(a.addressDetail, ''))
+    END
+    FROM PlcPenAddress ppa
+    JOIN ppa.address a
     WHERE ppa.type = :type AND ppa.plcPenId = :plcPenId
     """)
-    Optional<PlcPenAddress> findPlcPenAddressWithAddress(@Param("type") String type, @Param("plcPenId") Long plcPenId);
+    Optional<String> findFullAddress(@Param("type") String type, @Param("plcPenId") Long plcPenId);
 
 }

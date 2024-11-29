@@ -1,14 +1,14 @@
 package com.meong9.backend.domain.place.service;
 
-import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
+import com.meong9.backend.domain.address.service.AddressService;
 import com.meong9.backend.domain.place.dto.PlaceDetailResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
-import com.meong9.backend.domain.review.dto.FileResponseDto;
 import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.entity.Review;
-import com.meong9.backend.domain.review.repository.ReviewRepository;
+import com.meong9.backend.domain.review.service.ReviewService;
+import com.meong9.backend.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,61 +21,56 @@ import java.util.stream.Collectors;
 public class PlaceDetailService {
 
     private final PlaceRepository placeRepository;
-    private final ReviewRepository reviewRepository;
-    private final PlcPenAddressRepository plcPenAddressRepository;
+    private final AddressService addressService;
+    private final ReviewService reviewService;
+
 
     /**
-     * 특정 장소의 상세 정보를 조회하는 서비스 메서드
-     * @param placeId 장소 ID
-     * @return PlaceDetailResponseDto 장소 상세 정보 DTO
+     * 주어진 ID를 기준으로 특정 장소의 상세 정보를 조회합니다.
+     * 이 메서드는 장소 엔티티, 해당 주소, 관련 리뷰,
+     * 사진 리뷰 요약 정보를 수집하여 상세 응답 DTO를 생성합니다.
+     *
+     * @param placeId 상세 정보 조회를 요청한 장소의 고유 식별자
+     * @return PlaceDetailResponseDto의 인스턴스로,
+     *         해당 장소의 주소, 리뷰, 사진 리뷰 요약 정보를 포함한 상세 정보를 반환합니다.
      */
     @Transactional(readOnly = true)
     public PlaceDetailResponseDto getPlaceDetail(Long placeId) {
         Place place = getPlace(placeId);
-        String address = getAddress(placeId, "010");
-        List<Review> reviews = getReviews(placeId, "010");
+        String address = addressService.getAddress(placeId, "010");
+        List<Review> reviews = reviewService.getReviews(placeId, "010",0 ,5);
 
-        return buildPlaceDetailResponseDto(place, address, reviews);
+        return getPlaceDetailResponseDto(
+                place,
+                address,
+                reviewService.getPhotoReviewSummaries(placeId, "010"),
+                reviewService.getReviewSummaryResponseDtoList(reviews)
+        );
     }
 
     /**
-     * 장소 정보를 조회하는 메서드
+     * 주어진 장소 ID에 해당하는 Place 엔티티를 조회합니다.
+     * 해당 ID로 Place 엔티티를 찾을 수 없는 경우 NotFoundException을 발생시킵니다.
      * @param placeId 장소 ID
-     * @return Place 엔티티
+     * @return 제공된 장소 ID에 해당하는 Place 엔티티
+     * @throws NotFoundException 제공된 ID로 Place 엔티티를 찾을 수 없는 경우 발생
      */
     private Place getPlace(Long placeId) {
         return placeRepository.findPlaceWithDetails(placeId)
-                .orElseThrow(() -> new IllegalArgumentException("Place not found with ID: " + placeId));
-    }
-
-    /**
-     * 장소에 연결된 주소 정보를 조회하는 메서드
-     * @param placeId 장소 ID
-     * @return 주소 문자열 (없을 경우 "주소 정보 없음")
-     */
-    private String getAddress(Long placeId, String type) {
-        return plcPenAddressRepository.findPlcPenAddressWithAddress(type, placeId)
-                .map(addr -> addr.getAddress().getAddress())
-                .orElse("주소 정보 없음");
-    }
-
-    /**
-     * 특정 장소에 연결된 리뷰 리스트를 조회하는 메서드
-     * @param placeId 장소 ID
-     * @return 리뷰 리스트
-     */
-    private List<Review> getReviews(Long placeId, String type) {
-        return reviewRepository.findReviewsByPlaceId(placeId, type);
+                .orElseThrow(() -> NotFoundException.entityNotFound(Long.toString(placeId)));
     }
 
     /**
      * PlaceDetailResponseDto를 생성하는 메서드
      * @param place 장소 엔티티
      * @param address 주소 문자열
-     * @param reviews 리뷰 리스트
+     * @param photoReviewSummaryList 사진 리뷰 요약 리스트
+     * @param reviewSummaryList 일반 리뷰 요약 리스트
      * @return PlaceDetailResponseDto 장소 상세 정보 DTO
      */
-    private PlaceDetailResponseDto buildPlaceDetailResponseDto(Place place, String address, List<Review> reviews) {
+    public PlaceDetailResponseDto getPlaceDetailResponseDto(Place place, String address,
+                                           List<PhotoReviewSummaryResponseDto> photoReviewSummaryList,
+                                           List<ReviewSummaryResponseDto> reviewSummaryList) {
         return PlaceDetailResponseDto.builder()
                 .placeId(place.getPlaceId())
                 .placeName(place.getName())
@@ -95,54 +90,12 @@ public class PlaceDetailService {
                 .price(place.getPriceContent())
                 .limitInfo(place.getPetLimitInfo())
                 .description(place.getPlcDescription())
+                .enterPetSize(place.getEnterPetSize())
                 .images(place.getPlaceFiles().stream()
                         .map(file -> file.getMediaFile().getFileUrl())
-                        .collect(Collectors.toList()))
-                .photoReviewList(buildPhotoReviewSummaryDtoList(reviews))
-                .review(buildReviewSummaryDtoList(reviews))
+                        .toList())
+                .photoReviewList(photoReviewSummaryList)
+                .review(reviewSummaryList)
                 .build();
-    }
-
-    /**
-     * 리뷰를 바탕으로 PhotoReviewSummaryDto 리스트를 생성하는 메서드
-     * @param reviews 리뷰 리스트
-     * @return PhotoReviewSummaryDto 리스트
-     */
-    private List<PhotoReviewSummaryResponseDto> buildPhotoReviewSummaryDtoList(List<Review> reviews) {
-        return reviews.stream()
-                .filter(review -> !review.getReviewFiles().isEmpty())
-                .map(review -> PhotoReviewSummaryResponseDto.builder()
-                        .reviewId(review.getReviewId())
-                        .representativeImageUrl(review.getReviewFiles().get(0).getFile().getFileUrl())
-                        .photoReviewCount(review.getReviewFiles().size())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 리뷰를 바탕으로 ReviewSummaryDto 리스트를 생성하는 메서드
-     * @param reviews 리뷰 리스트
-     * @return ReviewSummaryDto 리스트
-     */
-    private List<ReviewSummaryResponseDto> buildReviewSummaryDtoList(List<Review> reviews) {
-        return reviews.stream()
-                .map(review -> ReviewSummaryResponseDto.builder()
-                        .reviewId(review.getReviewId())
-                        .profileImageUrl(null) // Profile 이미지가 별도로 필요하면 추가
-                        .content(review.getContent())
-                        .score(review.getScore().doubleValue())
-                        .visitDate(review.getVisitDate().toString())
-                        .createdAt(review.getCreatedAt().toString())
-                        .modifiedAt(review.getModifiedAt().toString())
-                        .nickname(review.getNickname())
-                        .file(review.getReviewFiles().stream()
-                                .map(file -> FileResponseDto.builder()
-                                        .mediaFileId(file.getFile().getMediaFileId())
-                                        .fileType(file.getFile().getFileType().name())
-                                        .fileUrl(file.getFile().getFileUrl())
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build())
-                .collect(Collectors.toList());
     }
 }
