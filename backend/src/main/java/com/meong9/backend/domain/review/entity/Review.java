@@ -1,13 +1,11 @@
 package com.meong9.backend.domain.review.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +42,27 @@ public class Review extends BaseTimeEntity {
     @Column(name = "plc_pen_id")
     private Long placePensionId; // 시설 또는 펜션 아이디
 
+    @Setter
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MediaFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
+    private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
+    @Builder
+    public Review(Member member, String content, String nickname, Float score, Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
+        this.member = member;
+        this.content = content;
+        this.nickname = nickname;
+        this.score = score;
+        this.visitDate = visitDate;
+        this.type = type;
+        this.placePensionId = placePensionId;
+        this.reviewFiles = reviewFiles;
+    }
+
+    public void update(ReviewRequestDto reviewRequestDto) {
+        this.content = reviewRequestDto.getContent();
+        this.score = reviewRequestDto.getScore();
+        this.visitDate = reviewRequestDto.getVisitDate();
+        this.type = reviewRequestDto.getType();
+        this.placePensionId = reviewRequestDto.getPlcPenId();
+    }
 }

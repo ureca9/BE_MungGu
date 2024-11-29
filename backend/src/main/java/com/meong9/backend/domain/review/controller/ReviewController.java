@@ -11,10 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -33,6 +30,16 @@ public class ReviewController {
             @RequestPart(value = "image", required = false) List<MultipartFile> files,
             @CurrentMember Member member) throws IOException {
         reviewService.createReview(reviewRequestDto,files,member);
+        return CommonResponse.ok("success");
+    }
+
+    @PatchMapping("/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable Long reviewId,
+            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
+            @RequestPart(value = "image", required = false) List<MultipartFile> newFiles,
+            @CurrentMember Member member) throws IOException, IllegalAccessException {
+        reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
 

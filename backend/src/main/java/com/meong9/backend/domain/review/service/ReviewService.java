@@ -7,6 +7,7 @@ import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
+import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
@@ -76,6 +77,46 @@ public class ReviewService {
         );
     }
 
+
+    @Transactional
+    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException {
+        // 1. 기존 리뷰 조회 및 권한 검증
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new NotFoundException("리뷰"));
+        if (!review.getMember().equals(member)) {
+            throw new IllegalAccessException("리뷰 작성자만 수정이 가능합니다"); // 임시로 씀
+        }
+
+        // 2. 기존 파일 관리
+        List<ReviewFile> existingReviewFiles = review.getReviewFiles();
+        List<ReviewFile> newReviewFiles = new ArrayList<>();
+        List<MediaFile> mediaFiles=new ArrayList<>();
+
+        if (files != null) {
+            // 새로운 파일 저장
+            for (MultipartFile mf : files) {
+                MediaFile file = handleImageUpload(mf, review.getReviewId());
+                mediaFiles.add(file);
+                ReviewFile reviewFile=new ReviewFile(file);
+                reviewFileRepository.save(reviewFile);
+                newReviewFiles.add(reviewFile);
+            }
+        } else {
+            // 기존의 파일 삭제
+            for (ReviewFile reviewFile : existingReviewFiles) {
+                deleteReviewFile(reviewFile);
+            }
+        }
+
+        // 리뷰 정보 업데이트
+        review.update(reviewRequestDto);
+    }
+
+    private void deleteReviewFile(ReviewFile reviewFile) {
+        mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey());
+        mediaFileRepository.delete(reviewFile.getFile());
+        reviewFileRepository.delete(reviewFile);
+    }
 
     // todo: 아래 메서드는 따로 static class 만들어야할듯
     /**
@@ -156,4 +197,5 @@ public class ReviewService {
     private String generateFileKey(Long reviewId) {
         return "Review/" + reviewId + "_review.jpg";
     }
+
 }
