@@ -12,8 +12,13 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     @Query("SELECT r.placePensionId FROM Review r where r.type = '020' GROUP BY r.placePensionId HAVING COUNT(r.reviewId) > :count")
     List<Long> findPensionReviewCount(@Param("count") int count);
 
-    @Query("SELECT r FROM Review r ORDER BY r.createdAt DESC")
+    @Query("""
+        SELECT DISTINCT r
+        FROM Review r
+        LEFT JOIN FETCH r.reviewFiles rf
+        LEFT JOIN FETCH rf.file
+        ORDER BY r.createdAt DESC
+        """)
     List<Review> findTop10RecentReviews();
-
 
 }
