@@ -74,16 +74,16 @@ jooq {
 		main { // "main"이라는 기본 설정
 			generationTool {
 				jdbc {
-					driver = 'com.mysql.cj.jdbc.Driver' // Database driver
-					url = 'jdbc:mysql://localhost:3306/meong9' // Database URL
-					user = 'root' // Database username
-					password = 'root' // Database password
+					driver = 'com.mysql.cj.jdbc.Driver'
+					url = 'jdbc:mysql://localhost:3306/meong9'
+					user = 'root'
+					password = 'root'
 				}
 				generator {
 					database {
-						name = 'org.jooq.meta.mysql.MySQLDatabase' // MySQL 사용
-						inputSchema = 'meong9' // 대상 스키마
-						includes = '.*' // 모든 테이블 포함
+						name = 'org.jooq.meta.mysql.MySQLDatabase'
+						inputSchema = 'meong9'
+						includes = '.*'
 					}
 					target {
 						packageName = 'com.meong9.backend.jooq.generated' // 생성된 코드를 저장할 패키지
