@@ -32,7 +32,7 @@ public class Address {
     @Column(name = "zip_no", length = 5)
     private String zipNo;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
     private Region region;
 }
