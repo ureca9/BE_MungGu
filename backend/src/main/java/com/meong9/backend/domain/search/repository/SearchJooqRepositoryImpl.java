@@ -1,9 +1,10 @@
 package com.meong9.backend.domain.search.repository;
 
 import com.meong9.backend.domain.search.dto.SearchPlaceDto;
-import com.meong9.backend.jooq.generated.tables.Address;
 import lombok.RequiredArgsConstructor;
-import org.jooq.*;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -29,7 +30,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                         PLACE.PLACE_ID, // placeId
                         PLACE.PLACE_NAME.as("placeName"), // placeName
                         getAddressField(typeCode).as("address"), // address
-                        PLACE.PLC_CATEGORY_ID.as("placeType"), // placeType
+                        PLC_CATEGORY.PLC_CATEGORY_NAME.as("placeType"), // placeType
                         PLACE.REVIEW_AVG, // reviewAverage
                         PLACE.REVIEW_COUNT, // reviewCount
                         PLACE.ENTER_PET_SIZE.as("weightLimit"), // weightLimit
@@ -37,6 +38,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                         getLikeStatusField(memberId) // boolean likeStatus
                 )
                 .from(PLACE)
+                .join(PLC_CATEGORY).on(PLACE.PLC_CATEGORY_ID.eq(PLC_CATEGORY.PLC_CATEGORY_ID))
                 .where(
                         PLACE.PLACE_ID.in(placeIdsByRegion)
                                 .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
@@ -48,10 +50,10 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
 
         places.forEach(place -> {
             List<String> tags = getTags(place.getPlaceId()); // 태그 조회
-            place.setTags(tags); // DTO에 태그 리스트 설정
+            place.setTags(tags);
 
             List<String> images = getImages(place.getPlaceId()); // 이미지 조회
-            place.setImages(images); // DTO에 이미지 리스트 설정
+            place.setImages(images);
         });
 
         boolean hasNext = places.size() == pageSize;
@@ -101,14 +103,6 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .otherwise(DSL.inline(false))
                 .as("likeStatus");
     }
-
-//    private SelectConditionStep<Record1<Long>> getFilteredPlaceIds(List<Long> regionIds, String typeCode) {
-//        return DSL.select(PLC_PEN_ADDRESS.PLC_PEN_ID)
-//                .from(PLC_PEN_ADDRESS)
-//                .join(ADDRESS).on(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(ADDRESS.ADDRESS_ID))
-//                .where(ADDRESS.REGION_ID.in(regionIds))
-//                .and(PLC_PEN_ADDRESS.TYPE.eq(typeCode));
-//    }
 
     private Condition getWeightCondition(String sizeCode) {
         return PLACE.ENTER_PET_SIZE.eq("030")
