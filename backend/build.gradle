@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.5'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'nu.studer.jooq' version '8.2' // Jooq Gradle 플러그인 추가
 }
 
 group = 'com.meong9'
@@ -24,6 +25,13 @@ repositories {
 }
 
 dependencies {
+	// Jooq
+	implementation 'org.jooq:jooq:3.18.0'
+	implementation 'org.jooq:jooq-meta:3.18.0'
+	implementation 'org.jooq:jooq-codegen:3.18.0'
+	jooqGenerator 'mysql:mysql-connector-java:8.0.33'
+	implementation 'org.springframework.boot:spring-boot-starter-jooq'
+
 	// Validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
@@ -62,4 +70,39 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+jooq {
+	version = '3.18.0' // Jooq 버전
+	configurations {
+		main { // "main"이라는 기본 설정
+			generationTool {
+				jdbc {
+					driver = 'com.mysql.cj.jdbc.Driver' // Database driver
+					url = 'jdbc:mysql://localhost:3306/meong9' // Database URL
+					user = 'root' // Database username
+					password = 'root' // Database password
+				}
+				generator {
+					database {
+						name = 'org.jooq.meta.mysql.MySQLDatabase' // MySQL 사용
+						inputSchema = 'meong9' // 대상 스키마
+						includes = '.*' // 모든 테이블 포함
+					}
+					target {
+						packageName = 'com.meong9.backend.jooq.generated' // 생성된 코드를 저장할 패키지
+						directory = "$buildDir/generated/jooq" // 생성된 코드 저장 위치
+					}
+				}
+			}
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs "$buildDir/generated/jooq" // 생성된 Jooq 코드를 소스 경로에 추가
+		}
+	}
 }
