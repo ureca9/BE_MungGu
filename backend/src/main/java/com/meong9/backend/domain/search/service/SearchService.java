@@ -13,14 +13,11 @@ import com.meong9.backend.domain.search.repository.SearchJooqRepository;
 import com.meong9.backend.global.repository.RegionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.jooq.DSLContext;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
-import static com.meong9.backend.jooq.generated.Tables.PLACE;
 
 @Service
 @Transactional
@@ -31,7 +28,6 @@ public class SearchService {
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final PlcCategoryRepository plcCategoryRepository;
     private final SearchJooqRepository searchRepository;
-    private final DSLContext dsl;
 
     /**
      * 멤버의 모든 강아지를 puppyId 기준으로 정렬하여 조회하는 서비스 메서드
