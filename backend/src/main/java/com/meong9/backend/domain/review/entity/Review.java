@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.review.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,5 +54,13 @@ public class Review extends BaseTimeEntity {
         this.type = type;
         this.placePensionId = placePensionId;
         this.reviewFiles = reviewFiles;
+    }
+
+    public void update(ReviewRequestDto reviewRequestDto) {
+        this.content = reviewRequestDto.getContent();
+        this.score = reviewRequestDto.getScore();
+        this.visitDate = reviewRequestDto.getVisitDate();
+        this.type = reviewRequestDto.getType();
+        this.placePensionId = reviewRequestDto.getPlcPenId();
     }
 }

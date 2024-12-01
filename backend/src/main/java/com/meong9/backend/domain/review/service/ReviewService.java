@@ -2,6 +2,7 @@ package com.meong9.backend.domain.review.service;
 
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.ReviewDetailsResponseDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
@@ -35,6 +36,15 @@ public class ReviewService {
     private final ReviewFileRepository reviewFileRepository;
     private final MediaFileRepository mediaFileRepository;
 
+    @Transactional(readOnly = true)
+    public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+
+        return ReviewDetailsResponseDto.from(review);
+    }
+
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
 
@@ -57,7 +67,7 @@ public class ReviewService {
             for (MultipartFile mf : files) { // 파일들 저장
                 MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
                 mediaFiles.add(file);
-                ReviewFile reviewFile=new ReviewFile(file);
+                ReviewFile reviewFile=new ReviewFile(review,file);
                 reviewFileRepository.save(reviewFile);
                 reviewFiles.add(reviewFile);
             }
@@ -97,7 +107,7 @@ public class ReviewService {
             for (MultipartFile mf : files) {
                 MediaFile file = handleImageUpload(mf, review.getReviewId());
                 mediaFiles.add(file);
-                ReviewFile reviewFile=new ReviewFile(file);
+                ReviewFile reviewFile=new ReviewFile(review,file);
                 reviewFileRepository.save(reviewFile);
                 newReviewFiles.add(reviewFile);
             }

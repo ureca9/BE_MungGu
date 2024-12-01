@@ -24,13 +24,18 @@ import java.util.List;
 public class ReviewController {
     private final ReviewService reviewService;
 
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<?> getReviewDetails(@PathVariable Long reviewId) {
+        return CommonResponse.ok("success",reviewService.getReviewDetails(reviewId));
+    }
+
     @PostMapping
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "image", required = false) List<MultipartFile> files,
             @CurrentMember Member member) throws IOException {
         reviewService.createReview(reviewRequestDto,files,member);
-        return CommonResponse.ok("success");
+        return CommonResponse.created("success");
     }
 
     @PatchMapping("/{reviewId}")

@@ -27,7 +27,8 @@ public class ReviewFile{ // 복합 키 클래스
     private MediaFile file;
 
 
-    public ReviewFile(MediaFile file) {
+    public ReviewFile(Review review, MediaFile file) {
+        this.review = review;
         this.file = file;
     }
 }
