@@ -2,6 +2,7 @@ package com.meong9.backend.domain.review.service;
 
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.MyReviewResponseDto;
 import com.meong9.backend.domain.review.dto.ReviewDetailsResponseDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.entity.Review;
@@ -40,9 +41,15 @@ public class ReviewService {
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
 
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+                .orElseThrow(() -> new NotFoundException("리뷰"));
 
         return ReviewDetailsResponseDto.from(review);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyReviewResponseDto> getMyReviews(Member member) {
+        List<Review> reviews = reviewRepository.findByMember(member);
+        return reviews.stream().map(MyReviewResponseDto::from).toList();
     }
 
     @Transactional

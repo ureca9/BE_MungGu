@@ -29,6 +29,11 @@ public class ReviewController {
         return CommonResponse.ok("success",reviewService.getReviewDetails(reviewId));
     }
 
+    @GetMapping
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
+        return CommonResponse.ok("success",reviewService.getMyReviews(member));
+    }
+
     @PostMapping
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
