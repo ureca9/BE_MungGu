@@ -1,37 +1,29 @@
 package com.meong9.backend.domain.recommendation.config;
 
-import com.meong9.backend.domain.recommendation.member_score.MemberScoreService;
 import com.meong9.backend.domain.recommendation.id_class.PensionMemberId;
+import com.meong9.backend.domain.recommendation.member_score.MemberScoreService;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.service.PensionPlaceScoreService;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PensionRecommendation;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PlaceRecommendation;
 import com.meong9.backend.domain.recommendation.recommendation.service.RecommendationService;
-import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.support.IteratorItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
-
-import jakarta.persistence.EntityManagerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
