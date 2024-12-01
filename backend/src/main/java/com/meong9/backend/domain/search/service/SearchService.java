@@ -48,15 +48,23 @@ public class SearchService {
     /**
      * 1) 지역, 2) 장소 카테고리, 3) 강아지 무게 를 기반으로 필터링하여 장소를 검색하는 서비스 메서드
      */
-    public SearchPlacesResponseDto searchPlaces(List<String> regionList, List<String> placeTypes,
+    public SearchPlacesResponseDto searchPlaces(String searchWord, List<String> regionList, List<String> placeTypes,
                                                 double heaviestDogWeight, Pageable pageable, Long memberId) {
-        // 1. 지역 + 카테고리 조건으로 시설 ID 필터링
-        List<Long> regionIds = (regionList == null || regionList.isEmpty())
-                ? regionRepository.findAllRegionIds()
-                : regionRepository.findRegionIdsByNameIn(regionList);
-
         String typeCode = "020"; // 시설 코드
-        List<Long> placeIdsByRegion = plcPenAddressRepository.findPlaceIdsByRegionIdIn(regionIds, typeCode);
+
+        List<Long> filteredPlaceIds; // 최종 필터링된 시설 ID 목록
+
+        if (searchWord != null && !searchWord.trim().isEmpty()) {
+            // 1. 검색어로 시설 ID 필터링
+            filteredPlaceIds = searchRepository.findPlaceIdsBySearchWord(searchWord);
+        } else {
+            // 2. 지역으로 시설 ID 필터링
+            List<Long> regionIds = (regionList == null || regionList.isEmpty())
+                    ? regionRepository.findAllRegionIds()
+                    : regionRepository.findRegionIdsByNameIn(regionList);
+
+            filteredPlaceIds = plcPenAddressRepository.findPlaceIdsByRegionIdIn(regionIds, typeCode);
+        }
 
         List<Long> categoryIds = (placeTypes == null || placeTypes.isEmpty())
                 ? plcCategoryRepository.findAllCategoryIds()
@@ -68,7 +76,7 @@ public class SearchService {
         // 3. 최종 필터링된 시설 조회
         Slice<SearchPlaceDto> filteredPlaces =
                 searchRepository.searchPlaces(
-                placeIdsByRegion,
+                filteredPlaceIds,
                 categoryIds,
                 sizeCode,
                 typeCode,

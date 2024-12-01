@@ -11,6 +11,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static com.meong9.backend.jooq.generated.Tables.*;
@@ -60,6 +61,42 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
 
         return new SliceImpl<>(places, pageable, hasNext);
     }
+
+    @Override
+    public List<Long> findPlaceIdsBySearchWord(String searchWord) {
+        // 검색어를 단어별로 나누어 배열에 담기
+        String[] searchWords = searchWord.split(" ");
+
+        return dsl
+                .selectDistinct(DSL.field("p.place_id", Long.class))
+                .from(
+                        dsl.select(PLACE.PLACE_ID)
+                                .from(PLACE)
+                                .where(
+                                        Arrays.stream(searchWords)
+                                                .map(word -> DSL.condition(
+                                                        "MATCH(place_name, plc_description) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                                ))
+                                                .reduce(DSL.noCondition(), DSL::or)
+                                )
+                                .asTable("p")
+                )
+                .join(PLC_PEN_ADDRESS).on(DSL.field("p.place_id").eq(PLC_PEN_ADDRESS.PLC_PEN_ID))
+                .join(
+                        dsl.select(ADDRESS.ADDRESS_ID)
+                                .from(ADDRESS)
+                                .where(
+                                        Arrays.stream(searchWords)
+                                                .map(word -> DSL.condition(
+                                                        "MATCH(address, province, city_district, subdistrict) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                                ))
+                                                .reduce(DSL.noCondition(), DSL::or)
+                                )
+                                .asTable("a")
+                ).on(PLC_PEN_ADDRESS.ADDRESS_ID.eq(DSL.field("a.address_id", Long.class)))
+                .fetchInto(Long.class);
+    }
+
 
     private Field<String> getAddressField(String typeCode) {
         return dsl.select(ADDRESS.ADDRESS_)
