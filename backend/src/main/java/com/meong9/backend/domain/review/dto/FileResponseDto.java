@@ -7,10 +7,10 @@ import lombok.Builder;
 
 @Builder
 public class FileResponseDto {
-    private FileType fileType;
-    private Integer fileSize;
-    private String fileUrl;
-    private String fileName;
+    private final FileType fileType;
+    private final Integer fileSize;
+    private final String fileUrl;
+    private final String fileName;
 
     public static FileResponseDto from(ReviewFile reviewFile) {
         MediaFile file = reviewFile.getFile();

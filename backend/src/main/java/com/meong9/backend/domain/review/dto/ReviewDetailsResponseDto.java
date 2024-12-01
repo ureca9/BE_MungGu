@@ -10,14 +10,14 @@ import java.util.List;
 @Getter
 @Builder
 public class ReviewDetailsResponseDto {
-    private Long reviewId;
-    private String content;
-    private Float score;
-    private Date visitDate;
-    private String type;
-    private Long plcPenId;
-    private String nickname;
-    private List<FileResponseDto> file;
+    private final Long reviewId;
+    private final String content;
+    private final Float score;
+    private final Date visitDate;
+    private final String type;
+    private final Long plcPenId;
+    private final String nickname;
+    private final List<FileResponseDto> file;
 
     public static ReviewDetailsResponseDto from(Review review) {
         return ReviewDetailsResponseDto.builder()
