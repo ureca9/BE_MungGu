@@ -344,9 +344,7 @@ public class ReviewService {
     private ReviewMainDto createPensionReviewDto(Review review, Pension pension, PlcPenAddress address) {
         String addressInfo = formatAddress(address);
 
-        String img = (pension != null && !pension.getPensionFiles().isEmpty())
-                ? pension.getPensionFiles().get(0).getMediaFile().getFileUrl()
-                : null;
+        String img = getReviewImageUrl(review);
 
         String reviewAvg = pension != null ? formatReviewAvg(pension.getReviewAvg()) : "0.0";
         int reviewCount = pension != null ? pension.getReviewCount() : 0;
@@ -365,13 +363,10 @@ public class ReviewService {
                 .build();
     }
 
-
     private ReviewMainDto createPlaceReviewDto(Review review, Place place, PlcPenAddress plcPenAddress) {
         String addressInfo = formatAddress(plcPenAddress);
 
-        String img = (place != null && !place.getPlaceFiles().isEmpty())
-                ? place.getPlaceFiles().get(0).getMediaFile().getFileUrl()
-                : null;
+        String img = getReviewImageUrl(review);
 
         String reviewAvg = place != null ? formatReviewAvg(place.getReviewAvg()) : "0.0";
         int reviewCount = place != null ? place.getReviewCount() : 0;
@@ -404,5 +399,9 @@ public class ReviewService {
         return plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
     }
 
+    // 리뷰 이미지
+    private String getReviewImageUrl(Review review){
+        return !review.getReviewFiles().isEmpty() ? review.getReviewFiles().get(0).getFile().getFileUrl() : null;
+    }
 
 }
