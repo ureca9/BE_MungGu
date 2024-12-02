@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -51,12 +53,16 @@ public class Pension {
     @Column(nullable = false)
     private Integer likeCount = 0;
 
+    @OneToMany(mappedBy = "pension", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<PensionTag> pensionTags = new HashSet<>();
+
     @Column(name = "latitude", length = 20)
     private String latitude;
+
     @Column(name = "longitude", length = 20)
     private String longitude;
 
-    @OneToMany(mappedBy = "pension", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "pension", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PensionFile> pensionFiles = Collections.emptyList(); // 펜션 파일 리스트
 
     public void increaseLikeCount(){
