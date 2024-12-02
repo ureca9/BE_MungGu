@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.5'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'nu.studer.jooq' version '8.2' // Jooq Gradle 플러그인 추가
 }
 
 group = 'com.meong9'
@@ -24,6 +25,13 @@ repositories {
 }
 
 dependencies {
+	// Jooq
+	implementation 'org.jooq:jooq:3.18.0'
+	implementation 'org.jooq:jooq-meta:3.18.0'
+	implementation 'org.jooq:jooq-codegen:3.18.0'
+	jooqGenerator 'mysql:mysql-connector-java:8.0.33'
+	implementation 'org.springframework.boot:spring-boot-starter-jooq'
+
 	// Validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
@@ -40,16 +48,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 
-	// https://mvnrepository.com/artifact/org.apache.mahout/mahout-core
-	// https://mvnrepository.com/artifact/org.apache.mahout/mahout-mr
+	// Mahout & Mahout Integration (JDBC Support)
 	implementation group: 'org.apache.mahout', name: 'mahout-mr', version: '0.13.0'
-
-	// https://mvnrepository.com/artifact/org.apache.mahout/mahout-math
 	implementation group: 'org.apache.mahout', name: 'mahout-math', version: '0.13.0'
-
-	// Mahout Integration (JDBC Support)
 	implementation 'org.apache.mahout:mahout-integration:0.13.0'
 
+	// Batch
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 	implementation 'org.springframework.batch:spring-batch-core:5.1.0'
 
@@ -62,4 +66,39 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+jooq {
+	version = '3.18.0' // Jooq 버전
+	configurations {
+		main { // "main"이라는 기본 설정
+			generationTool {
+				jdbc {
+					driver = 'com.mysql.cj.jdbc.Driver'
+					url = 'jdbc:mysql://localhost:3306/meong9'
+					user = 'root'
+					password = 'root'
+				}
+				generator {
+					database {
+						name = 'org.jooq.meta.mysql.MySQLDatabase'
+						inputSchema = 'meong9'
+						includes = '.*'
+					}
+					target {
+						packageName = 'com.meong9.backend.jooq.generated' // 생성된 코드를 저장할 패키지
+						directory = "$buildDir/generated/jooq" // 생성된 코드 저장 위치
+					}
+				}
+			}
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs "$buildDir/generated/jooq" // 생성된 Jooq 코드를 소스 경로에 추가
+		}
+	}
 }

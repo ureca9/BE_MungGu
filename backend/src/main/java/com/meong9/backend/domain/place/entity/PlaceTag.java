@@ -3,9 +3,9 @@ package com.meong9.backend.domain.place.entity;
 import com.meong9.backend.domain.place.entity.id.PlaceTagKey;
 import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
