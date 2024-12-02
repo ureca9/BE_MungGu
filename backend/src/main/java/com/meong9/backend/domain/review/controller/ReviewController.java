@@ -25,14 +25,14 @@ import java.util.Map;
 public class ReviewController {
     private final ReviewService reviewService;
 
-    @PostMapping("/reviews")
-    public ResponseEntity<?> createReview(
-            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
-            @RequestPart(value = "image", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException {
-        reviewService.createReview(reviewRequestDto,files,member);
-        return CommonResponse.ok("success");
-    }
+//    @PostMapping("/reviews")
+//    public ResponseEntity<?> createReview(
+//            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
+//            @RequestPart(value = "image", required = false) List<MultipartFile> files,
+//            @CurrentMember Member member) throws IOException {
+//        reviewService.createReview(reviewRequestDto,files,member);
+//        return CommonResponse.ok("success");
+//    }
 
     @GetMapping("/spots/reviews")
     public ResponseEntity<?> getRecentReview(){

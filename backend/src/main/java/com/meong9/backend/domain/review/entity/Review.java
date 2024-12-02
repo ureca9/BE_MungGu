@@ -1,10 +1,14 @@
 package com.meong9.backend.domain.review.entity;
 
+
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +35,7 @@ public class Review extends BaseTimeEntity {
     private Float score; // 별점
 
     @Temporal(TemporalType.DATE)
-    private Date visitDate; // 방문일
+    private @NotNull(message = "방문일은 필수 입력값입니다.") Date visitDate; // 방문일
 
     @Column(name = "type", length = 3)
     private String type; // 시설 or 펜션 구분
@@ -40,11 +44,11 @@ public class Review extends BaseTimeEntity {
     private Long placePensionId; // 시설 또는 펜션 아이디
 
     @Setter
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "review")
     private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
     @Builder
-    public Review(Member member, String content, String nickname, Float score, Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
+    public Review(Member member, String content, String nickname, Float score, @NotNull(message = "방문일은 필수 입력값입니다.") Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
         this.member = member;
         this.content = content;
         this.nickname = nickname;
@@ -53,5 +57,13 @@ public class Review extends BaseTimeEntity {
         this.type = type;
         this.placePensionId = placePensionId;
         this.reviewFiles = reviewFiles;
+    }
+
+    public void update(ReviewRequestDto reviewRequestDto) {
+        this.content = reviewRequestDto.getContent();
+        this.score = reviewRequestDto.getScore();
+        this.visitDate = reviewRequestDto.getVisitDate();
+        this.type = reviewRequestDto.getType();
+        this.placePensionId = reviewRequestDto.getPlcPenId();
     }
 }

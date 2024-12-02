@@ -45,47 +45,47 @@ public class ReviewService {
     private final PlaceRepository placeRepository;
 
 
-    @Transactional
-    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
-
-        List<ReviewFile> reviewFiles=new ArrayList<>();
-        Review review=Review.builder()
-                .member(member)
-                .content(reviewRequestDto.getContent())
-                .nickname(member.getNickname())
-                .score(reviewRequestDto.getScore())
-                .type(reviewRequestDto.getType())
-                .placePensionId(reviewRequestDto.getPlcPenId())
-                .reviewFiles(new ArrayList<>())
-                .build();
-
-        Review savedReview = reviewRepository.save(review);
-
-        List<MediaFile> mediaFiles=new ArrayList<>();
-        // ReviewFile들을 생성
-        if(files != null) {
-            for (MultipartFile mf : files) { // 파일들 저장
-                MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
-                mediaFiles.add(file);
-                ReviewFile reviewFile=new ReviewFile(file);
-                reviewFileRepository.save(reviewFile);
-                reviewFiles.add(reviewFile);
-            }
-        }
-        review.setReviewFiles(reviewFiles);
-
-        // 트랜잭션 동기화
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCompletion(int status) {
-                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
-                        }
-                    }
-                }
-        );
-    }
+//    @Transactional
+//    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
+//
+//        List<ReviewFile> reviewFiles=new ArrayList<>();
+//        Review review=Review.builder()
+//                .member(member)
+//                .content(reviewRequestDto.getContent())
+//                .nickname(member.getNickname())
+//                .score(reviewRequestDto.getScore())
+//                .type(reviewRequestDto.getType())
+//                .placePensionId(reviewRequestDto.getPlcPenId())
+//                .reviewFiles(new ArrayList<>())
+//                .build();
+//
+//        Review savedReview = reviewRepository.save(review);
+//
+//        List<MediaFile> mediaFiles=new ArrayList<>();
+//        // ReviewFile들을 생성
+//        if(files != null) {
+//            for (MultipartFile mf : files) { // 파일들 저장
+//                MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
+//                mediaFiles.add(file);
+//                ReviewFile reviewFile=new ReviewFile(file);
+//                reviewFileRepository.save(reviewFile);
+//                reviewFiles.add(reviewFile);
+//            }
+//        }
+//        review.setReviewFiles(reviewFiles);
+//
+//        // 트랜잭션 동기화
+//        TransactionSynchronizationManager.registerSynchronization(
+//                new TransactionSynchronization() {
+//                    @Override
+//                    public void afterCompletion(int status) {
+//                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+//                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
+//                        }
+//                    }
+//                }
+//        );
+//    }
 
     //
     @Transactional(readOnly = true)
@@ -255,9 +255,12 @@ public class ReviewService {
     private ReviewMainDto createPensionReviewDto(Review review, Pension pension, PlcPenAddress address) {
         String addressInfo = formatAddress(address);
 
-        String img = (pension != null && !pension.getPensionFiles().isEmpty())
-                ? pension.getPensionFiles().get(0).getMediaFile().getFileUrl()
-                : null;
+//        String img = (!pension.getPensionFiles().isEmpty())
+//                ? pension.getPensionFiles().get(0).getMediaFile().getFileUrl()
+//                : null;
+
+        System.out.println("review file: " + review.getReviewFiles());
+        String img = !review.getReviewFiles().isEmpty() ? review.getReviewFiles().get(0).getFile().getFileUrl() : null;
 
         String reviewAvg = pension != null ? formatReviewAvg(pension.getReviewAvg()) : "0.0";
         int reviewCount = pension != null ? pension.getReviewCount() : 0;
@@ -280,9 +283,11 @@ public class ReviewService {
     private ReviewMainDto createPlaceReviewDto(Review review, Place place, PlcPenAddress plcPenAddress) {
         String addressInfo = formatAddress(plcPenAddress);
 
-        String img = (place != null && !place.getPlaceFiles().isEmpty())
-                ? place.getPlaceFiles().get(0).getMediaFile().getFileUrl()
-                : null;
+//        String img = (place != null && !place.getPlaceFiles().isEmpty())
+//                ? place.getPlaceFiles().get(0).getMediaFile().getFileUrl()
+//                : null;
+        String img = !review.getReviewFiles().isEmpty() ? review.getReviewFiles().get(0).getFile().getFileUrl() : null;
+
 
         String reviewAvg = place != null ? formatReviewAvg(place.getReviewAvg()) : "0.0";
         int reviewCount = place != null ? place.getReviewCount() : 0;
