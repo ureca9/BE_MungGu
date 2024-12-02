@@ -16,4 +16,5 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
     Optional<Place> findPlaceWithDetails(@Param("placeId") Long placeId);
 
+
 }

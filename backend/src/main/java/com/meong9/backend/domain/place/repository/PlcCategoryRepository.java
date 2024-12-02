@@ -12,4 +12,11 @@ public interface PlcCategoryRepository extends JpaRepository<PlcCategory, Long> 
 
     @Query("SELECT pc FROM PlcCategory pc WHERE pc.name IN :names")
     List<PlcCategory> findAllByNameIn(@Param("names") Set<String> names);
+
+    @Query("SELECT pc.plcCategoryId FROM PlcCategory pc WHERE pc.name IN :placeTypes")
+    List<Long> findPlcCategoryIdsByNameIn(List<String> placeTypes);
+
+    @Query("SELECT pc.plcCategoryId FROM PlcCategory pc")
+    List<Long> findAllCategoryIds();
+
 }

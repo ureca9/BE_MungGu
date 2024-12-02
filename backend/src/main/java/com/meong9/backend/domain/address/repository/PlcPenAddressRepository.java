@@ -6,8 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
-
 @Repository
 public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Long> {
 
@@ -23,5 +23,13 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
     Optional<String> findFullAddress(@Param("type") String type, @Param("plcPenId") Long plcPenId);
 
     @Query("select ppa from PlcPenAddress ppa where ppa.plcPenId =:plcPenId and ppa.type =:type")
-    PlcPenAddress findByPlcPenIdAndType(@Param("plcPenId")Long plcPenId, @Param("type")String type);
+    Optional<PlcPenAddress> findByPlcPenIdAndType(@Param("plcPenId")Long plcPenId, @Param("type")String type);
+
+    @Query("""
+            SELECT ppa.plcPenId FROM PlcPenAddress ppa
+            WHERE ppa.address.region.regionId IN :regionIds
+            AND ppa.type = :typeCode
+            """)
+    List<Long> findFacilityIdsByRegionIdIn(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode);
+
 }

@@ -35,7 +35,7 @@ public class Address {
     @Column(name = "zip_no", length = 5, nullable = true)
     private String zipNo; // 우편번호
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
     private Region region;
 }

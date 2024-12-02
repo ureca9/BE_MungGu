@@ -4,6 +4,8 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.global.auth.entity.MemberDetails;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.core.MethodParameter;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -24,10 +26,16 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
                                   ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) throws Exception {
-        MemberDetails memberDetails = (MemberDetails) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // 익명 사용자 처리
+        if (authentication == null || !authentication.isAuthenticated() ||
+                authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+
+        // 인증된 사용자 처리
+        MemberDetails memberDetails = (MemberDetails) authentication.getPrincipal();
         return memberDetails.member(); // Member 객체를 반환
     }
 }
