@@ -11,10 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -27,13 +24,42 @@ import java.util.List;
 public class ReviewController {
     private final ReviewService reviewService;
 
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<?> getReviewDetails(@PathVariable Long reviewId) {
+        return CommonResponse.ok("success",reviewService.getReviewDetails(reviewId));
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
+        return CommonResponse.ok("success",reviewService.getMyReviews(member));
+    }
+
     @PostMapping
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "image", required = false) List<MultipartFile> files,
             @CurrentMember Member member) throws IOException {
+        log.debug("회원 id = {}",member.getMemberId());
         reviewService.createReview(reviewRequestDto,files,member);
+        return CommonResponse.created("success");
+    }
+
+    @PatchMapping("/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable Long reviewId,
+            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
+            @RequestPart(value = "image", required = false) List<MultipartFile> newFiles,
+            @CurrentMember Member member) throws IOException, IllegalAccessException {
+        reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
 
+
+    @DeleteMapping("/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            @PathVariable Long reviewId,
+            @CurrentMember Member member) throws IOException, IllegalAccessException {
+        reviewService.deleteReview(reviewId, member);
+        return CommonResponse.ok("success");
+    }
 }
