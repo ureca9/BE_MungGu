@@ -17,13 +17,6 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
             WHERE ppa.address.region.regionId IN :regionIds
             AND ppa.type = :typeCode
             """)
-    List<Long> findPlaceIdsByRegionIdIn(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode);
-
-    @Query("""
-            SELECT ppa.plcPenId, ppa.address.address
-            FROM PlcPenAddress ppa
-            WHERE ppa.plcPenId IN :placeIds AND ppa.type = :typeCode
-            """)
-    List<Object[]> findAddressesByPlaceIdsAndType(@Param("placeIds") List<Long> placeIds, @Param("typeCode") String typeCode);
+    List<Long> findFacilityIdsByRegionIdIn(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode);
 
 }

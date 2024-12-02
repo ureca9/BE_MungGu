@@ -42,18 +42,4 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
             WHERE pl.member = :member AND pl.pension.pensionId = :pensionId
             """)
     boolean existsByMemberAndPensionId(@Param("member") Member member, @Param("pensionId") Long pensionId);
-
-    @Query("""
-            SELECT pl.place.placeId,
-            CASE
-                WHEN COUNT(pl) > 0
-                THEN true
-                ELSE false
-                END
-            FROM PlaceLike pl
-            WHERE pl.member.memberId = :memberId AND pl.place.placeId IN :placeIds
-            GROUP BY pl.place.placeId
-            """)
-    List<Object[]> findLikeStatusPlaceIds(@Param("memberId") Long memberId, @Param("placeIds") List<Long> placeIds);
-
 }
