@@ -10,7 +10,6 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -35,7 +34,7 @@ public class Review extends BaseTimeEntity {
     private Float score; // 별점
 
     @Temporal(TemporalType.DATE)
-    private @NotNull(message = "방문일은 필수 입력값입니다.") Date visitDate; // 방문일
+    private @NotNull(message = "방문일은 필수 입력값입니다.") LocalDate visitDate; // 방문일
 
     @Column(name = "type", length = 3)
     private String type; // 시설 or 펜션 구분
@@ -48,7 +47,7 @@ public class Review extends BaseTimeEntity {
     private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
     @Builder
-    public Review(Member member, String content, String nickname, Float score, @NotNull(message = "방문일은 필수 입력값입니다.") Date visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
+    public Review(Member member, String content, String nickname, Float score, @NotNull(message = "방문일은 필수 입력값입니다.") LocalDate visitDate, String type, Long placePensionId, List<ReviewFile> reviewFiles) {
         this.member = member;
         this.content = content;
         this.nickname = nickname;
