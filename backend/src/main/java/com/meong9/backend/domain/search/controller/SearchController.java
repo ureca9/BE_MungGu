@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -56,5 +57,28 @@ public class SearchController {
         return CommonResponse.ok("success", dto);
     }
 
+    /**
+     * 펜션 검색 컨트롤러
+     * regionList: 지역 (ex. 서울) (최대 3개)
+     * heaviestDogWeight: 함께 가고자 하는 강아지들 중 가장 무거운 강아지의 무게
+     * startDate, endDate: 예약하고자 하는 날짜의 시작일과 마지막일
+     */
+    @GetMapping("/pensions")
+    public ResponseEntity<?> searchPensions(
+            @RequestParam(name = "searchWord", required = false) String searchWord,
+            @RequestParam(name = "regionList", required = false) List<String> regionList,
+            @RequestParam(name = "heaviestDogWeight", required = false, defaultValue = "0") double heaviestDogWeight,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate,
+            @PageableDefault Pageable pageable, // 디폴트 페이지 0, 사이즈 10
+            @CurrentMember Member member) {
+        Long memberId = (member != null) ? member.getMemberId() : null;
 
+        startDate = (startDate == null) ? LocalDate.now().toString() : startDate;
+        endDate = (endDate == null) ? LocalDate.now().plusDays(1).toString() : endDate;
+
+        SearchPensionsResponseDto dto = searchService.searchPensions(
+                searchWord, regionList, heaviestDogWeight, startDate, endDate, pageable, memberId);
+        return CommonResponse.ok("success", dto);
+    }
 }
