@@ -39,6 +39,7 @@ public class ReviewController {
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "image", required = false) List<MultipartFile> files,
             @CurrentMember Member member) throws IOException {
+        log.debug("회원 id = {}",member.getMemberId());
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }

@@ -32,6 +32,6 @@ public class ReviewRequestDto {
 
     @NotNull(message = "방문일은 필수 입력값입니다.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    private Date visitDate; // 방문 날짜
+    private LocalDate visitDate; // 방문 날짜
 
 }

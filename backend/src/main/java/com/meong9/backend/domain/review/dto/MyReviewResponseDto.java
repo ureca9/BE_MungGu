@@ -4,6 +4,7 @@ import com.meong9.backend.domain.review.entity.Review;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -13,7 +14,7 @@ public class MyReviewResponseDto {
     private Long reviewId;
     private String content;
     private Float score;
-    private Date visitDate;
+    private LocalDate visitDate;
     private String type;
     private Long plcPenId;
     private String nickname;

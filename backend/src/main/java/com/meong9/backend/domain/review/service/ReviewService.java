@@ -7,6 +7,7 @@ import com.meong9.backend.domain.review.dto.ReviewDetailsResponseDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
+import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.exception.NotFoundException;
@@ -20,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,32 +54,43 @@ public class ReviewService {
 
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
-
-        List<ReviewFile> reviewFiles=new ArrayList<>();
-        Review review=Review.builder()
+        List<MediaFile> mediaFiles = new ArrayList<>();
+        Review review = Review.builder()
                 .member(member)
                 .content(reviewRequestDto.getContent())
                 .nickname(member.getNickname())
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())
                 .placePensionId(reviewRequestDto.getPlcPenId())
-                .reviewFiles(new ArrayList<>())
+                .reviewFiles(null)
                 .build();
 
         Review savedReview = reviewRepository.save(review);
 
-        List<MediaFile> mediaFiles=new ArrayList<>();
-        // ReviewFile들을 생성
-        if(files != null) {
-            for (MultipartFile mf : files) { // 파일들 저장
+        if (files != null) {
+            List<ReviewFile> reviewFiles = new ArrayList<>();
+            for (MultipartFile mf : files) {
                 MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
                 mediaFiles.add(file);
-                ReviewFile reviewFile=new ReviewFile(review,file);
+
+                // 복합 키 생성
+                ReviewFileId reviewFileId = new ReviewFileId(savedReview.getReviewId(), file.getMediaFileId());
+
+                // 객체가 이미 존재하면 가져오고, 없으면 새로 생성
+                ReviewFile reviewFile = reviewFileRepository.findById(reviewFileId)
+                        .orElseGet(() ->
+                                ReviewFile.builder()
+                                        .review(savedReview)
+                                        .file(file)
+                                        .reviewFileId(reviewFileId)
+                                        .build()
+                        );
+
                 reviewFileRepository.save(reviewFile);
                 reviewFiles.add(reviewFile);
             }
+//            savedReview.setReviewFiles(reviewFiles);
         }
-        review.setReviewFiles(reviewFiles);
 
         // 트랜잭션 동기화
         TransactionSynchronizationManager.registerSynchronization(
@@ -97,36 +108,36 @@ public class ReviewService {
 
     @Transactional
     public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException {
-        // 리뷰 조회 및 권한 검증
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new NotFoundException("리뷰"));
-        if (!review.getMember().equals(member)) {
-            throw new IllegalAccessException("리뷰 작성자만 수정이 가능합니다"); // 임시로 씀
-        }
-
-        // 파일 관리
-        List<ReviewFile> existingReviewFiles = review.getReviewFiles();
-        List<ReviewFile> newReviewFiles = new ArrayList<>();
-        List<MediaFile> mediaFiles=new ArrayList<>();
-
-        if (files != null) {
-            // 새로운 파일 저장
-            for (MultipartFile mf : files) {
-                MediaFile file = handleImageUpload(mf, review.getReviewId());
-                mediaFiles.add(file);
-                ReviewFile reviewFile=new ReviewFile(review,file);
-                reviewFileRepository.save(reviewFile);
-                newReviewFiles.add(reviewFile);
-            }
-        } else {
-            // 기존의 파일 삭제
-            for (ReviewFile reviewFile : existingReviewFiles) {
-                deleteReviewFile(reviewFile);
-            }
-        }
-
-        // 리뷰 정보 업데이트
-        review.update(reviewRequestDto);
+//        // 리뷰 조회 및 권한 검증
+//        Review review = reviewRepository.findById(reviewId)
+//                .orElseThrow(() -> new NotFoundException("리뷰"));
+//        if (!review.getMember().equals(member)) {
+//            throw new IllegalAccessException("리뷰 작성자만 수정이 가능합니다"); // 임시로 씀
+//        }
+//
+//        // 파일 관리
+//        List<ReviewFile> existingReviewFiles = review.getReviewFiles();
+//        List<ReviewFile> newReviewFiles = new ArrayList<>();
+//        List<MediaFile> mediaFiles=new ArrayList<>();
+//
+//        if (files != null) {
+//            // 새로운 파일 저장
+//            for (MultipartFile mf : files) {
+//                MediaFile file = handleImageUpload(mf, review.getReviewId());
+//                mediaFiles.add(file);
+//                ReviewFile reviewFile=new ReviewFile(review,file);
+//                reviewFileRepository.save(reviewFile);
+//                newReviewFiles.add(reviewFile);
+//            }
+//        } else {
+//            // 기존의 파일 삭제
+//            for (ReviewFile reviewFile : existingReviewFiles) {
+//                deleteReviewFile(reviewFile);
+//            }
+//        }
+//
+//        // 리뷰 정보 업데이트
+//        review.update(reviewRequestDto);
     }
 
     @Transactional

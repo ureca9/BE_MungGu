@@ -1,6 +1,6 @@
 package com.meong9.backend.domain.review.entity;
 
-import com.meong9.backend.global.entity.BaseTimeEntity;
+import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@IdClass(ReviewFileId.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 public class ReviewFile{ // 복합 키 클래스
@@ -21,14 +20,15 @@ public class ReviewFile{ // 복합 키 클래스
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @MapsId("mediaFileId") // 복합 키와 매핑
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile file;
 
-
-    public ReviewFile(Review review, MediaFile file) {
+    @Builder
+    public ReviewFile(Review review, MediaFile file,ReviewFileId reviewFileId) {
         this.review = review;
         this.file = file;
+        this.id = reviewFileId;
     }
 }
