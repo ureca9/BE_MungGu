@@ -38,7 +38,14 @@ jobs:
       # 4. Build 수행
       - name: Build
         working-directory: backend
-        run: ./gradlew clean build -x test
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: ./gradlew clean build -x test \
+          -DdbUrl=${{ secrets.DB_URL }} \
+          -DdbUsername=${{ secrets.DB_USERNAME }} \
+          -DdbPassword=${{ secrets.DB_PASSWORD }}
 
       # 5. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
       - name: Configure AWS credentials
