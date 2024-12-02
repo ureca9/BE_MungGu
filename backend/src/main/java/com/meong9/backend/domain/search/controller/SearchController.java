@@ -2,15 +2,23 @@ package com.meong9.backend.domain.search.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.search.dto.PuppiesForSearchDto;
+import com.meong9.backend.domain.search.dto.SearchPensionsResponseDto;
+import com.meong9.backend.domain.search.dto.SearchPlacesResponseDto;
 import com.meong9.backend.domain.search.service.SearchService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -29,4 +37,48 @@ public class SearchController {
         return CommonResponse.ok("success", dto);
     }
 
+    /**
+     * 시설 검색 컨트롤러
+     * regionList: 지역 (ex. 서울) (최대 3개)
+     * placeTypes: 장소 카테고리 (ex. 마당) (최대 3개)
+     * heaviestDogWeight: 함께 가고자 하는 강아지들 중 가장 무거운 강아지의 무게
+     */
+    @GetMapping("/places")
+    public ResponseEntity<?> searchPlaces(
+            @RequestParam(name = "searchWord", required = false) String searchWord,
+            @RequestParam(name = "regionList", required = false) List<String> regionList,
+            @RequestParam(name = "placeTypes", required = false) List<String> placeTypes,
+            @RequestParam(name = "heaviestDogWeight", required = false, defaultValue = "0") double heaviestDogWeight,
+            @PageableDefault Pageable pageable, // 디폴트 페이지 0, 사이즈 10
+            @CurrentMember Member member) {
+        Long memberId = (member != null) ? member.getMemberId() : null;
+        SearchPlacesResponseDto dto = searchService.searchPlaces(
+                searchWord, regionList, placeTypes, heaviestDogWeight, pageable, memberId);
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 펜션 검색 컨트롤러
+     * regionList: 지역 (ex. 서울) (최대 3개)
+     * heaviestDogWeight: 함께 가고자 하는 강아지들 중 가장 무거운 강아지의 무게
+     * startDate, endDate: 예약하고자 하는 날짜의 시작일과 마지막일
+     */
+    @GetMapping("/pensions")
+    public ResponseEntity<?> searchPensions(
+            @RequestParam(name = "searchWord", required = false) String searchWord,
+            @RequestParam(name = "regionList", required = false) List<String> regionList,
+            @RequestParam(name = "heaviestDogWeight", required = false, defaultValue = "0") double heaviestDogWeight,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate,
+            @PageableDefault Pageable pageable, // 디폴트 페이지 0, 사이즈 10
+            @CurrentMember Member member) {
+        Long memberId = (member != null) ? member.getMemberId() : null;
+
+        startDate = (startDate == null) ? LocalDate.now().toString() : startDate;
+        endDate = (endDate == null) ? LocalDate.now().plusDays(1).toString() : endDate;
+
+        SearchPensionsResponseDto dto = searchService.searchPensions(
+                searchWord, regionList, heaviestDogWeight, startDate, endDate, pageable, memberId);
+        return CommonResponse.ok("success", dto);
+    }
 }

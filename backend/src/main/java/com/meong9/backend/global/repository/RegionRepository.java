@@ -11,4 +11,10 @@ import java.util.Set;
 public interface RegionRepository extends JpaRepository<Region, Long> {
     @Query("SELECT r FROM Region r WHERE r.name IN :names")
     List<Region> findAllByNameIn(@Param("names") Set<String> newRegionsNames);
+
+    @Query("SELECT r.regionId FROM Region r WHERE r.name IN :regionList")
+    List<Long> findRegionIdsByNameIn(List<String> regionList);
+
+    @Query("SELECT r.regionId FROM Region r")
+    List<Long> findAllRegionIds();
 }

@@ -1,5 +1,6 @@
 package com.meong9.backend.global.auth.config;
 
+import com.meong9.backend.global.auth.filter.AnonymousAuthenticationFilter;
 import com.meong9.backend.global.auth.filter.JwtAuthenticationFilter;
 import com.meong9.backend.global.auth.service.MemberDetailsService;
 import com.meong9.backend.global.auth.jwt.JwtProvider;
@@ -61,8 +62,6 @@ public class SecurityConfig {
         final RequestMatcher ignoredRequests = new OrRequestMatcher(
                 List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/searches/places", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/searches/pensions", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/rankings", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/{pensionId}", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/{placeId}", HttpMethod.GET.name()),
@@ -75,6 +74,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(ignoredRequests).permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
+                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations").permitAll()
                 .requestMatchers("/index.html", "/favicon.ico").permitAll()
                 .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
                 .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
@@ -91,7 +91,8 @@ public class SecurityConfig {
         http.formLogin(AbstractHttpConfigurer::disable);
 
         http.addFilterBefore(new JwtAuthenticationFilter(jwtProvider, memberDetailsService, ignoredRequests),
-                UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new AnonymousAuthenticationFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }
