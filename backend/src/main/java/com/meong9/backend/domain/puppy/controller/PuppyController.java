@@ -29,7 +29,7 @@ public class PuppyController {
     private final PuppyService puppyService;
     private final BreedService breedService;
 
-    @PostMapping("/puppies)")
+    @PostMapping("/puppies")
     public ResponseEntity<?> createPuppy(
             @RequestPart("data") PuppyRequestDto puppyRequestDto,
             @RequestPart(value = "image", required = false) MultipartFile image,

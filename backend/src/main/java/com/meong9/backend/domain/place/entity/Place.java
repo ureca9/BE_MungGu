@@ -8,7 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
@@ -63,7 +65,7 @@ public class Place {
     private Integer likeCount = 0;
 
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PlaceTag> placeTags = new ArrayList<>();
+    private Set<PlaceTag> placeTags = new HashSet<>();
 
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PlaceFile> placeFiles = new ArrayList<>();

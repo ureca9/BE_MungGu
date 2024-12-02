@@ -14,7 +14,7 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
     @Query("""
     SELECT CASE
         WHEN a.address IS NOT NULL AND a.address <> '' THEN a.address
-        ELSE CONCAT(a.province, ' ', a.cityDistrict, ' ', a.subdistrict, ' ', COALESCE(a.addressDetail, ''))
+        ELSE CONCAT(a.province, ' ', a.cityDistrict, ' ', a.subDistrict, ' ', COALESCE(a.addressDetail, ''))
     END
     FROM PlcPenAddress ppa
     JOIN ppa.address a
