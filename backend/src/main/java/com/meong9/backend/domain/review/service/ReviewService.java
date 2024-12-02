@@ -41,7 +41,7 @@ public class ReviewService {
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
 
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new NotFoundException("리뷰"));
+                .orElseThrow(()->NotFoundException.entityNotFound("리뷰"));
 
         return ReviewDetailsResponseDto.from(review);
     }
@@ -89,7 +89,6 @@ public class ReviewService {
                 reviewFileRepository.save(reviewFile);
                 reviewFiles.add(reviewFile);
             }
-//            savedReview.setReviewFiles(reviewFiles);
         }
 
         // 트랜잭션 동기화
@@ -108,36 +107,62 @@ public class ReviewService {
 
     @Transactional
     public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException {
-//        // 리뷰 조회 및 권한 검증
-//        Review review = reviewRepository.findById(reviewId)
-//                .orElseThrow(() -> new NotFoundException("리뷰"));
-//        if (!review.getMember().equals(member)) {
-//            throw new IllegalAccessException("리뷰 작성자만 수정이 가능합니다"); // 임시로 씀
-//        }
-//
-//        // 파일 관리
-//        List<ReviewFile> existingReviewFiles = review.getReviewFiles();
-//        List<ReviewFile> newReviewFiles = new ArrayList<>();
-//        List<MediaFile> mediaFiles=new ArrayList<>();
-//
-//        if (files != null) {
-//            // 새로운 파일 저장
-//            for (MultipartFile mf : files) {
-//                MediaFile file = handleImageUpload(mf, review.getReviewId());
-//                mediaFiles.add(file);
-//                ReviewFile reviewFile=new ReviewFile(review,file);
-//                reviewFileRepository.save(reviewFile);
-//                newReviewFiles.add(reviewFile);
-//            }
-//        } else {
-//            // 기존의 파일 삭제
-//            for (ReviewFile reviewFile : existingReviewFiles) {
-//                deleteReviewFile(reviewFile);
-//            }
-//        }
-//
-//        // 리뷰 정보 업데이트
-//        review.update(reviewRequestDto);
+        // 기존 리뷰 조회
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(()->NotFoundException.entityNotFound("리뷰"));
+
+        // 작성자 권한 확인
+        if (!review.getMember().getMemberId().equals(member.getMemberId())) {
+            // todo: 커스텀 예외 따로 만들어야함
+            throw new IllegalAccessException("리뷰 수정 권한이 없습니다.");
+        }
+
+        // 기존 파일 삭제
+        List<ReviewFile> existingFiles = reviewFileRepository.findByReview(review);
+        for (ReviewFile reviewFile : existingFiles) {
+            reviewFileRepository.delete(reviewFile);
+            mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey()); // S3에서 파일 삭제
+        }
+
+        review.update(reviewRequestDto);
+
+        // 5. 새로운 파일 처리
+        List<MediaFile> mediaFiles = new ArrayList<>();
+        List<ReviewFile> newReviewFiles = new ArrayList<>();
+        if (files != null) {
+            for (MultipartFile mf : files) {
+                MediaFile file = handleImageUpload(mf, review.getReviewId());
+                mediaFiles.add(file);
+
+                // 복합 키 생성
+                ReviewFileId reviewFileId = new ReviewFileId(review.getReviewId(), file.getMediaFileId());
+
+                // 새 ReviewFile 생성
+                ReviewFile reviewFile = ReviewFile.builder()
+                        .review(review)
+                        .file(file)
+                        .reviewFileId(reviewFileId)
+                        .build();
+
+                reviewFileRepository.save(reviewFile);
+                newReviewFiles.add(reviewFile);
+            }
+        }
+
+        // 리뷰에 새로운 파일 연결
+        review.setReviewFiles(newReviewFiles);
+
+        //트랜잭션 동기화
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
+                        }
+                    }
+                }
+        );
     }
 
     @Transactional
@@ -147,7 +172,7 @@ public class ReviewService {
                 .orElseThrow(() -> new NotFoundException("리뷰"));
 
         if (!review.getMember().equals(member)) {
-            throw new IllegalAccessException("리뷰 작성자만 삭제가 가능합니다"); // 임시로 씀
+            throw new IllegalAccessException("리뷰 작성자만 삭제가 가능합니다");
         }
 
         // 연관된 파일 삭제
