@@ -2,6 +2,7 @@ package com.meong9.backend.domain.search.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.search.dto.PuppiesForSearchDto;
+import com.meong9.backend.domain.search.dto.SearchPensionsResponseDto;
 import com.meong9.backend.domain.search.dto.SearchPlacesResponseDto;
 import com.meong9.backend.domain.search.service.SearchService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
@@ -43,6 +44,7 @@ public class SearchController {
      */
     @GetMapping("/places")
     public ResponseEntity<?> searchPlaces(
+            @RequestParam(name = "searchWord", required = false) String searchWord,
             @RequestParam(name = "regionList", required = false) List<String> regionList,
             @RequestParam(name = "placeTypes", required = false) List<String> placeTypes,
             @RequestParam(name = "heaviestDogWeight", required = false, defaultValue = "0") double heaviestDogWeight,
@@ -50,8 +52,9 @@ public class SearchController {
             @CurrentMember Member member) {
         Long memberId = (member != null) ? member.getMemberId() : null;
         SearchPlacesResponseDto dto = searchService.searchPlaces(
-                regionList, placeTypes, heaviestDogWeight, pageable, memberId);
+                searchWord, regionList, placeTypes, heaviestDogWeight, pageable, memberId);
         return CommonResponse.ok("success", dto);
     }
+
 
 }
