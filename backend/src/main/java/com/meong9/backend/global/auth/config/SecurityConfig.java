@@ -74,7 +74,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(ignoredRequests).permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
-                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "api/v1/spots/recommendations").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations").permitAll()
                 .requestMatchers("/index.html", "/favicon.ico").permitAll()
                 .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
                 .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
