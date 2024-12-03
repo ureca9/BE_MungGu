@@ -1,6 +1,8 @@
 package com.meong9.backend.domain.map.controller;
 
 import com.meong9.backend.domain.map.dto.MapLikePointDto;
+import com.meong9.backend.domain.map.dto.MapLikeRequestDto;
+import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.map.service.MapService;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.global.annotation.member.CurrentMember;
@@ -8,10 +10,7 @@ import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,8 +23,10 @@ public class MapController {
 
     // 카테고리 별 찜 상세 조회
     @GetMapping("/likes/detail")
-    public ResponseEntity<?> getMapLikeDetails(){
-        return CommonResponse.ok("success", null);
+    public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestBody MapLikeRequestDto mapLikeRequestDto){
+        MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, mapLikeRequestDto);
+
+        return CommonResponse.ok("success", likeDetails);
     }
 
     // 장소 검색

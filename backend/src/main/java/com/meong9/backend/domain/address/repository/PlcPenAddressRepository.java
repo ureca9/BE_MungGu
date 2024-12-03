@@ -47,4 +47,18 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
             """)
     List<Long> findFacilityIdsByRegionIdIn(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode);
 
+    @Query("""
+        SELECT pa FROM PlcPenAddress pa
+        LEFT JOIN FETCH pa.address a
+        WHERE pa.plcPenId IN :pensionIds AND pa.type = '020'
+    """)
+    List<PlcPenAddress> findPensionAddresses(@Param("pensionIds") List<Long> pensionIds);
+
+    @Query("""
+        SELECT pa FROM PlcPenAddress pa
+        LEFT JOIN FETCH pa.address a
+        WHERE pa.plcPenId IN :placeIds AND pa.type = '010'
+    """)
+    List<PlcPenAddress> findPlaceAddresses(@Param("placeIds") List<Long> placeIds);
+
 }
