@@ -15,4 +15,9 @@ public class WeatherController {
     public String getWeather() {
         return weatherService.getWeatherForecast();
     }
+
+    @GetMapping("/weather/2")
+    public String getWeather2() {
+        return weatherService.getWeatherForecast2();
+    }
 }
