@@ -1,8 +1,12 @@
 package com.meong9.backend.global.mediafile.entity;
 
+import com.meong9.backend.domain.place.entity.PlaceFile;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -32,6 +36,10 @@ public class MediaFile extends BaseTimeEntity {
 
     @Column
     private String fileKey;
+
+    @OneToMany(mappedBy = "mediaFile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PlaceFile> placeFiles = new ArrayList<>();
+
 
     @Builder
     public MediaFile(FileType fileType, Integer fileSize, String fileName, String fileUrl, Double height, Double width, String fileKey) {

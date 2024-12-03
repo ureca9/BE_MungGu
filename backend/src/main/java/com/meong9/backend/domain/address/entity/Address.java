@@ -8,29 +8,32 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Getter
 public class Address {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long addressId;
+    private Long addressId; // 기본 키
 
-    private String address;
+    @Column(length = 255, nullable = true)
+    private String address; // 도로명 주소
 
-    @Column(name = "province", length = 20)
-    private String province;
+    @Column(name = "province", length = 20, nullable = false)
+    private String province; // 주/도
 
-    @Column(name = "city_district", length = 20)
-    private String cityDistrict;
+    @Column(name = "city_district", length = 20, nullable = false)
+    private String cityDistrict; // 시/군/구
 
-    @Column(name = "subdistrict", length = 20)
-    private String subDistrict;
+    @Column(name = "subdistrict", length = 20, nullable = false)
+    private String subDistrict; // 읍/면/동
 
-    private String addressDetail;
+    @Column(name = "address_detail", length = 255, nullable = true)
+    private String addressDetail; // 상세 주소
 
-    @Column(name = "zip_no", length = 5)
-    private String zipNo;
+    @Column(name = "zip_no", length = 5, nullable = true)
+    private String zipNo; // 우편번호
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
