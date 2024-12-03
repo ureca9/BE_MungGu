@@ -34,7 +34,7 @@ public class Room {
 
     private String endTime;
 
-    private Integer area;
+    private String area;
 
     @Column(columnDefinition = "TEXT")
     private String information;
