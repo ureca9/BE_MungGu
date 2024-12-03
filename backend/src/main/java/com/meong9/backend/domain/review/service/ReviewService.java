@@ -23,6 +23,7 @@ import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
+import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -341,8 +342,8 @@ public class ReviewService {
     }
 
     // 펜션 리뷰 dto
-    private ReviewMainDto createPensionReviewDto(Review review, Pension pension, PlcPenAddress address) {
-        String addressInfo = formatAddress(address);
+    private ReviewMainDto createPensionReviewDto(Review review, Pension pension, PlcPenAddress plcPenAddress) {
+        String addressInfo = AddressMapper.formatAddress(plcPenAddress);
 
         String img = getReviewImageUrl(review);
 
@@ -364,7 +365,7 @@ public class ReviewService {
     }
 
     private ReviewMainDto createPlaceReviewDto(Review review, Place place, PlcPenAddress plcPenAddress) {
-        String addressInfo = formatAddress(plcPenAddress);
+        String addressInfo = AddressMapper.formatAddress(plcPenAddress);
 
         String img = getReviewImageUrl(review);
 
@@ -389,14 +390,6 @@ public class ReviewService {
     // 리뷰 평균 0.0으로
     private String formatReviewAvg(Double reviewAvg) {
         return reviewAvg != null ? new DecimalFormat("#.#").format(reviewAvg) : "0.0";
-    }
-
-    // 주소 형식
-    private String formatAddress(PlcPenAddress plcPenAddress) {
-        if (plcPenAddress == null || plcPenAddress.getAddress() == null) {
-            return null;
-        }
-        return plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
     }
 
     // 리뷰 이미지
