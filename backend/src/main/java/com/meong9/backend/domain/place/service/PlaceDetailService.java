@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -55,9 +54,10 @@ public class PlaceDetailService {
      * @return 제공된 장소 ID에 해당하는 Place 엔티티
      * @throws NotFoundException 제공된 ID로 Place 엔티티를 찾을 수 없는 경우 발생
      */
-    private Place getPlace(Long placeId) {
+    @Transactional(readOnly = true)
+    public Place getPlace(Long placeId) {
         return placeRepository.findPlaceWithDetails(placeId)
-                .orElseThrow(() -> NotFoundException.entityNotFound(Long.toString(placeId)));
+                .orElseThrow(()->NotFoundException.entityNotFound("시설"));
     }
 
     /**
@@ -68,7 +68,7 @@ public class PlaceDetailService {
      * @param reviewSummaryList 일반 리뷰 요약 리스트
      * @return PlaceDetailResponseDto 장소 상세 정보 DTO
      */
-    public PlaceDetailResponseDto getPlaceDetailResponseDto(Place place, String address,
+    private PlaceDetailResponseDto getPlaceDetailResponseDto(Place place, String address,
                                            List<PhotoReviewSummaryResponseDto> photoReviewSummaryList,
                                            List<ReviewSummaryResponseDto> reviewSummaryList) {
         return PlaceDetailResponseDto.builder()

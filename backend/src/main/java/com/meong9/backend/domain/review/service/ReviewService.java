@@ -8,13 +8,7 @@ import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
-import com.meong9.backend.domain.review.dto.ReviewMainDto;
-import com.meong9.backend.domain.review.dto.MyReviewResponseDto;
-import com.meong9.backend.domain.review.dto.ReviewDetailsResponseDto;
-import com.meong9.backend.domain.review.dto.ReviewRequestDto;
-import com.meong9.backend.domain.review.dto.FileResponseDto;
-import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
-import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
+import com.meong9.backend.domain.review.dto.*;
 import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
@@ -27,6 +21,7 @@ import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -416,9 +411,16 @@ public class ReviewService {
      * @param page    한 페이지당 표시할 리뷰 수
      * @return 페이징 처리된 리뷰 리스트
      */
+    @Transactional(readOnly = true)
     public List<Review> getReviews(Long Id, String type, int pageNum, int page) {
         Pageable pageable = PageRequest.of(pageNum, page);
-        return reviewRepository.findReviewsByPlaceId(Id, type, pageable);
+        List<Review> reviews = reviewRepository.findReviewsByPlaceId(Id, type, pageable);
+
+        if (reviews.isEmpty()) {
+            throw NotFoundException.entityNotFound("리뷰");
+        }
+        return reviews;
+
     }
 
 
@@ -439,7 +441,7 @@ public class ReviewService {
                         .modifiedAt(review.getModifiedAt().toString())
                         .nickname(review.getNickname())
                         .file(review.getReviewFiles().stream()
-                                .map(file -> FileResponseDto.builder()
+                                .map(file -> ReviewSummaryFileDto.builder()
                                         .mediaFileId(file.getFile().getMediaFileId())
                                         .fileType(file.getFile().getFileType().name())
                                         .fileUrl(file.getFile().getFileUrl())
@@ -451,6 +453,9 @@ public class ReviewService {
 
     /**
      * 특정 장소의 사진 리뷰 요약 리스트를 조회하는 메서드
+     * @param placeId
+     * @param type
+     * @return PhotoReviewSummaryResponseDto 리스트
      */
     public List<PhotoReviewSummaryResponseDto> getPhotoReviewSummaries(Long placeId, String type) {
         return reviewRepository.findPhotoReviewSummaries(placeId, type);

@@ -11,28 +11,26 @@ import java.util.List;
 
 @Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class PensionDetailResponseDto {
-    private Long pensionId;
-    private String pensionName;
-    private Integer reviewCount;
-    private Double reviewAvg;
-    private String address;
-    private List<String> tags;
-    private String startTime;
-    private String endTime;
-    private String telNo;
-    private String latitude;
-    private String longitude;
-    private String description;
-    private String enterPetSize;
-    private String info;
-    private String introduction;
-    private String limitInfo;
+    private final Long pensionId;
+    private final String pensionName;
+    private final Integer reviewCount;
+    private final Double reviewAvg;
+    private final String address;
+    private final List<String> tags;
+    private final String startTime;
+    private final String endTime;
+    private final String telNo;
+    private final String latitude;
+    private final String longitude;
+    private final String description;
+    private final String enterPetSize;
+    private final String info;
+    private final String introduction;
+    private final String limitInfo;
 
-    private List<String> images;
+    private final List<String> images;
 
-    private List<PhotoReviewSummaryResponseDto> photoReviewList;
-    private List<ReviewSummaryResponseDto> review;
+    private final List<PhotoReviewSummaryResponseDto> photoReviewList;
+    private final List<ReviewSummaryResponseDto> review;
 }

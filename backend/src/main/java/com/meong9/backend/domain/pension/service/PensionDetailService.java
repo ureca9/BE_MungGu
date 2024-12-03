@@ -56,7 +56,8 @@ public class PensionDetailService {
      * @return 제공된 펜션 ID에 해당하는 Pension 엔티티
      * @throws NotFoundException 제공된 ID로 Pension 엔티티를 찾을 수 없는 경우 발생
      */
-    private Pension getPension(Long pensionId){
+    @Transactional(readOnly = true)
+    public Pension getPension(Long pensionId){
         return pensionRepository.findByPensionId(pensionId).
                 orElseThrow(() -> NotFoundException.entityNotFound(Long.toString(pensionId)));
     }

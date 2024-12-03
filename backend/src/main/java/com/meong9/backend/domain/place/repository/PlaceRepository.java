@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;\
+import java.util.Optional;
 import java.util.List;
 
 @Repository
@@ -19,7 +19,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
 
     @Query("""
-        SELECT pl 
+        SELECT pl
         FROM Place pl
         LEFT JOIN FETCH pl.placeFiles plf
         LEFT JOIN FETCH plf.mediaFile

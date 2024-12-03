@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.pension.entity;
 
+import com.meong9.backend.domain.pension.entity.id.PensionTagId;
 import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
 import lombok.*;

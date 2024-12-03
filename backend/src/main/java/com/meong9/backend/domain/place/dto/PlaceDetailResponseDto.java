@@ -12,30 +12,29 @@ import java.util.List;
 
 @Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class PlaceDetailResponseDto {
-    private Long placeId;
-    private String placeName;
-    private String category;
-    private Integer reviewCount;
-    private Double reviewAvg;
-    private String address;
-    private List<String> tags;
-    private String businessHour;
-    private String telNo;
-    private String hmpgUrl;
-    private String latitude;
-    private String longitude;
-    private String closedDays;
-    private String price;
-    private String limitInfo;
-    private String description;
-    private String enterPetSize;
-    private List<String> images;
+    private final Long placeId;
+    private final String placeName;
+    private final String category;
+    private final Integer reviewCount;
+    private final Double reviewAvg;
+    private final String address;
+    private final List<String> tags;
+    private final String businessHour;
+    private final String telNo;
+    private final String hmpgUrl;
+    private final String latitude;
+    private final String longitude;
+    private final String closedDays;
+    private final String price;
+    private final String limitInfo;
+    private final String description;
+    private final String enterPetSize;
 
-    private List<PhotoReviewSummaryResponseDto> photoReviewList;
-    private List<ReviewSummaryResponseDto> review;
+    private final List<String> images;
+
+    private final List<PhotoReviewSummaryResponseDto> photoReviewList;
+    private final List<ReviewSummaryResponseDto> review;
 }
 
 
