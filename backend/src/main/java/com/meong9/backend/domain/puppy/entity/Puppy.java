@@ -62,7 +62,7 @@ public class Puppy {
         this.breed = breed;
         this.profileImage = profileImageId;
     }
-    // 수정 메서드(이미지 포함)
+    // 수정 메서드(이미지 미포함)
     public void update(String name, LocalDate birthDate, Character gender, Double weight, Boolean neutered, Breed breed) {
         this.name = name;
         this.birthDate = birthDate;

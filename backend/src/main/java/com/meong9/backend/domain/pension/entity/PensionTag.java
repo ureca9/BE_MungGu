@@ -16,12 +16,12 @@ public class PensionTag {
     @EmbeddedId
     private PensionTagId pensionTagId;
 
-    @MapsId("pensionId")
+    @MapsId("pensionId") // PlaceTagKey의 placeId와 매핑
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pension_id")
     private Pension pension;
 
-    @MapsId("tagId")
+    @MapsId("tagId") // PlaceTagKey의 tagId와 매핑
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tag_id")
     private Tag tag;

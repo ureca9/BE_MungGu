@@ -1,6 +1,6 @@
 package com.meong9.backend.domain.place.entity;
 
-import com.meong9.backend.domain.place.entity.id.PlaceTagKey;
+import com.meong9.backend.domain.place.entity.id.PlaceTagId;
 import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -12,9 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlaceTag {
-
     @EmbeddedId
-    private PlaceTagKey id; // 복합 키 객체
+    private PlaceTagId placeTagId; // 복합 키 객체
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("placeId") // PlaceTagKey의 placeId와 매핑
@@ -25,10 +24,4 @@ public class PlaceTag {
     @MapsId("tagId") // PlaceTagKey의 tagId와 매핑
     @JoinColumn(name = "tag_id")
     private Tag tag;
-
-    public PlaceTag(Place place, Tag tag) {
-        this.id = new PlaceTagKey(place.getPlaceId(), tag.getTagId());
-        this.place = place;
-        this.tag = tag;
-    }
 }
