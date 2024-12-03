@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @DiscriminatorValue("Place")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class PlaceLike extends Like{
 
     @ManyToOne(fetch = FetchType.LAZY)
