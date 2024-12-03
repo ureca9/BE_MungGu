@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+
+import java.util.List;
 import java.util.Optional;
 @Repository
 public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Long> {
@@ -24,6 +26,19 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
 
     @Query("select ppa from PlcPenAddress ppa where ppa.plcPenId =:plcPenId and ppa.type =:type")
     Optional<PlcPenAddress> findByPlcPenIdAndType(@Param("plcPenId")Long plcPenId, @Param("type")String type);
+
+
+
+    @Query("""
+        SELECT pa FROM PlcPenAddress pa
+        LEFT JOIN FETCH pa.address a
+        WHERE (pa.plcPenId IN :pensionIds AND pa.type = '020') 
+           OR (pa.plcPenId IN :placeIds AND pa.type = '010')
+    """)
+    List<PlcPenAddress> findByPlcPenIdInAndType(
+            @Param("pensionIds") List<Long> pensionIds,
+            @Param("placeIds") List<Long> placeIds
+    );
 
     @Query("""
             SELECT ppa.plcPenId FROM PlcPenAddress ppa

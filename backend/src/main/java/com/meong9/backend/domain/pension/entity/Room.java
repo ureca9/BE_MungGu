@@ -15,6 +15,10 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long roomId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pension_id")
+    private Pension pension;
+
     @Column(name = "room_name")
     private String name;
 

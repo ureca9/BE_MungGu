@@ -1,31 +1,27 @@
 package com.meong9.backend.domain.pension.entity;
 
-import com.meong9.backend.domain.pension.entity.id.PensionTagKey;
 import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Getter
 public class PensionTag {
     @EmbeddedId
-    private PensionTagKey id; // 복합 키 객체
+    private PensionTagId pensionTagId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("pensionId") // PlaceTagKey의 placeId와 매핑
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pension_id")
     private Pension pension;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("tagId") // PlaceTagKey의 tagId와 매핑
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tag_id")
     private Tag tag;
-
-    public PensionTag(Pension pension, Tag tag) {
-        this.id = new PensionTagKey(pension.getPensionId(), tag.getTagId());
-        this.pension = pension;
-        this.tag = tag;
-    }
 }

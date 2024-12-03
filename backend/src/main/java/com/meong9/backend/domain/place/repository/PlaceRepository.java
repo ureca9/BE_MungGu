@@ -7,7 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.Optional;\
+import java.util.List;
 
 @Repository
 public interface PlaceRepository extends JpaRepository<Place, Long> {
@@ -17,4 +18,12 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     Optional<Place> findPlaceWithDetails(@Param("placeId") Long placeId);
 
 
+    @Query("""
+        SELECT pl 
+        FROM Place pl
+        LEFT JOIN FETCH pl.placeFiles plf
+        LEFT JOIN FETCH plf.mediaFile
+        WHERE pl.placeId IN :placeIds
+    """)
+    List<Place> findAllDataByIds(@Param("placeIds") List<Long> placeIds);
 }

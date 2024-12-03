@@ -3,7 +3,10 @@ package com.meong9.backend.domain.pension.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

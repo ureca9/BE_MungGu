@@ -42,4 +42,18 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
             WHERE pl.member = :member AND pl.pension.pensionId = :pensionId
             """)
     boolean existsByMemberAndPensionId(@Param("member") Member member, @Param("pensionId") Long pensionId);
+
+    // 찜 펜션 목록 조회
+    @Query("SELECT pl FROM PensionLike pl " +
+            "JOIN FETCH pl.pension pen " +
+            "WHERE pl.member = :member")
+    List<PensionLike> findAllPensionLikes(@Param("member") Member member);
+
+    // 찜 시설 목록 조회
+    @Query("SELECT pl FROM PlaceLike pl " +
+            "JOIN FETCH pl.place pla " +
+            "WHERE pl.member = :member")
+    List<PlaceLike> findAllPlaceLikes(@Param("member") Member member);
+
+
 }

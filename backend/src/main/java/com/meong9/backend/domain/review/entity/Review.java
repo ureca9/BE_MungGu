@@ -1,13 +1,13 @@
 package com.meong9.backend.domain.review.entity;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -41,7 +41,7 @@ public class Review extends BaseTimeEntity {
     private Long placePensionId; // 시설 또는 펜션 아이디
 
     @Setter
-    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "review",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewFile> reviewFiles = Collections.emptyList(); // 후기 파일 리스트
 
     @Builder
@@ -54,5 +54,13 @@ public class Review extends BaseTimeEntity {
         this.type = type;
         this.placePensionId = placePensionId;
         this.reviewFiles = reviewFiles;
+    }
+
+    public void update(ReviewRequestDto reviewRequestDto) {
+        this.content = reviewRequestDto.getContent();
+        this.score = reviewRequestDto.getScore();
+        this.visitDate = reviewRequestDto.getVisitDate();
+        this.type = reviewRequestDto.getType();
+        this.placePensionId = reviewRequestDto.getPlcPenId();
     }
 }
