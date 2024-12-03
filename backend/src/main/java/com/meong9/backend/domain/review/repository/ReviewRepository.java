@@ -17,7 +17,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         FROM Review r
         LEFT JOIN FETCH r.reviewFiles rf
         LEFT JOIN FETCH rf.file
-        ORDER BY r.createdAt DESC
+        ORDER BY r.createdAt DESC LIMIT 10
         """)
     List<Review> findTop10RecentReviews();
 
