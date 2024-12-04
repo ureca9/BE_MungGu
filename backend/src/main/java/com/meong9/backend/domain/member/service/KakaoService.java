@@ -82,7 +82,6 @@ public class KakaoService {
 
         // 최근 활동 필드 업데이트
         kakaoUser.setLastActivity(LocalDateTime.now());
-        memberRepository.save(kakaoUser);
 
         // 5. JWT 토큰 생성 및 응답 헤더 설정
         String accessToken = jwtProvider.createAccessToken(kakaoUser.getEmail(), kakaoUser.getRoleCode());
@@ -188,7 +187,7 @@ public class KakaoService {
         }
     }
 
-    private KakaoRegisterResultDto registerKakaoUserIfNeeded(KakaoUserInfoDto kakaoUserInfo) throws IOException {
+    private KakaoRegisterResultDto registerKakaoUserIfNeeded(KakaoUserInfoDto kakaoUserInfo) {
         // 1. 기존 카카오 회원 확인
         Member kakaoUser = memberRepository.findByProviderId(kakaoUserInfo.getId()).orElse(null);
         if (kakaoUser != null) {
