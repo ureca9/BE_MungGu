@@ -83,21 +83,21 @@ public class MapService {
             return getAllMapLikes(pensionLikes, placeLikes, latitude, longitude);
 
         } else if(categoryName.equals("펜션")) { // "펜션" 카테고리
-            List<PensionLike> pensionLikes = getPensionLikes(member);
+            Page<PensionLike> pensionLikes = likeRepository.findAllPensionLikesPage(member, pageable);
 
             return getPensionMapLikes(pensionLikes, latitude, longitude);
         } else { // 나머지 시설 카테고리들
             PlcCategory plcCategory = plcCategoryRepository.findByName(categoryName)
                     .orElseThrow(() -> new NotFoundException("존재하지 않는 카테고리"));
 
-            List<PlaceLike> placeLikes = likeRepository.findPlaceLikesByCategory(member, plcCategory);
+            Page<PlaceLike> placeLikes = likeRepository.findPlaceLikesByCategory(member, plcCategory, pageable);
 
             return getPlaceMapLikes(placeLikes, latitude, longitude, plcCategory);
         }
     }
 
     // 찜한 장소 거리 기준으로 정렬 -> 시설(카페, 마당, 공원, 놀이터, 섬, 해수욕장)
-    private MapLikeResponseDto getPlaceMapLikes(List<PlaceLike> placeLikes, Double userLatitude, Double userLongitude, PlcCategory plcCategory) {
+    private MapLikeResponseDto getPlaceMapLikes(Page<PlaceLike> placeLikes, Double userLatitude, Double userLongitude, PlcCategory plcCategory) {
         List<MapLikePlaceDto> mapLikeList = new ArrayList<>();
 
         List<Long> placeIds = placeLikes.stream()
@@ -143,7 +143,7 @@ public class MapService {
     }
 
     // 찜한 장소 거리 기준으로 정렬 -> 펜션
-    private MapLikeResponseDto getPensionMapLikes(List<PensionLike> pensionLikes, Double userLatitude, Double userLongitude) {
+    private MapLikeResponseDto getPensionMapLikes(Page<PensionLike> pensionLikes, Double userLatitude, Double userLongitude) {
         List<MapLikePlaceDto> mapLikeList = new ArrayList<>();
 
         // pensionIds와 placeIds 추출

@@ -75,10 +75,13 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
     Page<PlaceLike> findAllPlaceLikesPage(@Param("member") Member member, Pageable pageable);
 
     // 특정 카테고리 좋아요 목록
+    @EntityGraph(attributePaths = {
+            "place"
+    })
     @Query("SELECT pl FROM PlaceLike pl " +
-            "JOIN FETCH pl.place pla " +
-            "WHERE pl.member = :member and pla.plcCategory = :plcCategory")
-    List<PlaceLike> findPlaceLikesByCategory(@Param("member") Member member, @Param("plcCategory") PlcCategory plcCategory);
+            "WHERE pl.member = :member AND pl.place.plcCategory = :plcCategory")
+    Page<PlaceLike> findPlaceLikesByCategory(@Param("member") Member member, @Param("plcCategory") PlcCategory plcCategory, Pageable pageable);
+
 
 
 }
