@@ -50,7 +50,7 @@ public class Member extends BaseTimeEntity {
     private List<Puppy> puppies;
 
     @Setter
-    private LocalDateTime lastActivity;
+    private LocalDateTime lastActivity = LocalDateTime.now();
 
     @Builder
     public Member (String email, String name, String provider, String providerId, MediaFile profileImage) {
