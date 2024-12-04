@@ -164,16 +164,16 @@ public class ReviewService {
         review.setReviewFiles(newReviewFiles);
 
         //트랜잭션 동기화
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCompletion(int status) {
-                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
-                        }
-                    }
-                }
-        );
+//        TransactionSynchronizationManager.registerSynchronization(
+//                new TransactionSynchronization() {
+//                    @Override
+//                    public void afterCompletion(int status) {
+//                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+//                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
+//                        }
+//                    }
+//                }
+//        );
     }
 
     @Transactional
@@ -314,6 +314,23 @@ public class ReviewService {
                         .width((double) metadata.getWidth())
                         .fileKey(fileKey)
                         .build());
+    }
+
+    // 이미지/동영상 구분
+    public String determineFileType(MultipartFile file) {
+        String contentType = file.getContentType();
+        log.info("파일 타입 - {}", contentType);
+        if (contentType == null) {
+            throw new IllegalArgumentException("파일이 정의되지 않습니다.");
+        }
+
+        if (contentType.startsWith("image/")) {
+            return "IMAGE";
+        } else if (contentType.startsWith("video/")) {
+            return "VIDEO";
+        } else {
+            throw new IllegalArgumentException("지원하지 않는 파일 타입: " + contentType);
+        }
     }
 
     /**

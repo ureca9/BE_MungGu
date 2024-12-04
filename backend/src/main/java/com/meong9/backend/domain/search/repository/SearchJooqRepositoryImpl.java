@@ -18,6 +18,7 @@ import java.util.List;
 
 import static com.meong9.backend.jooq.generated.Tables.*;
 
+
 @Repository
 @RequiredArgsConstructor
 public class SearchJooqRepositoryImpl implements SearchJooqRepository {
