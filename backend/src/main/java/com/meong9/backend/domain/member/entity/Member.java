@@ -49,13 +49,13 @@ public class Member extends BaseTimeEntity {
     @OneToMany(mappedBy = "member", orphanRemoval = true)
     private List<Puppy> puppies;
 
-    private LocalDateTime lastActivity;
+    @Setter
+    private LocalDateTime lastActivity = LocalDateTime.now();
 
     @Builder
-    public Member (String email, String name, String nickname, String provider, String providerId, MediaFile profileImage) {
+    public Member (String email, String name, String provider, String providerId, MediaFile profileImage) {
         this.email = email;
         this.name = name;
-        this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
         this.profileImage = profileImage;

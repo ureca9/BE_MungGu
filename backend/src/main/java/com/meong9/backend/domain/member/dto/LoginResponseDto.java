@@ -9,7 +9,7 @@ import lombok.*;
 public class LoginResponseDto {
     private Long memberId;
     private String email;
-    private String nickname;
     private String profileImageUrl;
     private boolean isNewMember;
+    private boolean hasMemberInfo;
 }

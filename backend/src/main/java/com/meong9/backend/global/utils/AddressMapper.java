@@ -2,6 +2,10 @@ package com.meong9.backend.global.utils;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class AddressMapper {
 
     public static String formatAddress(PlcPenAddress plcPenAddress) {
@@ -24,4 +28,16 @@ public class AddressMapper {
         return province + " " + cityDistrict;
     }
 
+    // 주소 정보 담는 Map
+    public static Map<Long, String> mapAddressesByPlcPenId(List<PlcPenAddress> addresses) {
+        Map<Long, String> addressMap = new HashMap<>();
+        for (PlcPenAddress address : addresses) {
+            Long id = address.getPlcPenId(); // 장소 ID
+            String fullAddress = address.getAddress() != null ? address.getAddress().getAddress() : null;
+
+            // PlcPenId와 Address를 맵에 추가
+            addressMap.put(id, fullAddress);
+        }
+        return addressMap;
+    }
 }
