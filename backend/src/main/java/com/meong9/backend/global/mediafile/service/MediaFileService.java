@@ -21,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -178,8 +179,9 @@ public class MediaFileService {
     /**
      * S3 이미지 다운로드 URL 반환
      */
-    public String generateDownloadUrl(String s3Url, int hour) {
-        String key = s3Url.replace("https://uplus-s3-bucket-1.s3.ap-northeast-2.amazonaws.com/", "");
+    public String generateDownloadUrl(String s3Url, int hour) throws MalformedURLException {
+        URL url = new URL(s3Url);
+        String key = url.getPath().substring(1);
         GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
                 .withMethod(HttpMethod.GET)
                 .withExpiration(Date.from(Instant.now().plus(hour, ChronoUnit.HOURS)));

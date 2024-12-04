@@ -29,7 +29,7 @@ public class MeongPhotoController {
      */
     @PostMapping()
     public ResponseEntity<?> createMeongPhoto(@CurrentMember Member member,
-                                              @RequestPart(name = "image") MultipartFile image) throws IOException {
+                                              @RequestPart(name = "image") MultipartFile image) {
         MeongPhotoResponseDto dto = meongPhotoService.createMeongPhoto(member, image);
         return CommonResponse.ok("success", dto);
     }
