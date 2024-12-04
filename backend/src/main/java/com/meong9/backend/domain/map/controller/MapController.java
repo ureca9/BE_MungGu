@@ -1,7 +1,6 @@
 package com.meong9.backend.domain.map.controller;
 
 import com.meong9.backend.domain.map.dto.MapLikePointDto;
-import com.meong9.backend.domain.map.dto.MapLikeRequestDto;
 import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.map.service.MapService;
 import com.meong9.backend.domain.member.entity.Member;

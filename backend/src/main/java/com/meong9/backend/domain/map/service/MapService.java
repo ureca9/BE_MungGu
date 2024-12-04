@@ -7,7 +7,6 @@ import com.meong9.backend.domain.like.entity.PlaceLike;
 import com.meong9.backend.domain.like.repository.LikeRepository;
 import com.meong9.backend.domain.map.dto.MapLikePlaceDto;
 import com.meong9.backend.domain.map.dto.MapLikePointDto;
-import com.meong9.backend.domain.map.dto.MapLikeRequestDto;
 import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.PensionFile;
