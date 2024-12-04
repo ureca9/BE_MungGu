@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.pension.entity;
 
 import com.meong9.backend.domain.pension.entity.id.PensionFileId;
+import com.meong9.backend.domain.pension.entity.id.RoomFileId;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -12,14 +13,14 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class PensionFile {
+public class RoomFile {
     @EmbeddedId
-    private PensionFileId pensionFileId;
+    private RoomFileId roomFileId;
 
-    @MapsId("pensionId")
+    @MapsId("roomId")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pension_id",nullable = false)
-    private Pension pension;
+    @JoinColumn(name = "room_id",nullable = false)
+    private Room room;
 
     @MapsId("mediaFileId")
     @ManyToOne(fetch = FetchType.LAZY)

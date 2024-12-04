@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.place.entity;
 
+import com.meong9.backend.global.entity.Tag;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -7,7 +8,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -61,7 +65,7 @@ public class Place {
     private Integer likeCount = 0;
 
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PlaceTag> placeTags = new ArrayList<>();
+    private Set<PlaceTag> placeTags = new HashSet<>();
 
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PlaceFile> placeFiles = new ArrayList<>();
