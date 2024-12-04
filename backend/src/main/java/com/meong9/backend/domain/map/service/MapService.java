@@ -12,6 +12,8 @@ import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.PensionFile;
 import com.meong9.backend.domain.place.entity.PlaceFile;
+import com.meong9.backend.domain.place.entity.PlcCategory;
+import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class MapService {
 
     private final LikeRepository likeRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
+    private final PlcCategoryRepository plcCategoryRepository;
 
     // 찜한 목록 조회 (마커용)
     @Transactional(readOnly = true)
@@ -61,27 +64,101 @@ public class MapService {
         return mapLikePointList;
     }
 
-    // 찜 목록 상세 (카테고리 별 검색 - 전체, 카페, 펜션, 마당, 공원, 놀이터, 섬, 해수욕장
+    // 찜 목록 상세 (카테고리 별 검색 - 전체, 카페, 펜션, 마당, 공원, 놀이터, 섬, 해수욕장) 기본 거리순
     @Transactional(readOnly = true)
-    public MapLikeResponseDto getMapLikeDetails(Member member, MapLikeRequestDto mapLikeRequestDto) {
-        List<PensionLike> pensionLikes = getPensionLikes(member);
-        List<PlaceLike> placeLikes = getPlaceLikes(member);
+    public MapLikeResponseDto getMapLikeDetails(Member member, String categoryName, Double latitude, Double longitude) {
+        // "전체" 카테고리
+        if (categoryName.equals("전체")) {
+            List<PensionLike> pensionLikes = getPensionLikes(member);
+            List<PlaceLike> placeLikes = getPlaceLikes(member);
 
-        // "전체" 카테고리 처리
-        if (mapLikeRequestDto.getCategoryName().equals("전체")) {
-            return getAllMapLikesByDistance(pensionLikes, placeLikes, mapLikeRequestDto.getLatitude(), mapLikeRequestDto.getLongitude());
+            return getAllMapLikes(pensionLikes, placeLikes, latitude, longitude);
+
+        } else if(categoryName.equals("펜션")) { // "펜션" 카테고리
+            List<PensionLike> pensionLikes = getPensionLikes(member);
+
+            return getPensionMapLikes(pensionLikes, latitude, longitude);
+        } else { // 나머지 시설 카테고리들
+            PlcCategory plcCategory = plcCategoryRepository.findByName(categoryName)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 카테고리"));
+
+            List<PlaceLike> placeLikes = likeRepository.findPlaceLikesByCategory(member, plcCategory);
+
+            return getPlaceMapLikes(placeLikes, latitude, longitude, plcCategory);
         }
-
-        // 필요한 다른 카테고리 처리
-        return null;
     }
 
-    // 찜한 장소 거리 기준으로 정렬
-    private MapLikeResponseDto getAllMapLikesByDistance(
+    // 찜한 장소 거리 기준으로 정렬 -> 시설(카페, 마당, 공원, 놀이터, 섬, 해수욕장)
+    private MapLikeResponseDto getPlaceMapLikes(List<PlaceLike> placeLikes, Double userLatitude, Double userLongitude, PlcCategory plcCategory) {
+        List<MapLikePlaceDto> mapLikeList = new ArrayList<>();
+
+        List<Long> placeIds = placeLikes.stream()
+                .map(p -> p.getPlace().getPlaceId())
+                .collect(Collectors.toList());
+
+        // PlcPenAddress에서 각각의 주소 가져오기
+        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findPlaceAddresses(placeIds);
+
+        // 주소 매핑
+        Map<Long, String> placeAddressMap = mapAddressesByPlcPenId(placeAddresses);
+
+        // place 정보 dto 변환
+        for (PlaceLike placeLike : placeLikes) {
+            MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, userLatitude, userLongitude, placeAddressMap);
+            mapLikeList.add(mapLikePlaceDto);
+        }
+
+        // 거리 순 정렬
+        List<MapLikePlaceDto> mapLikePlaceDtos = sortByDistance(mapLikeList);
+
+        // MapLikeResponseDto 생성
+        MapLikeResponseDto mapLikeResponseDto = MapLikeResponseDto.builder()
+                .categoryId(plcCategory.getPlcCategoryId())
+                .categoryName(plcCategory.getName())
+                .places(mapLikePlaceDtos)
+                .build();
+
+        return mapLikeResponseDto;
+    }
+
+    // 찜한 장소 거리 기준으로 정렬 -> 펜션
+    private MapLikeResponseDto getPensionMapLikes(List<PensionLike> pensionLikes, Double userLatitude, Double userLongitude) {
+        List<MapLikePlaceDto> mapLikeList = new ArrayList<>();
+
+        // pensionIds와 placeIds 추출
+        List<Long> pensionIds = pensionLikes.stream()
+                .map(p -> p.getPension().getPensionId())
+                .collect(Collectors.toList());
+
+        // PlcPenAddress에서 각각의 주소 가져오기
+        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findPensionAddresses(pensionIds);
+        Map<Long, String> pensionAddressMap = mapAddressesByPlcPenId(pensionAddresses);
+
+        // pension 정보 dto 변환
+        for (PensionLike pensionLike : pensionLikes) {
+            MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, userLatitude, userLongitude, pensionAddressMap);
+            mapLikeList.add(mapLikePlaceDto);
+        }
+
+        // 거리 순 정렬
+        List<MapLikePlaceDto> mapLikePlaceDtos = sortByDistance(mapLikeList);
+
+        // MapLikeResponseDto 생성
+        MapLikeResponseDto mapLikeResponseDto = MapLikeResponseDto.builder()
+                .categoryId(0L)
+                .categoryName("펜션")
+                .places(mapLikePlaceDtos)
+                .build();
+
+        return mapLikeResponseDto;
+    }
+
+    // 찜한 장소 거리 기준으로 정렬 -> 전체
+    private MapLikeResponseDto getAllMapLikes(
             List<PensionLike> pensionLikes,
             List<PlaceLike> placeLikes,
-            double userLatitude,
-            double userLongitude) {
+            Double userLatitude,
+            Double userLongitude) {
 
         List<MapLikePlaceDto> mapLikeList = new ArrayList<>();
 
@@ -151,6 +228,7 @@ public class MapService {
                 .longitude(longitude)
                 .images(getPlaceImageUrl(pensionLike))
                 .address(address)
+                .isLike(true)
                 .build();
     }
 
@@ -176,6 +254,7 @@ public class MapService {
                 .longitude(longitude)
                 .images(getPlaceImageUrl(placeLike))
                 .address(address)
+                .isLike(true)
                 .build();
     }
 
@@ -222,9 +301,6 @@ public class MapService {
         return imageUrls;
     }
 
-
-
-
     // 사용자가 찜한 펜션
     private List<PensionLike> getPensionLikes(Member member){
         return likeRepository.findAllPensionLikes(member);
@@ -258,6 +334,5 @@ public class MapService {
         }
         return addressMap;
     }
-
 
 }

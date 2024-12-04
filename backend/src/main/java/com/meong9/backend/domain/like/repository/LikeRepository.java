@@ -6,6 +6,7 @@ import com.meong9.backend.domain.like.entity.PlaceLike;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.place.entity.Place;
+import com.meong9.backend.domain.place.entity.PlcCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -55,5 +56,8 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
             "WHERE pl.member = :member")
     List<PlaceLike> findAllPlaceLikes(@Param("member") Member member);
 
-
+    @Query("SELECT pl FROM PlaceLike pl " +
+            "JOIN FETCH pl.place pla " +
+            "WHERE pl.member = :member and pla.plcCategory = :plcCategory")
+    List<PlaceLike> findPlaceLikesByCategory(@Param("member") Member member, @Param("plcCategory") PlcCategory plcCategory);
 }

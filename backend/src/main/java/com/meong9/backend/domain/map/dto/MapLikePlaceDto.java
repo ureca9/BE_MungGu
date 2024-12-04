@@ -17,4 +17,5 @@ public class MapLikePlaceDto {
     private String latitude;
     private String longitude;
     private List<String> images; // 이미지 최대 3장
+    private Boolean isLike;
 }

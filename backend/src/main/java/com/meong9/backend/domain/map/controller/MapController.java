@@ -23,8 +23,8 @@ public class MapController {
 
     // 카테고리 별 찜 상세 조회
     @GetMapping("/likes/detail")
-    public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestBody MapLikeRequestDto mapLikeRequestDto){
-        MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, mapLikeRequestDto);
+    public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestParam(name = "categoryName") String categoryName, @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude){
+        MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, categoryName, latitude, longitude);
 
         return CommonResponse.ok("success", likeDetails);
     }

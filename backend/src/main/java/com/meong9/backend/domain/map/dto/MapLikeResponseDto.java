@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class MapLikeResponseDto {
-    private Integer categoryId; // 카테고리 아이디
+    private Long categoryId; // 카테고리 아이디
     private String categoryName;
     private List<MapLikePlaceDto> places;
 
