@@ -9,14 +9,14 @@ import com.meong9.backend.domain.member.dto.LoginResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.global.auth.entity.MemberDetails;
-import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.auth.jwt.JwtProvider;
-import com.meong9.backend.global.mediafile.entity.FileType;
-import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
-import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
-import com.meong9.backend.global.mediafile.entity.MediaFile;
+import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.ConflictException;
+import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
+import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
+import com.meong9.backend.global.mediafile.entity.FileType;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +40,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.LocalDateTime;
 
 @Slf4j(topic = "KAKAO Login")
 @Service
@@ -79,6 +80,10 @@ public class KakaoService {
         Member kakaoUser = kakaoRegisterResultDto.getMember();
         forceLogin(kakaoUser);
 
+        // 최근 활동 필드 업데이트
+        kakaoUser.setLastActivity(LocalDateTime.now());
+        memberRepository.save(kakaoUser);
+
         // 5. JWT 토큰 생성 및 응답 헤더 설정
         String accessToken = jwtProvider.createAccessToken(kakaoUser.getEmail(), kakaoUser.getRoleCode());
         response.addHeader(JwtProvider.AUTHORIZATION_HEADER, accessToken);
@@ -93,9 +98,9 @@ public class KakaoService {
         LoginResponseDto.LoginResponseDtoBuilder responseBuilder = LoginResponseDto.builder()
                 .memberId(kakaoUser.getMemberId())
                 .email(kakaoUser.getEmail())
-                .nickname(kakaoUser.getNickname())
                 .profileImageUrl(kakaoUser.getProfileImage().getFileUrl())
-                .isNewMember(kakaoRegisterResultDto.isNewMember());
+                .isNewMember(kakaoRegisterResultDto.isNewMember())
+                .hasMemberInfo(kakaoUser.getName() != null && !kakaoUser.getName().isEmpty());
         return responseBuilder.build();
     }
 
@@ -207,7 +212,6 @@ public class KakaoService {
                 .email(kakaoUserInfo.getEmail())
                 .provider(PROVIDER_KAKAO)
                 .providerId(kakaoUserInfo.getId())
-                .nickname(kakaoUserInfo.getNickname())
                 .build();
 
         Member savedMember = memberRepository.save(kakaoUser);
