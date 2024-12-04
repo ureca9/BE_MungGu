@@ -7,6 +7,9 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.entity.PlcCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,14 +53,32 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
             "WHERE pl.member = :member")
     List<PensionLike> findAllPensionLikes(@Param("member") Member member);
 
+
+    @EntityGraph(attributePaths = {
+            "pension"
+    })
+    @Query("SELECT pl FROM PensionLike pl " +
+            "WHERE pl.member = :member")
+    Page<PensionLike> findAllPensionLikesPage(@Param("member") Member member, Pageable pageable);
+
     // 찜 시설 목록 조회
     @Query("SELECT pl FROM PlaceLike pl " +
             "JOIN FETCH pl.place pla " +
             "WHERE pl.member = :member")
     List<PlaceLike> findAllPlaceLikes(@Param("member") Member member);
 
+    @EntityGraph(attributePaths = {
+            "place"
+    })
+    @Query("SELECT pl FROM PlaceLike pl " +
+            "WHERE pl.member = :member")
+    Page<PlaceLike> findAllPlaceLikesPage(@Param("member") Member member, Pageable pageable);
+
+    // 특정 카테고리 좋아요 목록
     @Query("SELECT pl FROM PlaceLike pl " +
             "JOIN FETCH pl.place pla " +
             "WHERE pl.member = :member and pla.plcCategory = :plcCategory")
     List<PlaceLike> findPlaceLikesByCategory(@Param("member") Member member, @Param("plcCategory") PlcCategory plcCategory);
+
+
 }

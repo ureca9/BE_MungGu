@@ -50,15 +50,10 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
     @Query("""
         SELECT pa FROM PlcPenAddress pa
         LEFT JOIN FETCH pa.address a
-        WHERE pa.plcPenId IN :pensionIds AND pa.type = '020'
+        WHERE pa.plcPenId IN :ids AND pa.type = :type
     """)
-    List<PlcPenAddress> findPensionAddresses(@Param("pensionIds") List<Long> pensionIds);
-
-    @Query("""
-        SELECT pa FROM PlcPenAddress pa
-        LEFT JOIN FETCH pa.address a
-        WHERE pa.plcPenId IN :placeIds AND pa.type = '010'
-    """)
-    List<PlcPenAddress> findPlaceAddresses(@Param("placeIds") List<Long> placeIds);
-
+    List<PlcPenAddress> findAddressesByIdsAndType(
+        @Param("ids") List<Long> ids,
+        @Param("type") String type
+    );
 }

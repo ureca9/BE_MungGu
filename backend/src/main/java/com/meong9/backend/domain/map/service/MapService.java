@@ -10,15 +10,24 @@ import com.meong9.backend.domain.map.dto.MapLikePointDto;
 import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.PensionFile;
+import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.entity.PlaceFile;
 import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
+import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.AddressMapper;
+import com.meong9.backend.global.utils.DistanceMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.meong9.backend.domain.map.dto.MapLikePlaceDto.getPensionToLikePlaceDto;
+import static com.meong9.backend.domain.map.dto.MapLikePlaceDto.getPlaceToLikePlaceDto;
 
 @Service
 @RequiredArgsConstructor
@@ -65,11 +74,11 @@ public class MapService {
 
     // 찜 목록 상세 (카테고리 별 검색 - 전체, 카페, 펜션, 마당, 공원, 놀이터, 섬, 해수욕장) 기본 거리순
     @Transactional(readOnly = true)
-    public MapLikeResponseDto getMapLikeDetails(Member member, String categoryName, Double latitude, Double longitude) {
+    public MapLikeResponseDto getMapLikeDetails(Member member, String categoryName, Double latitude, Double longitude, Pageable pageable) {
         // "전체" 카테고리
         if (categoryName.equals("전체")) {
-            List<PensionLike> pensionLikes = getPensionLikes(member);
-            List<PlaceLike> placeLikes = getPlaceLikes(member);
+            Page<PensionLike> pensionLikes = likeRepository.findAllPensionLikesPage(member, pageable);
+            Page<PlaceLike> placeLikes = likeRepository.findAllPlaceLikesPage(member, pageable);
 
             return getAllMapLikes(pensionLikes, placeLikes, latitude, longitude);
 
@@ -79,7 +88,7 @@ public class MapService {
             return getPensionMapLikes(pensionLikes, latitude, longitude);
         } else { // 나머지 시설 카테고리들
             PlcCategory plcCategory = plcCategoryRepository.findByName(categoryName)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 카테고리"));
+                    .orElseThrow(() -> new NotFoundException("존재하지 않는 카테고리"));
 
             List<PlaceLike> placeLikes = likeRepository.findPlaceLikesByCategory(member, plcCategory);
 
@@ -95,15 +104,28 @@ public class MapService {
                 .map(p -> p.getPlace().getPlaceId())
                 .collect(Collectors.toList());
 
-        // PlcPenAddress에서 각각의 주소 가져오기
-        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findPlaceAddresses(placeIds);
+        // PlcPenAddress에서 주소 가져오기
+        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findAddressesByIdsAndType(placeIds, "010");
 
         // 주소 매핑
-        Map<Long, String> placeAddressMap = mapAddressesByPlcPenId(placeAddresses);
+        Map<Long, String> placeAddressMap = AddressMapper.mapAddressesByPlcPenId(placeAddresses);
 
         // place 정보 dto 변환
         for (PlaceLike placeLike : placeLikes) {
-            MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, userLatitude, userLongitude, placeAddressMap);
+            String latitude = placeLike.getPlace().getLatitude();
+            String longitude = placeLike.getPlace().getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+            String address = placeAddressMap.getOrDefault(placeLike.getPlace().getPlaceId(), null);
+            List<String> image = getPlaceImageUrl(placeLike);
+
+            MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, latitude, longitude, address, distance, image);
+
             mapLikeList.add(mapLikePlaceDto);
         }
 
@@ -129,13 +151,25 @@ public class MapService {
                 .map(p -> p.getPension().getPensionId())
                 .collect(Collectors.toList());
 
-        // PlcPenAddress에서 각각의 주소 가져오기
-        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findPensionAddresses(pensionIds);
-        Map<Long, String> pensionAddressMap = mapAddressesByPlcPenId(pensionAddresses);
+        // PlcPenAddress에서 주소 가져오기
+        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds, "020");
+        Map<Long, String> pensionAddressMap = AddressMapper.mapAddressesByPlcPenId(pensionAddresses);
 
         // pension 정보 dto 변환
         for (PensionLike pensionLike : pensionLikes) {
-            MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, userLatitude, userLongitude, pensionAddressMap);
+            String latitude = pensionLike.getPension().getLatitude();
+            String longitude = pensionLike.getPension().getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+            String address = pensionAddressMap.getOrDefault(pensionLike.getPension().getPensionId(), null);
+            List<String> image = getPlaceImageUrl(pensionLike);
+
+            MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
         }
 
@@ -154,8 +188,8 @@ public class MapService {
 
     // 찜한 장소 거리 기준으로 정렬 -> 전체
     private MapLikeResponseDto getAllMapLikes(
-            List<PensionLike> pensionLikes,
-            List<PlaceLike> placeLikes,
+            Page<PensionLike> pensionLikes,
+            Page<PlaceLike> placeLikes,
             Double userLatitude,
             Double userLongitude) {
 
@@ -171,23 +205,47 @@ public class MapService {
                 .collect(Collectors.toList());
 
         // PlcPenAddress에서 각각의 주소 가져오기
-        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findPensionAddresses(pensionIds);
-        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findPlaceAddresses(placeIds);
+        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds, "020");
+        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findAddressesByIdsAndType(placeIds, "010");
 
         // 주소 매핑
-        Map<Long, String> pensionAddressMap = mapAddressesByPlcPenId(pensionAddresses);
-        Map<Long, String> placeAddressMap = mapAddressesByPlcPenId(placeAddresses);
+        Map<Long, String> pensionAddressMap = AddressMapper.mapAddressesByPlcPenId(pensionAddresses);
+        Map<Long, String> placeAddressMap = AddressMapper.mapAddressesByPlcPenId(placeAddresses);
 
 
         // pension 정보 dto 변환
         for (PensionLike pensionLike : pensionLikes) {
-            MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, userLatitude, userLongitude, pensionAddressMap);
+            String latitude = pensionLike.getPension().getLatitude();
+            String longitude = pensionLike.getPension().getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+            String address = pensionAddressMap.getOrDefault(pensionLike.getPension().getPensionId(), null);
+            List<String> image = getPlaceImageUrl(pensionLike);
+
+            MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
         }
 
         // place 정보 dto 변환
         for (PlaceLike placeLike : placeLikes) {
-            MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, userLatitude, userLongitude, placeAddressMap);
+            String latitude = placeLike.getPlace().getLatitude();
+            String longitude = placeLike.getPlace().getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+            String address = placeAddressMap.getOrDefault(placeLike.getPlace().getPlaceId(), null);
+            List<String> image = getPlaceImageUrl(placeLike);
+
+            MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
         }
 
@@ -203,72 +261,6 @@ public class MapService {
 
         return mapLikeResponseDto;
     }
-
-    // 펜션을 MapLikePlaceDto로
-    private MapLikePlaceDto getPensionToLikePlaceDto(PensionLike pensionLike, Double userLatitude, Double userLongitude, Map<Long, String> addressMap){
-        String latitude = pensionLike.getPension().getLatitude();
-        String longitude = pensionLike.getPension().getLongitude();
-
-        Double distance = null;
-        if (latitude != null && longitude != null) {
-            distance = calculateDistance(userLatitude, userLongitude,
-                    Double.parseDouble(latitude),
-                    Double.parseDouble(longitude));
-        }
-        String address = addressMap.getOrDefault(pensionLike.getPension().getPensionId(), null);
-
-
-        return MapLikePlaceDto.builder()
-                .placeId(pensionLike.getPension().getPensionId())
-                .placeName(pensionLike.getPension().getName())
-                .businessHour(null) // 펜션은 운영시간 없음
-                .distance(distance)
-                .latitude(latitude)
-                .longitude(longitude)
-                .images(getPlaceImageUrl(pensionLike))
-                .address(address)
-                .isLike(true)
-                .build();
-    }
-
-    // place를 MapLikePlaceDto로
-    private MapLikePlaceDto getPlaceToLikePlaceDto(PlaceLike placeLike, Double userLatitude, Double userLongitude, Map<Long, String> addressMap){
-        String latitude = placeLike.getPlace().getLatitude();
-        String longitude = placeLike.getPlace().getLongitude();
-
-        Double distance = null;
-        if (latitude != null && longitude != null) {
-            distance = calculateDistance(userLatitude, userLongitude,
-                    Double.parseDouble(latitude),
-                    Double.parseDouble(longitude));
-        }
-        String address = addressMap.getOrDefault(placeLike.getPlace().getPlaceId(), null);
-
-        return MapLikePlaceDto.builder()
-                .placeId(placeLike.getPlace().getPlaceId())
-                .placeName(placeLike.getPlace().getName())
-                .businessHour(placeLike.getPlace().getBusinessHour())
-                .distance(distance)
-                .latitude(latitude)
-                .longitude(longitude)
-                .images(getPlaceImageUrl(placeLike))
-                .address(address)
-                .isLike(true)
-                .build();
-    }
-
-    // 거리 계산 메서드 (Haversine 공식)
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // 지구 반지름 (킬로미터)
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c * 1000; // 미터 단위로 반환
-    }
-
 
     // PensionLike 이미지 URL 추출
     private List<String> getPlaceImageUrl(PensionLike pensionLike) {
@@ -319,19 +311,6 @@ public class MapService {
                 )
         );
         return mapLikeList;
-    }
-
-    // 주소 정보 담는 Map
-    private Map<Long, String> mapAddressesByPlcPenId(List<PlcPenAddress> addresses) {
-        Map<Long, String> addressMap = new HashMap<>();
-        for (PlcPenAddress address : addresses) {
-            Long id = address.getPlcPenId(); // 장소 ID
-            String fullAddress = address.getAddress() != null ? address.getAddress().getAddress() : null;
-
-            // PlcPenId와 Address를 맵에 추가
-            addressMap.put(id, fullAddress);
-        }
-        return addressMap;
     }
 
 }

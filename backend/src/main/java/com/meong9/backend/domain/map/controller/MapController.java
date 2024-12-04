@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 @RestController
@@ -22,8 +25,8 @@ public class MapController {
 
     // 카테고리 별 찜 상세 조회
     @GetMapping("/likes/detail")
-    public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestParam(name = "categoryName") String categoryName, @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude){
-        MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, categoryName, latitude, longitude);
+    public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestParam(name = "categoryName") String categoryName, @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude, Pageable pageable){
+        MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, categoryName, latitude, longitude, pageable);
 
         return CommonResponse.ok("success", likeDetails);
     }
