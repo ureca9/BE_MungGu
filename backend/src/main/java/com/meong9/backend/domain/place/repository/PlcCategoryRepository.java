@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
 public interface PlcCategoryRepository extends JpaRepository<PlcCategory, Long> {
 
@@ -19,4 +20,6 @@ public interface PlcCategoryRepository extends JpaRepository<PlcCategory, Long> 
     @Query("SELECT pc.plcCategoryId FROM PlcCategory pc")
     List<Long> findAllCategoryIds();
 
+    @Query("select pc from PlcCategory pc where pc.name = :name")
+    Optional<PlcCategory> findByName(@Param("name") String categoryName);
 }
