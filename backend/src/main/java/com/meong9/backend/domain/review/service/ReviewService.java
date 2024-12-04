@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -433,12 +434,12 @@ public class ReviewService {
         return reviews.stream()
                 .map(review -> ReviewSummaryResponseDto.builder()
                         .reviewId(review.getReviewId())
-                        .profileImageUrl(null) // Profile 이미지가 별도로 필요하면 추가
+                        .profileImageUrl(review.getMember().getProfileImage() != null
+                                ? review.getMember().getProfileImage().getFileUrl()
+                                : null) // Profile 이미지가 별도로 필요하면 추가
                         .content(review.getContent())
                         .score(review.getScore().doubleValue())
                         .visitDate(review.getVisitDate().toString())
-                        .createdAt(review.getCreatedAt().toString())
-                        .modifiedAt(review.getModifiedAt().toString())
                         .nickname(review.getNickname())
                         .file(review.getReviewFiles().stream()
                                 .map(file -> ReviewSummaryFileDto.builder()
@@ -460,4 +461,21 @@ public class ReviewService {
     public List<PhotoReviewSummaryResponseDto> getPhotoReviewSummaries(Long placeId, String type) {
         return reviewRepository.findPhotoReviewSummaries(placeId, type);
     }
+
+    /**
+     * 리뷰 정보를 조회하고 DTO로 변환하여 반환하는 메서드.
+     *
+     * @param type 리뷰 타입 (예: 긍정, 부정 등)
+     * @param placePensionId 장소나 펜션 ID
+     * @param pageable 페이징 정보를 담은 Pageable 객체
+     * @return 변환된 ReviewSummaryResponseDto 객체의 Slice
+     */
+    public Slice<ReviewSummaryResponseDto> getReviews(String type, Long placePensionId, Pageable pageable) {
+        // 지정된 타입과 장소/펜션 ID에 해당하는 리뷰를 조회
+        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable);
+
+        // 조회된 리뷰 데이터를 DTO로 변환하여 반환
+        return reviews.map(ReviewSummaryResponseDto::from);
+    }
+
 }

@@ -4,6 +4,8 @@ import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,4 +51,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     ORDER BY r.createdAt DESC
 """)
     List<PhotoReviewSummaryResponseDto> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type);
+
+    @EntityGraph(attributePaths = {"reviewFiles.file", "member.profileImage"})
+    Slice<Review> findByTypeAndPlacePensionId(String type, Long placePensionId, Pageable pageable);
 }

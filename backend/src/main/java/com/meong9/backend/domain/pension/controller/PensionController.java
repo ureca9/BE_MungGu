@@ -3,9 +3,14 @@ package com.meong9.backend.domain.pension.controller;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
 import com.meong9.backend.domain.pension.service.PensionDetailService;
 import com.meong9.backend.domain.pension.service.RoomService;
+import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
+import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/api/v1")
@@ -25,6 +31,7 @@ public class PensionController {
 
     private final PensionDetailService pensionDetailService;
     private final RoomService roomService; // Room 데이터를 처리하는 서비스 클래스
+    private final ReviewService reviewService;
 
     @GetMapping("/pensions/detail/{pensionId}")
     public ResponseEntity<?> getPensionDetail(@PathVariable(name = "pensionId") Long pensionId) {
@@ -49,5 +56,19 @@ public class PensionController {
         List<RoomResponseDto> rooms = roomService.findAvailableRoomsWithImages(pensionId, startDate, endDate);
 
         return CommonResponse.ok("success", rooms);
+    }
+
+    @GetMapping("/pensions/{pensionId}/reviews")
+    public ResponseEntity<?> getPensionReviews(
+            @PathVariable Long pensionId,
+            @RequestParam(defaultValue = "0") int page // 클라이언트가 요청하는 페이지 번호
+    ) {
+        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 20으로 고정
+        Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews("020", pensionId, pageable);
+
+        return ResponseEntity.ok(Map.of(
+                "reviews", reviews.getContent(),
+                "hasNext", reviews.hasNext()
+        ));
     }
 }
