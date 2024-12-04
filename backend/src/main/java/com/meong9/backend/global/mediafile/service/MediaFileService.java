@@ -234,4 +234,12 @@ public class MediaFileService {
         }
     }
 
+    public MediaFile createDefaultProfileImage() {
+        return MediaFile.builder()
+                .fileType(FileType.IMAGE)
+                .fileName("default_profile.png")
+                .fileKey("Mprofile/default_profile.png")
+                .fileUrl("https://uplus-s3-bucket-1.s3.ap-northeast-2.amazonaws.com/Mprofile/default_profile.png")
+                .build();
+    }
 }

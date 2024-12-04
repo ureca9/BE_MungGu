@@ -106,7 +106,6 @@ public class KakaoService {
 
     private String getToken(String code) throws JsonProcessingException {
         try {
-            log.info("인가코드: " + code);
             // 요청 URL 만들기
             URI uri = UriComponentsBuilder
                     .fromUriString("https://kauth.kakao.com")
@@ -217,30 +216,31 @@ public class KakaoService {
         Member savedMember = memberRepository.save(kakaoUser);
 
         // 4. S3에 프로필 사진 업로드 및 DB 저장
-        S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
-                kakaoUserInfo.getProfileImageUrl(),
-                savedMember.getMemberId(),
-                "Mprofile/",
-                "_profile.jpg"
-        );
+        try {
+            S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
+                    kakaoUserInfo.getProfileImageUrl(),
+                    savedMember.getMemberId(),
+                    "Mprofile/",
+                    "_profile.jpg"
+            );
 
-        ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());
+            ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());
+            MediaFile mediaFile = MediaFile.builder()
+                    .fileType(FileType.IMAGE)
+                    .fileSize((int) metadata.getFileSize())
+                    .fileName("profile.jpg")
+                    .fileUrl(s3UploadResultDto.getS3Url())
+                    .height((double) metadata.getHeight())
+                    .width((double) metadata.getWidth())
+                    .fileKey(s3UploadResultDto.getFileKey())
+                    .build();
 
-        MediaFile mediaFile = MediaFile.builder()
-                .fileType(FileType.IMAGE)
-                .fileSize((int) metadata.getFileSize())
-                .fileName("profile.jpg")
-                .fileUrl(s3UploadResultDto.getS3Url())
-                .height((double) metadata.getHeight())
-                .width((double) metadata.getWidth())
-                .fileKey(s3UploadResultDto.getFileKey())
-                .build();
-
-        mediaFileRepository.save(mediaFile);
-
-        // 5. 멤버 업데이트 (프로필 이미지 연결)
-        savedMember.setProfileImage(mediaFile);
-        memberRepository.save(savedMember);
+            mediaFileRepository.save(mediaFile);
+            savedMember.setProfileImage(mediaFile);
+        } catch (Exception e) {
+            // S3에 업로드 실패 시, 프로필 이미지를 제외한 나머지 회원 정보를 저장 + 프로필 이미지는 기본 이미지를 활용한다
+            savedMember.setProfileImage(mediaFileService.createDefaultProfileImage());
+        }
 
         return KakaoRegisterResultDto.builder()
                 .isNewMember(true)
