@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
+import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,9 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.util.List;
 
@@ -86,11 +85,25 @@ public class MediaFileService {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png").contains(fileExtension)) {
+        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
             throw BadRequestException.invalidImageFormat();
         }
     }
 
+    private static void validateVideo(MultipartFile video) {
+        String originalFilename = video.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw BadRequestException.invalidVideoFormat();
+        }
+
+        // 파일 확장자 추출 후 소문자로 변환
+        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+
+        // 허용 확장자를 소문자로 비교
+        if (!List.of("mp4", "mov").contains(fileExtension)) {
+            throw BadRequestException.invalidVideoFormat();
+        }
+    }
 
     /**
      * URL에서 이미지의 메타데이터 추출
@@ -158,12 +171,55 @@ public class MediaFileService {
      */
     public ImageMetadataDto extractImageMetadata(MultipartFile image) throws IOException {
         BufferedImage bufferedImage = ImageIO.read(image.getInputStream());
-
         int width = bufferedImage.getWidth();
         int height = bufferedImage.getHeight();
 
         return new ImageMetadataDto(width, height, image.getSize());
     }
+
+    /**
+     * MultipartFile에서 동영상 메타데이터 추출
+     */
+    public VideoMetaDataDto extractVideoMetadata(File video) throws IOException, InterruptedException {
+        // FFmpeg ffprobe 명령 설정
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffprobe",
+                "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height,duration",
+                "-of", "default=noprint_wrappers=1",
+                video.getAbsolutePath()
+        );
+        processBuilder.redirectErrorStream(true); // 오류를 표준 출력으로 리다이렉트
+
+        // 프로세스 실행
+        Process process = processBuilder.start();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+
+        Integer width = null, height = null;
+        Double duration = null;
+
+        // ffprobe 출력 파싱
+        while ((line = reader.readLine()) != null) {
+            if (line.startsWith("width=")) {
+                width = Integer.parseInt(line.split("=")[1]);
+            } else if (line.startsWith("height=")) {
+                height = Integer.parseInt(line.split("=")[1]);
+            } else if (line.startsWith("duration=")) {
+                duration = Double.parseDouble(line.split("=")[1]);
+            }
+        }
+        process.waitFor(); // 프로세스 종료 대기
+
+        // 값 검증
+        if (width == null || height == null || duration == null) {
+            throw new IllegalArgumentException("Failed to extract video metadata");
+        }
+
+        return new VideoMetaDataDto(duration, width, height);
+    }
+
 
     // S3에서 파일 삭제
     public void deleteFromS3(String fileKey) {

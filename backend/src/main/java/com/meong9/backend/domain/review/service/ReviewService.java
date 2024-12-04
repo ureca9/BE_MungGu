@@ -16,12 +16,12 @@ import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
+import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -29,13 +29,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -69,7 +70,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException {
+    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, InterruptedException {
         List<MediaFile> mediaFiles = new ArrayList<>();
         Review review = Review.builder()
                 .member(member)
@@ -85,8 +86,9 @@ public class ReviewService {
 
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
+            AtomicInteger fileNum = new AtomicInteger(0);
             for (MultipartFile mf : files) {
-                MediaFile file = handleImageUpload(mf, savedReview.getReviewId());
+                MediaFile file = handleFileUpload(mf, savedReview.getReviewId(),fileNum);
                 mediaFiles.add(file);
 
                 // 복합 키 생성
@@ -102,8 +104,9 @@ public class ReviewService {
                                         .build()
                         );
 
-                reviewFileRepository.save(reviewFile);
                 reviewFiles.add(reviewFile);
+                reviewFileRepository.save(reviewFile);
+                fileNum.getAndIncrement();
             }
         }
 
@@ -120,11 +123,38 @@ public class ReviewService {
         );
     }
 
+    /**
+     * 이미지 업로드 처리
+     * @param file 업로드할 파일
+     * @param reviewId 리뷰 id
+     * @return 저장된 MediaFile 엔티티
+     * @throws IOException 이미지 처리 오류
+     */
+    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException {
+        String contentType = file.getContentType();
+        String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
+        if (contentType == null) {
+            throw new IllegalArgumentException("파일 형식이 정의되지 않았습니다.");
+        }
+
+        if (contentType.startsWith("image/")) {
+            return saveImage(file, fileKey); // 이미지 저장
+        } else if (contentType.startsWith("video/")) {
+            // 동영상 처리
+            return saveVideo(file, fileKey);
+        } else {
+            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+        }
+    }
+
+
+
+
     @Transactional
-    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException {
+    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException, InterruptedException {
         // 기존 리뷰 조회
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(()->NotFoundException.entityNotFound("리뷰"));
+                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
 
         // 작성자 권한 확인
         if (!review.getMember().getMemberId().equals(member.getMemberId())) {
@@ -144,9 +174,10 @@ public class ReviewService {
         // 5. 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
         List<ReviewFile> newReviewFiles = new ArrayList<>();
+        AtomicInteger fileNum = new AtomicInteger(0);
         if (files != null) {
             for (MultipartFile mf : files) {
-                MediaFile file = handleImageUpload(mf, review.getReviewId());
+                MediaFile file = handleFileUpload(mf, review.getReviewId(),fileNum);
                 mediaFiles.add(file);
 
                 // 복합 키 생성
@@ -166,19 +197,8 @@ public class ReviewService {
 
         // 리뷰에 새로운 파일 연결
         review.setReviewFiles(newReviewFiles);
-
-        //트랜잭션 동기화
-//        TransactionSynchronizationManager.registerSynchronization(
-//                new TransactionSynchronization() {
-//                    @Override
-//                    public void afterCompletion(int status) {
-//                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-//                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
-//                        }
-//                    }
-//                }
-//        );
     }
+
 
     @Transactional
     public void deleteReview(Long reviewId, Member member) throws IllegalAccessException {
@@ -249,34 +269,18 @@ public class ReviewService {
         reviewFileRepository.delete(reviewFile);
     }
 
-    // todo: 아래 메서드는 따로 static class 만들어야할듯
-    /**
-     * 이미지 업로드 처리
-     * @param image 업로드할 이미지
-     * @param id 강아지 id
-     * @return 저장된 MediaFile 엔티티
-     * @throws IOException 이미지 처리 오류
-     */
-    private MediaFile handleImageUpload(MultipartFile image, Long id) throws IOException {
-        if (image == null || image.isEmpty()) {
-            return null; // 이미지가 없으면 null 반환
-        }
-        String fileKey = generateFileKey(id); // S3 파일 키 생성
-        return saveImage(image, fileKey); // 이미지 저장
-    }
-
     /**
      * 이미지 업데이트 처리
-     * @param image 업로드할 새 이미지
+     * @param file 업로드할 새 파일
      * @param reviewId 리뷰 ID
-     * @param existingImage 기존 MediaFile 엔티티
+     * @param existingFile 기존 MediaFile 엔티티
      * @return 저장된 MediaFile 엔티티
      * @throws IOException 이미지 처리 오류
      */
-    private MediaFile handleImageUpdate(MultipartFile image, Long reviewId, MediaFile existingImage) throws IOException {
-        deleteImage(existingImage);
-        String fileKey = generateFileKey(reviewId); // 새 파일 키 생성
-        return saveImage(image, fileKey); // 새 이미지 저장
+    private MediaFile handleFileUpdate(MultipartFile file, Long reviewId, MediaFile existingFile,AtomicInteger fileNum) throws IOException {
+        deleteImage(existingFile);
+        String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
+        return saveImage(file, fileKey); // 새 이미지 저장
     }
 
     /**
@@ -320,10 +324,34 @@ public class ReviewService {
                         .build());
     }
 
+    private MediaFile saveVideo(MultipartFile video, String fileKey) throws IOException, InterruptedException {
+        // S3에 파일 업로드
+        String videoUrl = mediaFileService.uploadToS3WithCustomKey(video, fileKey);
+        // 업로드한 파일의 메타데이터 추출
+        // MultipartFile을 임시 파일로 변환
+        File tempFile = File.createTempFile("video-", ".mp4");
+        video.transferTo(tempFile);
+
+        VideoMetaDataDto metadata = mediaFileService.extractVideoMetadata(tempFile);
+        tempFile.delete();
+
+        // MediaFile 엔티티 저장
+        return mediaFileRepository.save(
+                MediaFile.builder()
+                        .fileType(FileType.VIDEO)
+                        .fileSize((int) video.getSize())
+                        .fileName(video.getOriginalFilename())
+                        .fileUrl(videoUrl)
+                        .height((double) metadata.getHeight())
+                        .width((double) metadata.getWidth())
+                        .fileKey(fileKey)
+                        .build());
+    }
+
     // 이미지/동영상 구분
     public String determineFileType(MultipartFile file) {
         String contentType = file.getContentType();
-        log.info("파일 타입 - {}", contentType);
+        log.debug("파일 타입 - {}", contentType);
         if (contentType == null) {
             throw new IllegalArgumentException("파일이 정의되지 않습니다.");
         }
@@ -339,11 +367,11 @@ public class ReviewService {
 
     /**
      * S3 파일 키 생성
-     * @param reviewId 강아지 ID
+     * @param reviewId 파일 ID
      * @return 생성된 파일 키
      */
-    private String generateFileKey(Long reviewId) {
-        return "Review/" + reviewId + "_review.jpg";
+    private String generateFileKey(Long reviewId, AtomicInteger fileNum) {
+        return "Review/" + reviewId + "_review" + fileNum.get() + ".jpg";
     }
 
 
