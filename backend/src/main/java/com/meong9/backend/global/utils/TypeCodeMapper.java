@@ -4,8 +4,8 @@ import java.util.Map;
 
 public class TypeCodeMapper {
     private static final Map<String, String> typeMap = Map.of(
-            "010", "PENSION",
-            "020", "PLACE"
+            "010", "PLACE",
+            "020", "PENSION"
     );
 
     public static String getType(String commonCode) {
