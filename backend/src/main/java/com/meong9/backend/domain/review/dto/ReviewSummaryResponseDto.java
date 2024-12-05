@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.review.dto;
 
+import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
 import lombok.*;
 
@@ -36,23 +37,15 @@ public class ReviewSummaryResponseDto {
      * @param review Review 엔티티 객체
      * @return 변환된 ReviewSummaryResponseDto 객체
      */
-    public static ReviewSummaryResponseDto from(Review review) {
+    public static ReviewSummaryResponseDto from(Review review, List<ReviewSummaryFileDto> files, Member member) {
         return ReviewSummaryResponseDto.builder()
-                .reviewId(review.getReviewId()) // 리뷰 ID 설정
-                .profileImageUrl(review.getMember().getProfileImage() != null
-                        ? review.getMember().getProfileImage().getFileUrl()
-                        : null) // 프로필 이미지 URL 설정 (없으면 null)
-                .content(review.getContent()) // 리뷰 내용 설정
-                .score((double) review.getScore()) // 리뷰 평점 설정
-                .visitDate(review.getVisitDate().toString()) // 방문 날짜 설정
-                .nickname(review.getNickname()) // 작성자 닉네임 설정
-                .file(review.getReviewFiles().stream()
-                        .map(file -> ReviewSummaryFileDto.builder()
-                                .mediaFileId(file.getId().getMediaFileId()) // 첨부 파일 ID
-                                .fileType("IMAGE") // 파일 타입 (고정값, 필요시 로직 변경)
-                                .fileUrl(file.getFile().getFileUrl()) // 파일 URL 설정
-                                .build())
-                        .toList()) // 첨부 파일 정보 리스트로 변환
+                .reviewId(review.getReviewId())
+                .profileImageUrl(member.getProfileImage() != null ? member.getProfileImage().getFileUrl() : null)
+                .content(review.getContent())
+                .score(review.getScore() != null ? review.getScore().doubleValue() : null)
+                .visitDate(review.getVisitDate() != null ? review.getVisitDate().toString() : null)
+                .nickname(member.getNickname())
+                .file(files)
                 .build();
     }
 }

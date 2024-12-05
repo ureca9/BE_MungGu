@@ -29,11 +29,14 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
 
     List<Review> findByMember(Member member);
+
     @Query("""
     SELECT r FROM Review r
+    LEFT JOIN FETCH r.member m
+    LEFT JOIN FETCH m.profileImage pi
     LEFT JOIN FETCH r.reviewFiles rf
     LEFT JOIN FETCH rf.file f
-    WHERE r.placePensionId = :placeId and r.type = :type
+    WHERE r.placePensionId = :placeId AND r.type = :type
     ORDER BY r.createdAt DESC
     """)
     List<Review> findReviewsByPlaceId(@Param("placeId") Long placeId, @Param("type") String type, Pageable pageable);
@@ -52,6 +55,25 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 """)
     List<PhotoReviewSummaryResponseDto> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type);
 
-    @EntityGraph(attributePaths = {"reviewFiles.file", "member.profileImage"})
-    Slice<Review> findByTypeAndPlacePensionId(String type, Long placePensionId, Pageable pageable);
+    @Query("""
+    SELECT r
+    FROM Review r
+    WHERE r.type = :type AND r.placePensionId = :placePensionId
+    ORDER BY r.visitDate DESC
+""")
+    Slice<Review> findByTypeAndPlacePensionId(
+            @Param("type") String type,
+            @Param("placePensionId") Long placePensionId,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT r
+    FROM Review r
+    LEFT JOIN FETCH r.member m
+    LEFT JOIN FETCH m.profileImage
+    WHERE r.reviewId IN :reviewIds
+""")
+    List<Review> findWithMemberAndProfileImageByReviewIds(@Param("reviewIds") List<Long> reviewIds);
+
 }

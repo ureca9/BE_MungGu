@@ -58,17 +58,29 @@ public class PensionController {
         return CommonResponse.ok("success", rooms);
     }
 
+    /**
+     * 특정 펜션에 대한 리뷰를 페이징 처리하여 조회하는 API 엔드포인트.
+     *
+     * @param pensionId 클라이언트가 요청하는 펜션의 ID
+     * @param page 클라이언트가 요청하는 페이지 번호 (기본값: 0)
+     * @return 페이징 처리된 리뷰 데이터와 다음 페이지 여부를 포함한 응답
+     */
     @GetMapping("/pensions/{pensionId}/reviews")
     public ResponseEntity<?> getPensionReviews(
             @PathVariable Long pensionId,
-            @RequestParam(defaultValue = "0") int page // 클라이언트가 요청하는 페이지 번호
+            @RequestParam(defaultValue = "0") int page // 기본 페이지 번호는 0으로 설정
     ) {
-        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 20으로 고정
+        // 페이지 요청 객체 생성 (현재 페이지와 페이지 크기)
+        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
+
+        // 리뷰 서비스에서 페이징된 리뷰 데이터 조회
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews("020", pensionId, pageable);
 
+        // 응답 데이터 생성 (리뷰 목록과 다음 페이지 존재 여부 포함)
         return ResponseEntity.ok(Map.of(
-                "reviews", reviews.getContent(),
-                "hasNext", reviews.hasNext()
+                "reviews", reviews.getContent(), // 현재 페이지의 리뷰 목록
+                "hasNext", reviews.hasNext() // 다음 페이지가 존재하는지 여부
         ));
     }
+
 }
