@@ -143,7 +143,7 @@ public class ReviewService {
             // 동영상 처리
             return saveVideo(file, fileKey);
         } else {
-            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+            throw new IllegalArgumentException("지원되지 않는 content type: " + contentType);
         }
     }
 
@@ -366,7 +366,7 @@ public class ReviewService {
      * @return 생성된 파일 키
      */
     private String generateFileKey(Long reviewId, AtomicInteger fileNum) {
-        return "Review/" + reviewId + "_review" + fileNum.get() + ".jpg";
+        return "Review/" + reviewId + "_review" + fileNum.get(); // 확장자 하드코딩보단 그냥 빼는게 나은거같음
     }
 
 

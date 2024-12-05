@@ -159,17 +159,17 @@ public class MediaFileService {
      * S3에 파일 업로드 및 URL 반환 (사용자 지정 키 사용)
      * 업로드 전 파일 유효성 검증 및 메타데이터 설정 포함
      */
-    public String uploadToS3WithCustomKey(MultipartFile image, String fileKey) throws IOException {
+    public String uploadToS3WithCustomKey(MultipartFile file, String fileKey) throws IOException {
         // 파일 유효성 검증
-        validateFile(image);
+        validateFile(file);
 
         // S3 메타데이터 설정
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentType(image.getContentType());
-        metadata.setContentLength(image.getSize());
+        metadata.setContentType(file.getContentType());
+        metadata.setContentLength(file.getSize());
 
         // S3에 파일 업로드
-        s3Client.putObject(bucket, fileKey, image.getInputStream(), metadata);
+        s3Client.putObject(bucket, fileKey, file.getInputStream(), metadata);
 
         // S3 URL 반환
         return s3Client.getUrl(bucket, fileKey).toString();
