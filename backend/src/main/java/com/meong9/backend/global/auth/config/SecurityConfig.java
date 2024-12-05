@@ -45,7 +45,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedHeaders(List.of("*"));
+//        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT", "PATCH", "DELETE","OPTIONS"));
@@ -69,7 +70,8 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/pensions/{placeId}", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/{placeId}/reviews", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name())
+                        new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())
                 ));
 
         // 요청별 권한 관리
