@@ -1,5 +1,8 @@
 package com.meong9.backend.domain.place.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import lombok.Builder;
 import lombok.Getter;
 
