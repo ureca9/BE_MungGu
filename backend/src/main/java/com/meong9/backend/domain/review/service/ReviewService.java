@@ -462,7 +462,7 @@ public class ReviewService {
      * @return PhotoReviewSummaryResponseDto 리스트
      */
     public List<PhotoReviewSummaryResponseDto> getPhotoReviewSummaries(Long placeId, String type) {
-        return reviewRepository.findPhotoReviewSummaries(placeId, type);
+        return reviewRepository.findPhotoReviewSummaries(placeId, type).orElseThrow(() -> NotFoundException.entityNotFound("리뷰 요약 리스트"));
     }
 
     /**
@@ -476,7 +476,8 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public Slice<ReviewSummaryResponseDto> getReviews(String type, Long placePensionId, Pageable pageable) {
         // 1단계: 부모 엔티티 페이징
-        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable);
+        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable)
+                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
 
         // 리뷰 ID 목록 추출
         List<Long> reviewIds = reviews.getContent().stream()
@@ -484,7 +485,9 @@ public class ReviewService {
                 .collect(Collectors.toList());
 
         // 2단계: 연관 데이터 로드 (ReviewFile)
-        List<ReviewFile> reviewFiles = reviewFileRepository.findFilesByReviewIds(reviewIds);
+        List<ReviewFile> reviewFiles = reviewFileRepository.findFilesByReviewIds(reviewIds)
+                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰 파일"));
+
         Map<Long, List<ReviewSummaryFileDto>> fileMap = reviewFiles.stream()
                 .collect(Collectors.groupingBy(
                         file -> file.getReview().getReviewId(),

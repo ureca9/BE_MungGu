@@ -5,13 +5,13 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
@@ -53,7 +53,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     GROUP BY r.reviewId
     ORDER BY r.createdAt DESC
 """)
-    List<PhotoReviewSummaryResponseDto> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type);
+    Optional<List<PhotoReviewSummaryResponseDto>> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type);
 
     @Query("""
     SELECT r
@@ -61,19 +61,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     WHERE r.type = :type AND r.placePensionId = :placePensionId
     ORDER BY r.visitDate DESC
 """)
-    Slice<Review> findByTypeAndPlacePensionId(
+    Optional<Slice<Review>> findByTypeAndPlacePensionId(
             @Param("type") String type,
             @Param("placePensionId") Long placePensionId,
             Pageable pageable
     );
-
-    @Query("""
-    SELECT r
-    FROM Review r
-    LEFT JOIN FETCH r.member m
-    LEFT JOIN FETCH m.profileImage
-    WHERE r.reviewId IN :reviewIds
-""")
-    List<Review> findWithMemberAndProfileImageByReviewIds(@Param("reviewIds") List<Long> reviewIds);
-
 }

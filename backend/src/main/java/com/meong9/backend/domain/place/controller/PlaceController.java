@@ -1,6 +1,8 @@
 package com.meong9.backend.domain.place.controller;
 
+import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.service.PlaceDetailService;
+import com.meong9.backend.domain.place.service.PlaceService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -25,6 +27,7 @@ import java.util.Map;
 public class PlaceController {
     private final PlaceDetailService placeDetailService;
     private final ReviewService reviewService;
+    private final PlaceService placeService;
 
     @GetMapping("/places/detail/{placeId}")
     public ResponseEntity<?> getPlaceDetail(@PathVariable(name = "placeId") Long placeId) {
@@ -36,12 +39,20 @@ public class PlaceController {
             @PathVariable Long placeId,
             @RequestParam(defaultValue = "0") int page // 클라이언트가 요청하는 페이지 번호
     ) {
-        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 20으로 고정
+        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews("010", placeId, pageable);
 
         return ResponseEntity.ok(Map.of(
                 "reviews", reviews.getContent(),
                 "hasNext", reviews.hasNext()
         ));
+    }
+
+    @GetMapping("/places/{placeId}/summary")
+    public ResponseEntity<?> getPlaceSummary(
+            @PathVariable long placeId
+    ){
+        PlaceSummaryResponseDto placeSummary = placeService.getPlaceSummaryById(placeId);
+        return CommonResponse.ok("success", placeSummary);
     }
 }

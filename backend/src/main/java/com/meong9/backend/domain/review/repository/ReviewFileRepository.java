@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFileId> {
@@ -17,5 +18,5 @@ public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFi
     JOIN FETCH rf.file
     WHERE rf.review.reviewId IN :reviewIds
 """)
-    List<ReviewFile> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
+    Optional<List<ReviewFile>> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
 }

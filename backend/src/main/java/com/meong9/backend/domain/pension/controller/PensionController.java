@@ -1,7 +1,9 @@
 package com.meong9.backend.domain.pension.controller;
 
+import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
 import com.meong9.backend.domain.pension.service.PensionDetailService;
+import com.meong9.backend.domain.pension.service.PensionService;
 import com.meong9.backend.domain.pension.service.RoomService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
@@ -32,6 +34,7 @@ public class PensionController {
     private final PensionDetailService pensionDetailService;
     private final RoomService roomService; // Room 데이터를 처리하는 서비스 클래스
     private final ReviewService reviewService;
+    private final PensionService pensionService;
 
     @GetMapping("/pensions/detail/{pensionId}")
     public ResponseEntity<?> getPensionDetail(@PathVariable(name = "pensionId") Long pensionId) {
@@ -83,4 +86,11 @@ public class PensionController {
         ));
     }
 
+    @GetMapping("/pensions/{pensionId}/summary")
+    public ResponseEntity<?> getPensionSummary(
+            @PathVariable Long pensionId
+    ){
+        PensionSummaryResponseDto pensionSummaryResponseDto = pensionService.getPensionSummaryResponseDto(pensionId);// 리뷰와 관련된 펜션 정보 요약
+        return CommonResponse.ok("success", pensionSummaryResponseDto);
+    }
 }
