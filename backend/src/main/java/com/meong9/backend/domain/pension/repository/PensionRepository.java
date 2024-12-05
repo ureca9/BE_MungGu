@@ -1,10 +1,12 @@
 package com.meong9.backend.domain.pension.repository;
 
+import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,6 +28,17 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     @EntityGraph(attributePaths = {"pensionTags.tag", "pensionFiles.mediaFile"})
     @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
     Optional<Pension> findByPensionId(@Param("pensionId") Long pensionId);
+
+    @Query("""
+    SELECT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
+    p.name,
+    p.reviewAvg,
+    p.reviewCount
+    )
+    FROM Pension p
+    WHERE p.pensionId = :pensionId
+    """)
+    Optional<PensionSummaryResponseDto> findPensionSummaryResponseDtoById(@Param("pensionId") Long pensionId);
 
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")

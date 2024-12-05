@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.place.repository;
 
+import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,4 +31,14 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
     @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
     Optional<Place> findByPlaceIdWithImage(@Param("placeId")Long id);
+
+    @Query(""" 
+    SELECT new com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto(
+    pl.name,
+    pl.reviewAvg,
+    pl.reviewCount
+    )FROM Place pl
+    WHERE pl.placeId = :placeId
+    """)
+    Optional<PlaceSummaryResponseDto> findPlaceSummaryResponseDtoById(@Param("placeId") Long placeId);
 }
