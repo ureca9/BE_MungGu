@@ -4,6 +4,7 @@ package com.meong9.backend.domain.review.service;
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
@@ -26,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -37,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -52,6 +55,7 @@ public class ReviewService {
     private final PensionRepository pensionRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final PlaceRepository placeRepository;
+    private final MemberRepository memberRepository;
 
 
     @Transactional(readOnly = true)
@@ -498,12 +502,12 @@ public class ReviewService {
         return reviews.stream()
                 .map(review -> ReviewSummaryResponseDto.builder()
                         .reviewId(review.getReviewId())
-                        .profileImageUrl(null) // Profile 이미지가 별도로 필요하면 추가
+                        .profileImageUrl((review.getMember() != null && review.getMember().getProfileImage() != null)
+                                ? review.getMember().getProfileImage().getFileUrl()
+                                : null) // Profile 이미지가 별도로 필요하면 추가
                         .content(review.getContent())
                         .score(review.getScore().doubleValue())
                         .visitDate(review.getVisitDate().toString())
-                        .createdAt(review.getCreatedAt().toString())
-                        .modifiedAt(review.getModifiedAt().toString())
                         .nickname(review.getNickname())
                         .file(review.getReviewFiles().stream()
                                 .map(file -> ReviewSummaryFileDto.builder()
@@ -523,6 +527,55 @@ public class ReviewService {
      * @return PhotoReviewSummaryResponseDto 리스트
      */
     public List<PhotoReviewSummaryResponseDto> getPhotoReviewSummaries(Long placeId, String type) {
-        return reviewRepository.findPhotoReviewSummaries(placeId, type);
+        return reviewRepository.findPhotoReviewSummaries(placeId, type).orElseThrow(() -> NotFoundException.entityNotFound("리뷰 요약 리스트"));
     }
+
+    /**
+     * 리뷰 정보를 조회하고 DTO로 변환하여 반환하는 메서드.
+     *
+     * @param type 리뷰 타입 (예: 긍정, 부정 등)
+     * @param placePensionId 장소나 펜션 ID
+     * @param pageable 페이징 정보를 담은 Pageable 객체
+     * @return 변환된 ReviewSummaryResponseDto 객체의 Slice
+     */
+    @Transactional(readOnly = true)
+    public Slice<ReviewSummaryResponseDto> getReviews(String type, Long placePensionId, Pageable pageable) {
+        // 1단계: 부모 엔티티 페이징
+        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable)
+                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
+
+        // 리뷰 ID 목록 추출
+        List<Long> reviewIds = reviews.getContent().stream()
+                .map(Review::getReviewId)
+                .collect(Collectors.toList());
+
+        // 2단계: 연관 데이터 로드 (ReviewFile)
+        List<ReviewFile> reviewFiles = reviewFileRepository.findFilesByReviewIds(reviewIds)
+                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰 파일"));
+
+        Map<Long, List<ReviewSummaryFileDto>> fileMap = reviewFiles.stream()
+                .collect(Collectors.groupingBy(
+                        file -> file.getReview().getReviewId(),
+                        Collectors.mapping(ReviewSummaryFileDto::from, Collectors.toList())
+                ));
+
+        // 3단계: 연관 데이터 로드 (Member)
+        List<Long> memberIds = reviews.getContent().stream()
+                .map(review -> review.getMember().getMemberId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<Member> members = memberRepository.findAllById(memberIds);
+        Map<Long, Member> memberMap = members.stream()
+                .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
+
+        // DTO 변환
+        return reviews.map(review -> {
+            Member member = memberMap.get(review.getMember().getMemberId());
+            return ReviewSummaryResponseDto.from(review, fileMap.getOrDefault(review.getReviewId(), List.of()), member);
+        });
+    }
+
+
+
 }
