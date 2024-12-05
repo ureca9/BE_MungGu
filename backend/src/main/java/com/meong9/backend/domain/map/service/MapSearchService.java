@@ -30,6 +30,7 @@ public class MapSearchService {
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final LikeRepository likeRepository;
 
+    // 장소 조회
     @Transactional(readOnly = true)
     public MapPlaceDto getSelectPlcPen(Member member, Long id, String type, Double userLatitude, Double userLongitude) {
         if ("펜션".equals(type)) {
@@ -39,6 +40,8 @@ public class MapSearchService {
         }
         return null;
     }
+
+
 
     private MapPlaceDto getPensionDetails(Member member, Long id, Double userLatitude, Double userLongitude) {
         Pension pension = pensionRepository.findByPensionIdWithImage(id)
@@ -71,7 +74,7 @@ public class MapSearchService {
         Double distance = calculateDistance(userLatitude, userLongitude, latitude, longitude);
         String address = addressEntity != null ? addressEntity.getAddress().getAddress() : null;
         String businessHour = place.getBusinessHour();
-        boolean isLike = likeRepository.existsByMemberAndPensionId(member, id);
+        boolean isLike = likeRepository.existsByMemberAndPlaceId(member, id);
 
         return createMapPlaceDto(place.getPlaceId(), TypeCodeMapper.getType("010"), place.getName(),
                 latitude, longitude, mainImage, distance, address, businessHour, isLike);
