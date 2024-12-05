@@ -327,13 +327,9 @@ public class ReviewService {
     private MediaFile saveVideo(MultipartFile video, String fileKey) throws IOException, InterruptedException {
         // S3에 파일 업로드
         String videoUrl = mediaFileService.uploadToS3WithCustomKey(video, fileKey);
-        // 업로드한 파일의 메타데이터 추출
-        // MultipartFile을 임시 파일로 변환
-        File tempFile = File.createTempFile("video-", ".mp4");
-        video.transferTo(tempFile);
 
-        VideoMetaDataDto metadata = mediaFileService.extractVideoMetadata(tempFile);
-        tempFile.delete();
+        // 업로드한 파일의 메타데이터 추출
+        VideoMetaDataDto metadata = mediaFileService.extractVideoMetadata(video);
 
         // MediaFile 엔티티 저장
         return mediaFileRepository.save(

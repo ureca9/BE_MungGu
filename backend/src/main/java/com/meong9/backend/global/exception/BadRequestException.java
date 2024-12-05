@@ -3,8 +3,7 @@ package com.meong9.backend.global.exception;
 import org.springframework.http.HttpStatus;
 
 public class BadRequestException extends BaseException {
-    static private final String INVALID_IMAGE_FORMAT= "지원하는 이미지 형식이 아닙니다.";
-    static private final String INVALID_VIDEO_FORMAT= "지원하는 동영상 형식이 아닙니다.";
+    static private final String INVALID_IMAGE_VIDEO_FORMAT = "지원하는 이미지 형식이 아닙니다.";
     static private final String INVALID_PUPPYID_FORMAT = "유효하지 않은 품종 ID 입니다.";
     static private final String INVALID_FILE_FORMAT = "%s는 유효하지 않은 FileKey 입니다.";
 
@@ -12,12 +11,8 @@ public class BadRequestException extends BaseException {
         super(HttpStatus.BAD_REQUEST, message);
     }
 
-    public static BadRequestException invalidImageFormat() {
-        return new BadRequestException(INVALID_IMAGE_FORMAT);
-    }
-
-    public static BadRequestException invalidVideoFormat() {
-        return new BadRequestException(INVALID_VIDEO_FORMAT);
+    public static BadRequestException invalidImageVideoFormat() {
+        return new BadRequestException(INVALID_IMAGE_VIDEO_FORMAT);
     }
 
     public static BadRequestException invalidPuppyIdFormat() {

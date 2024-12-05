@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
+import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
@@ -18,9 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Instant;
@@ -42,7 +41,7 @@ public class MediaFileService {
      * 유저가 등록한 프로필 이미지를 S3에 업로드
      */
     public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId, String prefix, String suffix) throws IOException {
-        validateImage(image);
+        validateFile(image);
 
         // 이미지 변환 처리 (PNG -> JPG)
         BufferedImage originalImage = ImageIO.read(image.getInputStream());
@@ -66,7 +65,7 @@ public class MediaFileService {
      * 유저가 등록한 멍생네컷 이미지를 S3에 업로드
      */
     public S3UploadResultDto uploadMeongPhoto(MultipartFile image, Long memberId, String prefix,  String suffix) throws IOException {
-        validateImage(image);
+        validateFile(image);
 
         // 이미지 변환 처리 (PNG -> JPG)
         BufferedImage originalImage = ImageIO.read(image.getInputStream());
@@ -101,18 +100,18 @@ public class MediaFileService {
         return new S3UploadResultDto(s3Url, fileKey);
     }
 
-    private static void validateImage(MultipartFile image) {
+    private static void validateFile(MultipartFile image) {
         String originalFilename = image.getOriginalFilename();
         if (originalFilename == null || !originalFilename.contains(".")) {
-            throw BadRequestException.invalidImageFormat();
+            throw BadRequestException.invalidImageVideoFormat();
         }
 
         // 파일 확장자 추출 후 소문자로 변환
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png").contains(fileExtension)) {
-            throw BadRequestException.invalidImageFormat();
+        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
+            throw BadRequestException.invalidImageVideoFormat();
         }
     }
 
@@ -162,7 +161,7 @@ public class MediaFileService {
      */
     public String uploadToS3WithCustomKey(MultipartFile image, String fileKey) throws IOException {
         // 파일 유효성 검증
-        validateImage(image);
+        validateFile(image);
 
         // S3 메타데이터 설정
         ObjectMetadata metadata = new ObjectMetadata();
@@ -242,4 +241,43 @@ public class MediaFileService {
                 .fileUrl("https://uplus-s3-bucket-1.s3.ap-northeast-2.amazonaws.com/Mprofile/default_profile.png")
                 .build();
     }
+
+    /**
+     * MultipartFile에서 이미지 메타데이터 추출
+     */
+    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffprobe",
+                "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=width,height,duration",
+                "-of", "csv=p=0",
+                "pipe:0" // 표준 입력에서 데이터 처리
+        );
+
+        Process process = processBuilder.start();
+
+        // 동영상 데이터를 FFmpeg 프로세스로 전달
+        try (OutputStream stdin = process.getOutputStream();
+             InputStream videoStream = video.getInputStream()) {
+            videoStream.transferTo(stdin);
+        }
+
+        // FFprobe 출력 처리
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line = reader.readLine();
+            if (line != null) {
+                String[] parts = line.split(",");
+                Integer width = Integer.parseInt(parts[0]);
+                Integer height = Integer.parseInt(parts[1]);
+                Double duration = Double.parseDouble(parts[2]);
+
+                return new VideoMetaDataDto(duration, width, height);
+            }
+        }
+
+        throw new IllegalArgumentException("메타데이터 추출에 실패했습니다.");
+    }
+
+
 }
