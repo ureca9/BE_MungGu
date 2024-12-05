@@ -351,7 +351,6 @@ public class ReviewService {
     // 이미지/동영상 구분
     public String determineFileType(MultipartFile file) {
         String contentType = file.getContentType();
-        log.debug("파일 타입 - {}", contentType);
         if (contentType == null) {
             throw new IllegalArgumentException("파일이 정의되지 않습니다.");
         }

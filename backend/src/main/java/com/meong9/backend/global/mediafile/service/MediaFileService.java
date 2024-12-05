@@ -1,11 +1,15 @@
 package com.meong9.backend.global.mediafile.service;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
-import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
+import com.meong9.backend.global.mediafile.entity.FileType;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
+import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,8 +18,14 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -23,6 +33,7 @@ import java.util.List;
 public class MediaFileService {
 
     private final AmazonS3Client s3Client;
+    private final MediaFileRepository mediaFileRepository;
 
     @Value("${s3.bucket}")
     private String bucket;
@@ -30,7 +41,7 @@ public class MediaFileService {
     /**
      * 유저가 등록한 프로필 이미지를 S3에 업로드
      */
-    public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId,String prefix,String suffix) throws IOException {
+    public S3UploadResultDto uploadProfileImage(MultipartFile image, Long memberId, String prefix, String suffix) throws IOException {
         validateImage(image);
 
         // 이미지 변환 처리 (PNG -> JPG)
@@ -43,7 +54,7 @@ public class MediaFileService {
     /**
      * 카카오에서 받은 이미지 URL로 S3에 업로드
      */
-    public S3UploadResultDto uploadFromUrl(String imageUrl, Long memberId,String prefix,String suffix) throws IOException {
+    public S3UploadResultDto uploadFromUrl(String imageUrl, Long memberId, String prefix, String suffix) throws IOException {
         // URL에서 이미지 다운로드
         URL url = new URL(imageUrl);
         BufferedImage bufferedImage = ImageIO.read(url);
@@ -51,7 +62,23 @@ public class MediaFileService {
         return uploadImageToS3(memberId, bufferedImage,prefix,suffix);
     }
 
-    private S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage,String prefix,String suffix) throws IOException {
+    /**
+     * 유저가 등록한 멍생네컷 이미지를 S3에 업로드
+     */
+    public S3UploadResultDto uploadMeongPhoto(MultipartFile image, Long memberId, String prefix,  String suffix) throws IOException {
+        validateImage(image);
+
+        // 이미지 변환 처리 (PNG -> JPG)
+        BufferedImage originalImage = ImageIO.read(image.getInputStream());
+        BufferedImage rgbImage = convertToRgbImage(originalImage);
+
+        return uploadImageToS3(memberId, rgbImage,prefix,suffix);
+    }
+
+    /**
+     * S3에 이미지 업로드
+     */
+    public S3UploadResultDto uploadImageToS3(Long memberId, BufferedImage rgbImage,String prefix,String suffix) throws IOException {
         // 1. 이미지 메타데이터 추출
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ImageIO.write(rgbImage, "jpg", baos);
@@ -63,7 +90,6 @@ public class MediaFileService {
         metadata.setContentLength(imageBytes.length);
 
         // 3. S3 파일 키 생성
-//        String fileKey = "Mprofile/" + memberId + "_profile.jpg";
         String fileKey = prefix + memberId + suffix;
 
         // 4. S3 업로드
@@ -85,25 +111,11 @@ public class MediaFileService {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
+        if (!List.of("jpg", "jpeg", "png").contains(fileExtension)) {
             throw BadRequestException.invalidImageFormat();
         }
     }
 
-    private static void validateVideo(MultipartFile video) {
-        String originalFilename = video.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.contains(".")) {
-            throw BadRequestException.invalidVideoFormat();
-        }
-
-        // 파일 확장자 추출 후 소문자로 변환
-        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
-
-        // 허용 확장자를 소문자로 비교
-        if (!List.of("mp4", "mov").contains(fileExtension)) {
-            throw BadRequestException.invalidVideoFormat();
-        }
-    }
 
     /**
      * URL에서 이미지의 메타데이터 추출
@@ -164,62 +176,54 @@ public class MediaFileService {
         return s3Client.getUrl(bucket, fileKey).toString();
     }
 
+    /**
+     * S3 이미지 다운로드 URL 반환
+     */
+    public String generateDownloadUrl(String s3Url, int hour) throws MalformedURLException {
+        URL url = new URL(s3Url);
+        String key = url.getPath().substring(1);
+        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
+                .withMethod(HttpMethod.GET)
+                .withExpiration(Date.from(Instant.now().plus(hour, ChronoUnit.HOURS)));
 
+        // 다운로드 Url을 입력하면 바로 다운로드 되게끔 강제하는 설정
+        request.addRequestParameter(
+                "response-content-disposition",
+                "attachment; filename=\"" + key.substring(key.lastIndexOf("/") + 1) + "\""
+        );
+
+        URL downloadUrl = s3Client.generatePresignedUrl(request);
+        return downloadUrl.toString();
+    }
+
+    /**
+     * 미디어 파일 저장
+     */
+    public void saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
+        MediaFile mediaFile = MediaFile.builder()
+                .fileType(FileType.IMAGE)
+                .fileSize((int) metadata.getFileSize())
+                .fileName("meongPhoto.jpg")
+                .fileUrl(s3UploadResultDto.getS3Url())
+                .height((double) metadata.getHeight())
+                .width((double) metadata.getWidth())
+                .fileKey(s3UploadResultDto.getFileKey())
+                .build();
+
+        mediaFileRepository.save(mediaFile);
+    }
 
     /**
      * MultipartFile에서 이미지 메타데이터 추출
      */
     public ImageMetadataDto extractImageMetadata(MultipartFile image) throws IOException {
         BufferedImage bufferedImage = ImageIO.read(image.getInputStream());
+
         int width = bufferedImage.getWidth();
         int height = bufferedImage.getHeight();
 
         return new ImageMetadataDto(width, height, image.getSize());
     }
-
-    /**
-     * MultipartFile에서 동영상 메타데이터 추출
-     */
-    public VideoMetaDataDto extractVideoMetadata(File video) throws IOException, InterruptedException {
-        // FFmpeg ffprobe 명령 설정
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "ffprobe",
-                "-v", "error",
-                "-select_streams", "v:0",
-                "-show_entries", "stream=width,height,duration",
-                "-of", "default=noprint_wrappers=1",
-                video.getAbsolutePath()
-        );
-        processBuilder.redirectErrorStream(true); // 오류를 표준 출력으로 리다이렉트
-
-        // 프로세스 실행
-        Process process = processBuilder.start();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-
-        Integer width = null, height = null;
-        Double duration = null;
-
-        // ffprobe 출력 파싱
-        while ((line = reader.readLine()) != null) {
-            if (line.startsWith("width=")) {
-                width = Integer.parseInt(line.split("=")[1]);
-            } else if (line.startsWith("height=")) {
-                height = Integer.parseInt(line.split("=")[1]);
-            } else if (line.startsWith("duration=")) {
-                duration = Double.parseDouble(line.split("=")[1]);
-            }
-        }
-        process.waitFor(); // 프로세스 종료 대기
-
-        // 값 검증
-        if (width == null || height == null || duration == null) {
-            throw new IllegalArgumentException("Failed to extract video metadata");
-        }
-
-        return new VideoMetaDataDto(duration, width, height);
-    }
-
 
     // S3에서 파일 삭제
     public void deleteFromS3(String fileKey) {
