@@ -178,8 +178,9 @@ public class ReviewService {
         // 5. 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
         List<ReviewFile> newReviewFiles = new ArrayList<>();
-        AtomicInteger fileNum = new AtomicInteger(0);
         if (files != null) {
+            List<ReviewFile> reviewFiles = new ArrayList<>();
+            AtomicInteger fileNum = new AtomicInteger(0);
             for (MultipartFile mf : files) {
                 MediaFile file = handleFileUpload(mf, review.getReviewId(),fileNum);
                 mediaFiles.add(file);
@@ -187,20 +188,22 @@ public class ReviewService {
                 // 복합 키 생성
                 ReviewFileId reviewFileId = new ReviewFileId(review.getReviewId(), file.getMediaFileId());
 
-                // 새 ReviewFile 생성
-                ReviewFile reviewFile = ReviewFile.builder()
-                        .review(review)
-                        .file(file)
-                        .reviewFileId(reviewFileId)
-                        .build();
+                // 객체가 이미 존재하면 가져오고, 없으면 새로 생성
+                ReviewFile reviewFile = reviewFileRepository.findById(reviewFileId)
+                        .orElseGet(() ->
+                                ReviewFile.builder()
+                                        .review(review)
+                                        .file(file)
+                                        .reviewFileId(reviewFileId)
+                                        .build()
+                        );
 
+                reviewFiles.add(reviewFile);
                 reviewFileRepository.save(reviewFile);
-                newReviewFiles.add(reviewFile);
+                fileNum.getAndIncrement();
             }
         }
 
-        // 리뷰에 새로운 파일 연결
-        review.setReviewFiles(newReviewFiles);
     }
 
 
