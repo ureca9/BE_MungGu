@@ -26,4 +26,8 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
         WHERE pl.placeId IN :placeIds
     """)
     List<Place> findAllDataByIds(@Param("placeIds") List<Long> placeIds);
+
+    @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
+    @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
+    Optional<Place> findByPlaceIdWithImage(@Param("placeId")Long id);
 }

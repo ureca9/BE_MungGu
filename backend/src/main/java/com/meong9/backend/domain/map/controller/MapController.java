@@ -2,16 +2,16 @@ package com.meong9.backend.domain.map.controller;
 
 import com.meong9.backend.domain.map.dto.MapLikePointDto;
 import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
+import com.meong9.backend.domain.map.dto.MapPlaceDto;
+import com.meong9.backend.domain.map.service.MapSearchService;
 import com.meong9.backend.domain.map.service.MapService;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -22,6 +22,7 @@ import java.util.List;
 public class MapController {
 
     private final MapService mapService;
+    private final MapSearchService mapSearchService;
 
     // 카테고리 별 찜 상세 조회
     @GetMapping("/likes/detail")
@@ -46,7 +47,12 @@ public class MapController {
     }
     // 장소 조회
     @GetMapping("/places")
-    public ResponseEntity<?> getSelectPlcPen(){
-        return CommonResponse.ok("success", null);
+    public ResponseEntity<?> getSelectPlcPen(@CurrentMember Member member,
+                                             @RequestParam("id") Long id, @RequestParam("type") String type,
+                                             @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude){
+
+        MapPlaceDto mapPlaceDto = mapSearchService.getSelectPlcPen(member, id, type, latitude, longitude);
+
+        return CommonResponse.ok("success", mapPlaceDto);
     }
 }
