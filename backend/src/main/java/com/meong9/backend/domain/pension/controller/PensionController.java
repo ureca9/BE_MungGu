@@ -8,6 +8,7 @@ import com.meong9.backend.domain.pension.service.RoomService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
+import com.meong9.backend.global.entity.PLACE_PEN_TYPE_CODE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -77,7 +78,11 @@ public class PensionController {
         Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
 
         // 리뷰 서비스에서 페이징된 리뷰 데이터 조회
-        Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews("020", pensionId, pageable);
+        Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
+                PLACE_PEN_TYPE_CODE.PENSION.getCode(),
+                pensionId,
+                pageable
+        );
 
         // 응답 데이터 생성 (리뷰 목록과 다음 페이지 존재 여부 포함)
         return ResponseEntity.ok(Map.of(

@@ -6,6 +6,7 @@ import com.meong9.backend.domain.place.service.PlaceService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
+import com.meong9.backend.global.entity.PLACE_PEN_TYPE_CODE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -40,7 +41,11 @@ public class PlaceController {
             @RequestParam(defaultValue = "0") int page // 클라이언트가 요청하는 페이지 번호
     ) {
         Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
-        Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews("010", placeId, pageable);
+        Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
+                PLACE_PEN_TYPE_CODE.PLACE.getCode(),
+                placeId,
+                pageable
+        );
 
         return ResponseEntity.ok(Map.of(
                 "reviews", reviews.getContent(),

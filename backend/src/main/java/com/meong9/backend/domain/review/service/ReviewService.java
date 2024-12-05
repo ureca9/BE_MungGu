@@ -437,7 +437,7 @@ public class ReviewService {
         return reviews.stream()
                 .map(review -> ReviewSummaryResponseDto.builder()
                         .reviewId(review.getReviewId())
-                        .profileImageUrl(review.getMember().getProfileImage() != null
+                        .profileImageUrl((review.getMember() != null && review.getMember().getProfileImage() != null)
                                 ? review.getMember().getProfileImage().getFileUrl()
                                 : null) // Profile 이미지가 별도로 필요하면 추가
                         .content(review.getContent())

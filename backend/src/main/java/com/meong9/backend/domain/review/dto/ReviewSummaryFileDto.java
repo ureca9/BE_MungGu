@@ -21,6 +21,9 @@ public class ReviewSummaryFileDto {
      * @return 변환된 ReviewSummaryFileDto 객체
      */
     public static ReviewSummaryFileDto from(ReviewFile reviewFile) {
+        if (reviewFile == null || reviewFile.getFile() == null) {
+            throw new IllegalArgumentException("ReviewFile 또는 File 객체가 null입니다");
+            }
         return ReviewSummaryFileDto.builder()
                 .mediaFileId(reviewFile.getId().getMediaFileId()) // ReviewFile ID
                 .fileType(String.valueOf(reviewFile.getFile().getFileType()))     // 파일 타입
