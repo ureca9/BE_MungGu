@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
@@ -246,38 +247,87 @@ public class MediaFileService {
      * MultipartFile에서 이미지 메타데이터 추출
      */
     public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException {
+        // 타임아웃 설정 (초 단위)
+        int timeout = 30;
+
+        // FFprobe 명령어 설정
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "ffprobe",
-                "-v", "error",
-                "-select_streams", "v:0",
-                "-show_entries", "stream=width,height,duration",
-                "-of", "csv=p=0",
-                "pipe:0" // 표준 입력에서 데이터 처리
+                "-v", "error", // 에러 메시지 최소화
+                "-select_streams", "v:0", // 비디오 스트림만 선택
+                "-show_entries", "stream=width,height,duration", // 필요한 메타데이터 필드 지정
+                "-of", "csv=p=0", // CSV 형식 출력
+                "pipe:0" // 입력 데이터를 파이프로 전달
         );
 
-        Process process = processBuilder.start();
+        Process process = null; // 프로세스 객체 선언
+        try {
+            // FFprobe 프로세스 시작
+            process = processBuilder.start();
 
-        // 동영상 데이터를 FFmpeg 프로세스로 전달
-        try (OutputStream stdin = process.getOutputStream();
-             InputStream videoStream = video.getInputStream()) {
-            videoStream.transferTo(stdin);
-        }
+            // 비디오 데이터를 FFprobe로 전달하고 결과를 가져오기 (타임아웃 적용)
+            Future<String> future = executeWithTimeout(process, video, timeout);
+            String result = future.get(timeout, TimeUnit.SECONDS);
 
-        // FFprobe 출력 처리
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line = reader.readLine();
-            if (line != null) {
-                String[] parts = line.split(",");
-                Integer width = Integer.parseInt(parts[0]);
-                Integer height = Integer.parseInt(parts[1]);
-                Double duration = Double.parseDouble(parts[2]);
-
-                return new VideoMetaDataDto(duration, width, height);
+            // FFprobe 출력 결과를 파싱하여 메타데이터 DTO로 변환
+            return parseMetadata(result);
+        } catch (TimeoutException e) {
+            throw new IOException("비디오 메타데이터 추출 시간 초과");
+        } catch (Exception e) {
+            throw new IOException("비디오 메타데이터 추출 실패: " + e.getMessage());
+        } finally {
+            // 프로세스 종료 (강제 종료 포함)
+            if (process != null) {
+                process.destroyForcibly();
             }
         }
-
-        throw new IllegalArgumentException("메타데이터 추출에 실패했습니다.");
     }
 
+    private Future<String> executeWithTimeout(Process process, MultipartFile video, int timeout) {
+        // 단일 쓰레드로 FFprobe 실행을 처리
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            return executor.submit(() -> {
+                try (
+                        // FFprobe 입력 스트림과 출력 스트림 연결
+                        OutputStream stdin = process.getOutputStream();
+                        InputStream videoStream = video.getInputStream();
+                        BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(process.getInputStream())
+                        )
+                ) {
+                    // MultipartFile 데이터를 FFprobe의 stdin으로 전달
+                    videoStream.transferTo(stdin);
+                    stdin.close(); // 입력 종료
+
+                    // FFprobe 출력 결과를 읽어 반환
+                    return reader.readLine();
+                }
+            });
+        } finally {
+            // Executor 서비스 종료
+            executor.shutdown();
+        }
+    }
+
+    private VideoMetaDataDto parseMetadata(String line) {
+        // FFprobe 출력 결과가 비어있는지 확인
+        if (line == null || line.trim().isEmpty()) {
+            throw new IllegalArgumentException("메타데이터가 비어있습니다");
+        }
+
+        // FFprobe 출력 데이터를 ',' 기준으로 분리
+        String[] parts = line.split(",");
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("잘못된 메타데이터 형식");
+        }
+
+        // 메타데이터 값을 파싱하여 DTO로 생성
+        return new VideoMetaDataDto(
+                Double.parseDouble(parts[2]), // duration (초)
+                Integer.parseInt(parts[0]), // width (픽셀)
+                Integer.parseInt(parts[1]) // height (픽셀)
+        );
+    }
 
 }

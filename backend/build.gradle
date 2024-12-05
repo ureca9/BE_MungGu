@@ -57,9 +57,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 	implementation 'org.springframework.batch:spring-batch-core:5.1.0'
 
-	// JavaFX
-	implementation 'org.openjfx:javafx-media:20'
-
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'

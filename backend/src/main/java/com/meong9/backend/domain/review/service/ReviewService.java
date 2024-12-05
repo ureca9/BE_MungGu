@@ -14,6 +14,7 @@ import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
+import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
@@ -124,7 +125,7 @@ public class ReviewService {
     }
 
     /**
-     * 이미지 업로드 처리
+     * 파일() 업로드 처리
      * @param file 업로드할 파일
      * @param reviewId 리뷰 id
      * @return 저장된 MediaFile 엔티티
@@ -158,8 +159,7 @@ public class ReviewService {
 
         // 작성자 권한 확인
         if (!review.getMember().getMemberId().equals(member.getMemberId())) {
-            // todo: 커스텀 예외 따로 만들어야함
-            throw new IllegalAccessException("리뷰 수정 권한이 없습니다.");
+            throw AuthorizationException.unauthorizedReviewUpdate("수정");
         }
 
         // 기존 파일 삭제
@@ -207,7 +207,7 @@ public class ReviewService {
                 .orElseThrow(() -> new NotFoundException("리뷰"));
 
         if (!review.getMember().equals(member)) {
-            throw new IllegalAccessException("리뷰 작성자만 삭제가 가능합니다");
+            throw AuthorizationException.unauthorizedReviewUpdate("삭제");
         }
 
         // 연관된 파일 삭제

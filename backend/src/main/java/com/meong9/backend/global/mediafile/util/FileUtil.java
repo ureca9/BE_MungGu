@@ -20,6 +20,7 @@ public class FileUtil {
         );
 
         processBuilder.redirectErrorStream(true);
+
         Process process = processBuilder.start();
 
         // 출력 파싱
@@ -34,7 +35,7 @@ public class FileUtil {
                 return new VideoMetaDataDto(duration, width, height);
             }
         }
-        throw new IllegalArgumentException("Failed to extract metadata");
+        throw new IllegalArgumentException("파일 메타데이터 추출에 실패했습니다.");
     }
 
 }
