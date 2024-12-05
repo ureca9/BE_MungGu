@@ -39,4 +39,8 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     WHERE p.pensionId = :pensionId
     """)
     Optional<PensionSummaryResponseDto> findPensionSummaryResponseDtoById(@Param("pensionId") Long pensionId);
+
+    @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
+    @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
+    Optional<Pension> findByPensionIdWithImage(@Param("pensionId") Long pensionId);
 }

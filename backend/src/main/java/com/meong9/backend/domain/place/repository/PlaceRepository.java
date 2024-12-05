@@ -28,6 +28,10 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     """)
     List<Place> findAllDataByIds(@Param("placeIds") List<Long> placeIds);
 
+    @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
+    @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
+    Optional<Place> findByPlaceIdWithImage(@Param("placeId")Long id);
+
     @Query(""" 
     SELECT new com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto(
     pl.name,
