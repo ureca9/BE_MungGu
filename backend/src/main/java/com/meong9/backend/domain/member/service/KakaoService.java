@@ -9,14 +9,14 @@ import com.meong9.backend.domain.member.dto.LoginResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.global.auth.entity.MemberDetails;
-import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.auth.jwt.JwtProvider;
-import com.meong9.backend.global.mediafile.entity.FileType;
-import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
-import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
-import com.meong9.backend.global.mediafile.entity.MediaFile;
+import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.ConflictException;
+import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
+import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
+import com.meong9.backend.global.mediafile.entity.FileType;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,10 +40,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.LocalDateTime;
 
 @Slf4j(topic = "KAKAO Login")
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class KakaoService {
 
@@ -65,6 +65,7 @@ public class KakaoService {
 
     public static final String PROVIDER_KAKAO = "KAKAO";
 
+    @Transactional
     public LoginResponseDto kakaoLogin(String code, HttpServletResponse response) throws IOException {
         // 1. 카카오 액세스 토큰 가져오기
         String kakaoAccessToken = getToken(code);
@@ -78,6 +79,9 @@ public class KakaoService {
         // 4. 로그인 처리
         Member kakaoUser = kakaoRegisterResultDto.getMember();
         forceLogin(kakaoUser);
+
+        // 최근 활동 필드 업데이트
+        kakaoUser.setLastActivity(LocalDateTime.now());
 
         // 5. JWT 토큰 생성 및 응답 헤더 설정
         String accessToken = jwtProvider.createAccessToken(kakaoUser.getEmail(), kakaoUser.getRoleCode());
@@ -93,15 +97,14 @@ public class KakaoService {
         LoginResponseDto.LoginResponseDtoBuilder responseBuilder = LoginResponseDto.builder()
                 .memberId(kakaoUser.getMemberId())
                 .email(kakaoUser.getEmail())
-                .nickname(kakaoUser.getNickname())
                 .profileImageUrl(kakaoUser.getProfileImage().getFileUrl())
-                .isNewMember(kakaoRegisterResultDto.isNewMember());
+                .isNewMember(kakaoRegisterResultDto.isNewMember())
+                .hasMemberInfo(kakaoUser.getName() != null && !kakaoUser.getName().isEmpty());
         return responseBuilder.build();
     }
 
     private String getToken(String code) throws JsonProcessingException {
         try {
-            log.info("인가코드: " + code);
             // 요청 URL 만들기
             URI uri = UriComponentsBuilder
                     .fromUriString("https://kauth.kakao.com")
@@ -184,7 +187,8 @@ public class KakaoService {
         }
     }
 
-    private KakaoRegisterResultDto registerKakaoUserIfNeeded(KakaoUserInfoDto kakaoUserInfo) throws IOException {
+    @Transactional
+    protected KakaoRegisterResultDto registerKakaoUserIfNeeded(KakaoUserInfoDto kakaoUserInfo) {
         // 1. 기존 카카오 회원 확인
         Member kakaoUser = memberRepository.findByProviderId(kakaoUserInfo.getId()).orElse(null);
         if (kakaoUser != null) {
@@ -207,36 +211,36 @@ public class KakaoService {
                 .email(kakaoUserInfo.getEmail())
                 .provider(PROVIDER_KAKAO)
                 .providerId(kakaoUserInfo.getId())
-                .nickname(kakaoUserInfo.getNickname())
                 .build();
 
         Member savedMember = memberRepository.save(kakaoUser);
 
         // 4. S3에 프로필 사진 업로드 및 DB 저장
-        S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
-                kakaoUserInfo.getProfileImageUrl(),
-                savedMember.getMemberId(),
-                "Mprofile/",
-                "_profile.jpg"
-        );
+        try {
+            S3UploadResultDto s3UploadResultDto = mediaFileService.uploadFromUrl(
+                    kakaoUserInfo.getProfileImageUrl(),
+                    savedMember.getMemberId(),
+                    "Mprofile/",
+                    "_profile.jpg"
+            );
 
-        ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());
+            ImageMetadataDto metadata = mediaFileService.extractImageMetadataFromUrl(kakaoUserInfo.getProfileImageUrl());
+            MediaFile mediaFile = MediaFile.builder()
+                    .fileType(FileType.IMAGE)
+                    .fileSize((int) metadata.getFileSize())
+                    .fileName("profile.jpg")
+                    .fileUrl(s3UploadResultDto.getS3Url())
+                    .height((double) metadata.getHeight())
+                    .width((double) metadata.getWidth())
+                    .fileKey(s3UploadResultDto.getFileKey())
+                    .build();
 
-        MediaFile mediaFile = MediaFile.builder()
-                .fileType(FileType.IMAGE)
-                .fileSize((int) metadata.getFileSize())
-                .fileName("profile.jpg")
-                .fileUrl(s3UploadResultDto.getS3Url())
-                .height((double) metadata.getHeight())
-                .width((double) metadata.getWidth())
-                .fileKey(s3UploadResultDto.getFileKey())
-                .build();
-
-        mediaFileRepository.save(mediaFile);
-
-        // 5. 멤버 업데이트 (프로필 이미지 연결)
-        savedMember.setProfileImage(mediaFile);
-        memberRepository.save(savedMember);
+            mediaFileRepository.save(mediaFile);
+            savedMember.setProfileImage(mediaFile);
+        } catch (Exception e) {
+            // S3에 업로드 실패 시, 프로필 이미지를 제외한 나머지 회원 정보를 저장 + 프로필 이미지는 기본 이미지를 활용한다
+            savedMember.setProfileImage(mediaFileService.createDefaultProfileImage());
+        }
 
         return KakaoRegisterResultDto.builder()
                 .isNewMember(true)
@@ -244,11 +248,10 @@ public class KakaoService {
                 .build();
     }
 
-    private Authentication forceLogin(Member kakaoUser) {
+    private void forceLogin(Member kakaoUser) {
         UserDetails userDetails = new MemberDetails(kakaoUser);
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        return authentication;
     }
 
 }
