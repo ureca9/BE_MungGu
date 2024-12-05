@@ -213,7 +213,7 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NotFoundException("리뷰"));
 
-        if (!review.getMember().equals(member)) {
+        if (!review.getMember().getMemberId().equals(member.getMemberId())) {
             throw AuthorizationException.unauthorizedReviewUpdate("삭제");
         }
 
