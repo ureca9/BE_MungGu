@@ -47,12 +47,12 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
 
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("""
-        select p, 
-               case when (count(l) > 0) then true else false end as liked
-        from Pension p
-        left join p.likes l on l.member = :member
-        where p.pensionId in :pensionIds
-        group by p
+        SELECT P, 
+               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
+        FROM Pension P
+        LEFT JOIN P.likes L ON L.member = :member
+        WHERE P.pensionId IN :pensionIds
+        GROUP BY P
     """)
     List<Object[]> findAllWithLikeStatus(
             @Param("pensionIds") List<Long> pensionIds,

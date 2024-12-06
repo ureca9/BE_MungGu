@@ -45,12 +45,12 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
     @Query("""
-        select p, 
-               case when (count(l) > 0) then true else false end as liked
-        from Place p
-        left join p.likes l on l.member = :member
-        where p.placeId in :placeIds
-        group by p
+        SELECT P, 
+               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
+        FROM Place P
+        LEFT JOIN P.likes L ON L.member = :member
+        WHERE P.placeId IN :placeIds
+        GROUP BY P
     """)
     List<Object[]> findAllWithLikeStatus(
             @Param("placeIds") List<Long> placeIds,
