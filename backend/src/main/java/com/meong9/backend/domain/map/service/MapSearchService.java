@@ -142,6 +142,9 @@ public class MapSearchService {
 
         // 페이지 처리
         int start = (int) pageable.getOffset();
+        if (start >= sortedResults.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, sortedResults.size());
+        }
         int end = Math.min(start + pageable.getPageSize(), sortedResults.size());
 
         // 페이지 처리된 결과 생성
