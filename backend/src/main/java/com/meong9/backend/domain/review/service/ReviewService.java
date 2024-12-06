@@ -89,33 +89,7 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
-        if (files != null) {
-            List<ReviewFile> reviewFiles = new ArrayList<>();
-            AtomicInteger fileNum = new AtomicInteger(0);
-            for (MultipartFile mf : files) {
-                MediaFile file = handleFileUpload(mf, savedReview.getReviewId(),fileNum);
-                mediaFiles.add(file);
-
-                // 복합 키 생성
-                ReviewFileId reviewFileId = new ReviewFileId(savedReview.getReviewId(), file.getMediaFileId());
-
-                // 객체가 이미 존재하면 가져오고, 없으면 새로 생성
-                ReviewFile reviewFile = reviewFileRepository.findById(reviewFileId)
-                        .orElseGet(() ->
-                                ReviewFile.builder()
-                                        .review(savedReview)
-                                        .file(file)
-                                        .reviewFileId(reviewFileId)
-                                        .build()
-                        );
-
-                reviewFiles.add(reviewFile);
-                reviewFileRepository.save(reviewFile);
-                fileNum.getAndIncrement();
-            }
-        }
-
-        synchronizeTransaction(mediaFiles);
+        processFile(files, savedReview, mediaFiles);
     }
 
     @Transactional
@@ -133,14 +107,18 @@ public class ReviewService {
         List<ReviewFile> existingFiles = reviewFileRepository.findByReview(review);
         for (ReviewFile reviewFile : existingFiles) {
             reviewFileRepository.delete(reviewFile);
+            reviewFile.getFile().delete(); // mediafile 소프트 삭제
             mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey()); // S3에서 파일 삭제
         }
 
         review.update(reviewRequestDto);
 
-        // 5. 새로운 파일 처리
+        // 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
-        List<ReviewFile> newReviewFiles = new ArrayList<>();
+        processFile(files, review, mediaFiles);
+    }
+
+    private void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
             AtomicInteger fileNum = new AtomicInteger(0);
@@ -222,6 +200,7 @@ public class ReviewService {
         if (review.getReviewFiles() != null) {
             for (ReviewFile reviewFile : review.getReviewFiles()) {
                 mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey());
+                reviewFile.getFile().delete(); // mediafile 소프트 삭제
             }
         }
 
