@@ -1,6 +1,6 @@
 package com.meong9.backend.domain.place.entity;
 
-import com.meong9.backend.global.entity.Tag;
+import com.meong9.backend.domain.like.entity.PlaceLike;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -70,6 +70,8 @@ public class Place {
     @OneToMany(mappedBy = "place", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PlaceFile> placeFiles = new ArrayList<>();
 
+    @OneToMany(mappedBy = "place", fetch = FetchType.LAZY, orphanRemoval = true)
+    private Set<PlaceLike> likes = new HashSet<>();
 
     public void increaseLikeCount() {
         this.likeCount++;
