@@ -4,7 +4,9 @@ import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import lombok.Builder;
+import lombok.Getter;
 
+@Getter
 @Builder
 public class FileResponseDto {
     private final FileType fileType;

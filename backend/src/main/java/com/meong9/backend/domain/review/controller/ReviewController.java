@@ -38,9 +38,8 @@ public class ReviewController {
     @PostMapping("/reviews")
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
-            @RequestPart(value = "image", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException {
-        log.debug("회원 id = {}",member.getMemberId());
+            @RequestPart(value = "file", required = false) List<MultipartFile> files,
+            @CurrentMember Member member) throws IOException, InterruptedException {
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }
@@ -49,8 +48,8 @@ public class ReviewController {
     public ResponseEntity<?> updateReview(
             @PathVariable Long reviewId,
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
-            @RequestPart(value = "image", required = false) List<MultipartFile> newFiles,
-            @CurrentMember Member member) throws IOException, IllegalAccessException {
+            @RequestPart(value = "file", required = false) List<MultipartFile> newFiles,
+            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException {
         reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
