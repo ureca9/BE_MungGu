@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.pension.repository;
 
+import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -43,4 +44,20 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
     Optional<Pension> findByPensionIdWithImage(@Param("pensionId") Long pensionId);
+
+    @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
+    @Query("""
+        SELECT P, 
+               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
+        FROM Pension P
+        LEFT JOIN P.likes L ON L.member = :member
+        WHERE P.pensionId IN :pensionIds
+        GROUP BY P
+    """)
+    List<Object[]> findAllWithLikeStatus(
+            @Param("pensionIds") List<Long> pensionIds,
+            @Param("member") Member member
+    );
+
+
 }

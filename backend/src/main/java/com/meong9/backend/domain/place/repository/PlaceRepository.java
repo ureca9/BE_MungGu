@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.place.repository;
 
+import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -41,4 +42,19 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     WHERE pl.placeId = :placeId
     """)
     Optional<PlaceSummaryResponseDto> findPlaceSummaryResponseDtoById(@Param("placeId") Long placeId);
+
+    @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
+    @Query("""
+        SELECT P, 
+               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
+        FROM Place P
+        LEFT JOIN P.likes L ON L.member = :member
+        WHERE P.placeId IN :placeIds
+        GROUP BY P
+    """)
+    List<Object[]> findAllWithLikeStatus(
+            @Param("placeIds") List<Long> placeIds,
+            @Param("member") Member member
+    );
+
 }
