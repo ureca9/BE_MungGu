@@ -10,6 +10,8 @@ import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +32,11 @@ public class MapController {
     public ResponseEntity<?> getMapLikeDetails(@CurrentMember Member member, @RequestParam(name = "categoryName") String categoryName,
                                                @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude,
                                                Pageable pageable){
+        int maxPageSize = 1000; // 최대 페이지 사이즈 설정
+        if (pageable.getPageSize() > maxPageSize) {
+            pageable = PageRequest.of(pageable.getPageNumber(), maxPageSize, pageable.getSort());
+        }
+
         MapLikeResponseDto likeDetails = mapService.getMapLikeDetails(member, categoryName, latitude, longitude, pageable);
 
         return CommonResponse.ok("success", likeDetails);
@@ -40,6 +47,12 @@ public class MapController {
     public ResponseEntity<?> getSearchPlcPen(@CurrentMember Member member, @RequestParam(name = "keyword") String keyword,
                                              @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude,
                                              Pageable pageable){
+
+        int maxPageSize = 1000; // 최대 페이지 사이즈 설정
+        if (pageable.getPageSize() > maxPageSize) {
+            pageable = PageRequest.of(pageable.getPageNumber(), maxPageSize, pageable.getSort());
+        }
+
         Page<MapPlaceDto> mapPlaceDtoList = mapSearchService.getSearchPlcPen(member, keyword, latitude, longitude, pageable);
 
         return CommonResponse.ok("success", mapPlaceDtoList);
