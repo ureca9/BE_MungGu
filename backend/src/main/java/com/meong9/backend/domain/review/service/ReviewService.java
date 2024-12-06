@@ -115,45 +115,8 @@ public class ReviewService {
             }
         }
 
-        // 트랜잭션 동기화
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCompletion(int status) {
-                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
-                        }
-                    }
-                }
-        );
+        synchronizeTransaction(mediaFiles);
     }
-
-    /**
-     * 파일() 업로드 처리
-     * @param file 업로드할 파일
-     * @param reviewId 리뷰 id
-     * @return 저장된 MediaFile 엔티티
-     * @throws IOException 이미지 처리 오류
-     */
-    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException {
-        String contentType = file.getContentType();
-        String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
-        if (contentType == null) {
-            throw new IllegalArgumentException("파일 형식이 정의되지 않았습니다.");
-        }
-
-        if (contentType.startsWith("image/")) {
-            return saveImage(file, fileKey); // 이미지 저장
-        } else if (contentType.startsWith("video/")) {
-            // 동영상 처리
-            return saveVideo(file, fileKey);
-        } else {
-            throw new IllegalArgumentException("지원되지 않는 content type: " + contentType);
-        }
-    }
-
-
-
 
     @Transactional
     public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException, InterruptedException {
@@ -162,7 +125,7 @@ public class ReviewService {
                 .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
 
         // 작성자 권한 확인
-        if (!review.getMember().getMemberId().equals(member.getMemberId())) {
+        if (!review.getMember().equals(member)) {
             throw AuthorizationException.unauthorizedReviewUpdate("수정");
         }
 
@@ -204,8 +167,46 @@ public class ReviewService {
             }
         }
 
+        synchronizeTransaction(mediaFiles);
     }
 
+    /**
+     * 파일(이미지, 동영상) 업로드 처리
+     * @param file 업로드할 파일
+     * @param reviewId 리뷰 id
+     * @return 저장된 MediaFile 엔티티
+     * @throws IOException 이미지 처리 오류
+     */
+    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException {
+        String contentType = file.getContentType();
+        String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
+        if (contentType == null) {
+            throw new IllegalArgumentException("파일 형식이 정의되지 않았습니다.");
+        }
+
+        if (contentType.startsWith("image/")) {
+            return saveImage(file, fileKey); // 이미지 저장
+        } else if (contentType.startsWith("video/")) {
+            // 동영상 처리
+            return saveVideo(file, fileKey);
+        } else {
+            throw new IllegalArgumentException("지원되지 않는 content type: " + contentType);
+        }
+    }
+
+    private void synchronizeTransaction(List<MediaFile> mediaFiles){
+        // 트랜잭션 동기화
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                            mediaFiles.forEach(file -> mediaFileService.deleteFromS3(file.getFileKey()));
+                        }
+                    }
+                }
+        );
+    }
 
     @Transactional
     public void deleteReview(Long reviewId, Member member) throws IllegalAccessException {
@@ -213,7 +214,7 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NotFoundException("리뷰"));
 
-        if (!review.getMember().getMemberId().equals(member.getMemberId())) {
+        if (!review.getMember().equals(member)) {
             throw AuthorizationException.unauthorizedReviewUpdate("삭제");
         }
 

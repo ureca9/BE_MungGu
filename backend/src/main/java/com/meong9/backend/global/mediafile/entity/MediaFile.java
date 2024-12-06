@@ -34,12 +34,13 @@ public class MediaFile extends BaseTimeEntity {
 
     private Double width;
 
-    @Column
     private String fileKey;
 
     @OneToMany(mappedBy = "mediaFile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PlaceFile> placeFiles = new ArrayList<>();
 
+    @Column(nullable = false)
+    private Boolean isDeleted = false; // 소프트 삭제 여부 (기본값: false)
 
     @Builder
     public MediaFile(FileType fileType, Integer fileSize, String fileName, String fileUrl, Double height, Double width, String fileKey) {
@@ -50,5 +51,9 @@ public class MediaFile extends BaseTimeEntity {
         this.height = height;
         this.width = width;
         this.fileKey = fileKey;
+    }
+
+    public void delete(){
+        this.isDeleted = true;
     }
 }
