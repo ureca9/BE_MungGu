@@ -67,6 +67,7 @@ public class KakaoService {
 
     @Transactional
     public LoginResponseDto kakaoLogin(String code, HttpServletResponse response) throws IOException {
+        log.debug("kakao redirect uri : " + kakaoRedirectUri);
         // 1. 카카오 액세스 토큰 가져오기
         String kakaoAccessToken = getToken(code);
 

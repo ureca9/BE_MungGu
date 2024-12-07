@@ -1,12 +1,10 @@
 package com.meong9.backend.domain.pension.entity;
 
+import com.meong9.backend.domain.like.entity.PensionLike;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -64,6 +62,9 @@ public class Pension {
 
     @OneToMany(mappedBy = "pension", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PensionFile> pensionFiles = Collections.emptyList(); // 펜션 파일 리스트
+
+    @OneToMany(mappedBy = "pension", fetch = FetchType.LAZY, orphanRemoval = true)
+    private Set<PensionLike> likes = new HashSet<>();
 
     public void increaseLikeCount(){
         this.likeCount++;

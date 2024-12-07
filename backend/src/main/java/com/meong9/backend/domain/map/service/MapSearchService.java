@@ -4,20 +4,24 @@ import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
 import com.meong9.backend.domain.like.repository.LikeRepository;
 import com.meong9.backend.domain.map.dto.MapPlaceDto;
+import com.meong9.backend.domain.map.dto.MapSearchDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
+import com.meong9.backend.domain.search.repository.SearchJooqRepository;
 import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.AddressMapper;
 import com.meong9.backend.global.utils.DistanceMapper;
 import com.meong9.backend.global.utils.TypeCodeMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static com.meong9.backend.domain.map.dto.MapPlaceDto.createMapPlaceDto;
 
@@ -29,7 +33,9 @@ public class MapSearchService {
     private final PlaceRepository placeRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final LikeRepository likeRepository;
+    private final SearchJooqRepository searchJooqRepository;
 
+    // 장소 조회
     @Transactional(readOnly = true)
     public MapPlaceDto getSelectPlcPen(Member member, Long id, String type, Double userLatitude, Double userLongitude) {
         if ("펜션".equals(type)) {
@@ -39,6 +45,102 @@ public class MapSearchService {
         }
         return null;
     }
+
+    // 장소 검색
+    @Transactional(readOnly = true)
+    public MapSearchDto getSearchPlcPen(Member member, String searchWord, Double userLatitude, Double userLongitude, Pageable pageable) {
+        // 검색어로 조회
+        Slice<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWord(searchWord, pageable);
+        Slice<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWord(searchWord, pageable);
+
+        // Place와 Pension ID로 조회
+        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member);  // List로 Place 조회
+        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member);  // List로 Pension 조회
+
+        // PlcPenAddress에서 주소 가져오기
+        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds.getContent(), "020");
+        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findAddressesByIdsAndType(placeIds.getContent(), "010");
+
+        // 주소 매핑
+        Map<Long, String> pensionAddressMap = AddressMapper.mapAddressesByPlcPenId(pensionAddresses);
+        Map<Long, String> placeAddressMap = AddressMapper.mapAddressesByPlcPenId(placeAddresses);
+
+        // DTO
+        List<MapPlaceDto> allResults = new ArrayList<>();
+
+        // Place DTO 변환
+        for (Object[] placeResult : places) {
+            Place place = (Place) placeResult[0];
+            boolean isLike = (boolean) placeResult[1];
+
+            String latitude = place.getLatitude();
+            String longitude = place.getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+
+            String mainImage = !place.getPlaceFiles().isEmpty() ? place.getPlaceFiles().get(0).getMediaFile().getFileUrl() : null;
+            String address = placeAddressMap.getOrDefault(place.getPlaceId(), null);
+            String businessHour = place.getBusinessHour();
+
+            MapPlaceDto mapPlaceDto = createMapPlaceDto(
+                    place.getPlaceId(),
+                    TypeCodeMapper.getType("010"),
+                    place.getName(),
+                    latitude,
+                    longitude,
+                    mainImage,
+                    distance,
+                    address,
+                    businessHour,
+                    isLike
+            );
+            allResults.add(mapPlaceDto);
+        }
+
+        // Pension DTO 변환
+        for (Object[] pensionResult : pensions) {
+            Pension pension = (Pension) pensionResult[0];
+            boolean isLike = (boolean) pensionResult[1];
+
+            String latitude = pension.getLatitude();
+            String longitude = pension.getLongitude();
+
+            Double distance = null;
+            if (latitude != null && longitude != null) {
+                distance = DistanceMapper.calculateDistance(userLatitude, userLongitude,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude));
+            }
+
+            String mainImage = !pension.getPensionFiles().isEmpty() ? pension.getPensionFiles().get(0).getMediaFile().getFileUrl() : null;
+            String address = pensionAddressMap.getOrDefault(pension.getPensionId(), null);
+
+            MapPlaceDto mapPlaceDto = createMapPlaceDto(
+                    pension.getPensionId(),
+                    TypeCodeMapper.getType("020"),
+                    pension.getName(),
+                    latitude,
+                    longitude,
+                    mainImage,
+                    distance,
+                    address,
+                    null,
+                    isLike
+            );
+            allResults.add(mapPlaceDto);
+        }
+
+        boolean hasNext = placeIds.hasNext() || pensionIds.hasNext();
+
+        // 거리 정렬 후 반환
+        return new MapSearchDto(sortByDistance(allResults), hasNext);
+    }
+
 
     private MapPlaceDto getPensionDetails(Member member, Long id, Double userLatitude, Double userLongitude) {
         Pension pension = pensionRepository.findByPensionIdWithImage(id)
@@ -71,7 +173,7 @@ public class MapSearchService {
         Double distance = calculateDistance(userLatitude, userLongitude, latitude, longitude);
         String address = addressEntity != null ? addressEntity.getAddress().getAddress() : null;
         String businessHour = place.getBusinessHour();
-        boolean isLike = likeRepository.existsByMemberAndPensionId(member, id);
+        boolean isLike = likeRepository.existsByMemberAndPlaceId(member, id);
 
         return createMapPlaceDto(place.getPlaceId(), TypeCodeMapper.getType("010"), place.getName(),
                 latitude, longitude, mainImage, distance, address, businessHour, isLike);
@@ -83,5 +185,16 @@ public class MapSearchService {
                     Double.parseDouble(latitude), Double.parseDouble(longitude));
         }
         return null;
+    }
+
+    // 거리 순 정렬
+    private List<MapPlaceDto> sortByDistance(List<MapPlaceDto> mapPlaceDtos){
+        mapPlaceDtos.sort(
+                Comparator.comparing(
+                        MapPlaceDto::getDistance, // Double 값을 반환
+                        Comparator.nullsLast(Double::compareTo) // null은 마지막으로 처리
+                )
+        );
+        return mapPlaceDtos;
     }
 }
