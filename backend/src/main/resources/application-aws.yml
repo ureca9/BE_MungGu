@@ -34,3 +34,6 @@ kakao:
 jwt:
   token:
     secretKey: ${JWT_SECRET}
+
+weather:
+  encoding-key: ${WEATHER_KEY}
