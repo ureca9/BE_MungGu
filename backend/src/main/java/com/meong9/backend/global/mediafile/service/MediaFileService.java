@@ -12,7 +12,10 @@ import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,6 +37,9 @@ public class MediaFileService {
 
     private final AmazonS3Client s3Client;
     private final MediaFileRepository mediaFileRepository;
+    @Qualifier("taskExecutor")
+    private final ThreadPoolTaskExecutor taskExecutor;
+
 
     @Value("${s3.bucket}")
     private String bucket;
@@ -246,7 +252,7 @@ public class MediaFileService {
     /**
      * MultipartFile에서 이미지 메타데이터 추출
      */
-    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException {
+    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException, InterruptedException {
         // 타임아웃 설정 (초 단위)
         int timeout = 30;
 
@@ -265,8 +271,10 @@ public class MediaFileService {
             // FFprobe 프로세스 시작
             process = processBuilder.start();
 
-            // 비디오 데이터를 FFprobe로 전달하고 결과를 가져오기 (타임아웃 적용)
-            Future<String> future = executeWithTimeout(process, video, timeout);
+            // CompletableFuture를 사용하여 비동기 작업 수행
+            CompletableFuture<String> future = executeWithTimeout(process, video);
+
+            // 결과 가져오기 (타임아웃 적용)
             String result = future.get(timeout, TimeUnit.SECONDS);
 
             // FFprobe 출력 결과를 파싱하여 메타데이터 DTO로 변환
@@ -283,50 +291,46 @@ public class MediaFileService {
         }
     }
 
-    private Future<String> executeWithTimeout(Process process, MultipartFile video, int timeout) {
-        // 단일 쓰레드로 FFprobe 실행을 처리
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
-            return executor.submit(() -> {
-                try (
-                        // FFprobe 입력 스트림과 출력 스트림 연결
-                        OutputStream stdin = process.getOutputStream();
-                        InputStream videoStream = video.getInputStream();
-                        BufferedReader reader = new BufferedReader(
-                                new InputStreamReader(process.getInputStream())
-                        )
-                ) {
-                    // MultipartFile 데이터를 FFprobe의 stdin으로 전달
-                    videoStream.transferTo(stdin);
-                    stdin.close(); // 입력 종료
+    /**
+     * FFprobe와 MultipartFile 연결 및 결과 반환 (비동기 방식)
+     */
+    private CompletableFuture<String> executeWithTimeout(Process process, MultipartFile video) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (
+                    // FFprobe 입력 스트림과 출력 스트림 연결
+                    OutputStream stdin = process.getOutputStream();
+                    InputStream videoStream = video.getInputStream();
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(process.getInputStream())
+                    )
+            ) {
+                // MultipartFile 데이터를 FFprobe의 stdin으로 전달
+                videoStream.transferTo(stdin);
+                stdin.close(); // 입력 종료
 
-                    // FFprobe 출력 결과를 읽어 반환
-                    return reader.readLine();
-                }
-            });
-        } finally {
-            // Executor 서비스 종료
-            executor.shutdown();
-        }
+                // FFprobe 출력 결과를 읽어 반환
+                return reader.readLine();
+            } catch (IOException e) {
+                throw new RuntimeException("FFprobe 실행 중 오류 발생", e);
+            }
+        }, taskExecutor); // ThreadPoolTaskExecutor 사용
     }
 
+    /**
+     * FFprobe 출력 데이터를 파싱하여 VideoMetaDataDto로 변환
+     */
     private VideoMetaDataDto parseMetadata(String line) {
-        // FFprobe 출력 결과가 비어있는지 확인
         if (line == null || line.trim().isEmpty()) {
             throw new IllegalArgumentException("메타데이터가 비어있습니다");
         }
-
-        // FFprobe 출력 데이터를 ',' 기준으로 분리
         String[] parts = line.split(",");
         if (parts.length != 3) {
             throw new IllegalArgumentException("잘못된 메타데이터 형식");
         }
-
-        // 메타데이터 값을 파싱하여 DTO로 생성
         return new VideoMetaDataDto(
                 Double.parseDouble(parts[2]), // duration (초)
                 Integer.parseInt(parts[0]), // width (픽셀)
-                Integer.parseInt(parts[1]) // height (픽셀)
+                Integer.parseInt(parts[1])  // height (픽셀)
         );
     }
 
