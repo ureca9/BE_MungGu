@@ -4,6 +4,7 @@ import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
 import com.meong9.backend.domain.like.repository.LikeRepository;
 import com.meong9.backend.domain.map.dto.MapPlaceDto;
+import com.meong9.backend.domain.map.dto.MapSearchDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
@@ -15,11 +16,8 @@ import com.meong9.backend.global.utils.AddressMapper;
 import com.meong9.backend.global.utils.DistanceMapper;
 import com.meong9.backend.global.utils.TypeCodeMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,18 +48,18 @@ public class MapSearchService {
 
     // 장소 검색
     @Transactional(readOnly = true)
-    public Page<MapPlaceDto> getSearchPlcPen(Member member, String searchWord, Double userLatitude, Double userLongitude, Pageable pageable) {
+    public MapSearchDto getSearchPlcPen(Member member, String searchWord, Double userLatitude, Double userLongitude, Pageable pageable) {
         // 검색어로 조회
-        List<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWord(searchWord);
-        List<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWord(searchWord);
+        Slice<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWord(searchWord, pageable);
+        Slice<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWord(searchWord, pageable);
 
         // Place와 Pension ID로 조회
-        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds, member);  // List로 Place 조회
-        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds, member);  // List로 Pension 조회
+        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member);  // List로 Place 조회
+        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member);  // List로 Pension 조회
 
         // PlcPenAddress에서 주소 가져오기
-        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds, "020");
-        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findAddressesByIdsAndType(placeIds, "010");
+        List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds.getContent(), "020");
+        List<PlcPenAddress> placeAddresses = plcPenAddressRepository.findAddressesByIdsAndType(placeIds.getContent(), "010");
 
         // 주소 매핑
         Map<Long, String> pensionAddressMap = AddressMapper.mapAddressesByPlcPenId(pensionAddresses);
@@ -137,21 +135,10 @@ public class MapSearchService {
             allResults.add(mapPlaceDto);
         }
 
-        // 거리 정렬
-        List<MapPlaceDto> sortedResults = sortByDistance(allResults);
+        boolean hasNext = placeIds.hasNext() || pensionIds.hasNext();
 
-        // 페이지 처리
-        int start = (int) pageable.getOffset();
-        if (start >= sortedResults.size()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, sortedResults.size());
-        }
-        int end = Math.min(start + pageable.getPageSize(), sortedResults.size());
-
-        // 페이지 처리된 결과 생성
-        List<MapPlaceDto> pageContent = sortedResults.subList(start, end);
-
-        // PageImpl 생성하여 반환
-        return new PageImpl<>(pageContent, pageable, sortedResults.size());
+        // 거리 정렬 후 반환
+        return new MapSearchDto(sortByDistance(allResults), hasNext);
     }
 
 
