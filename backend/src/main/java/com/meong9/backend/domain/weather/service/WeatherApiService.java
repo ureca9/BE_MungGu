@@ -19,8 +19,6 @@ import java.net.URLEncoder;
 @RequiredArgsConstructor
 public class WeatherApiService {
 
-    private final WebClient webClient;
-
     @Value("${weather.mid.encoding-key}")
     private String weatherMidKey; // 중기 예보 키
 
@@ -71,7 +69,7 @@ public class WeatherApiService {
 
             return responseBody;
         } catch (IOException e) {
-            throw new RuntimeException("데이터를 읽어오는 데 오류 발생", e);
+            throw InternalServerError.weatherApiError("데이터를 읽어오는 데 오류 발생: " + e);
         }
     }
 
