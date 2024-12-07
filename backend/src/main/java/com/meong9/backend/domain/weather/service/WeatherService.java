@@ -37,8 +37,8 @@ public class WeatherService {
     private final WeatherApiService weatherApiService;
 
     // 지역 별 날씨 데이터 (기상청  api 호출)
-    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
-//    @Scheduled(cron = "0 * * * * ?")
+//    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
+    @Scheduled(cron = "0 * * * * ?")
     public void fetchAndStoreWeatherData() {
         for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
             try {
@@ -155,20 +155,33 @@ public class WeatherService {
         JsonNode firstItem = itemsNodeMid.get(0);
         ObjectNode summary = objectMapper.createObjectNode();
 
+        // Weather codes 처리
         for (int i = 0; i < weatherCodes.size(); i++) {
-            summary.put("day" + (i + 1), weatherCodes.get(i));
+            String weather = weatherCodes.get(i);
+            summary.put("day" + (i + 1), extractLastWord(weather));
         }
 
-        summary.put("day4", firstItem.path("wf4Pm").asText());
-        summary.put("day5", firstItem.path("wf5Pm").asText());
-        summary.put("day6", firstItem.path("wf6Pm").asText());
-        summary.put("day7", firstItem.path("wf7Pm").asText());
-        summary.put("day8", firstItem.path("wf8").asText());
-        summary.put("day9", firstItem.path("wf9").asText());
-        summary.put("day10", firstItem.path("wf10").asText());
+        // JSON 노드에서 날씨 데이터 처리
+        summary.put("day4", extractLastWord(firstItem.path("wf4Pm").asText()));
+        summary.put("day5", extractLastWord(firstItem.path("wf5Pm").asText()));
+        summary.put("day6", extractLastWord(firstItem.path("wf6Pm").asText()));
+        summary.put("day7", extractLastWord(firstItem.path("wf7Pm").asText()));
+        summary.put("day8", extractLastWord(firstItem.path("wf8").asText()));
+        summary.put("day9", extractLastWord(firstItem.path("wf9").asText()));
+        summary.put("day10", extractLastWord(firstItem.path("wf10").asText()));
 
         return summary;
     }
+
+    // 마지막 단어 추출 메서드
+    private String extractLastWord(String weather) {
+        if (weather == null || weather.isEmpty()) {
+            return weather; // null 또는 빈 문자열 처리
+        }
+        String[] words = weather.split(" ");
+        return words[words.length - 1];
+    }
+
 
     // 레디스에 저장
     private void saveToRedis(String region, ObjectNode weatherSummary) {
