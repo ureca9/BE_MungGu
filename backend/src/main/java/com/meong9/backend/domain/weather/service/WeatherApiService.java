@@ -17,8 +17,8 @@ public class WeatherApiService {
 
     private final WebClient webClient;
 
-    @Value("${weather.mid.encoding-key}")
-    private String weatherMidKey; // 중기 예보 키
+    @Value("${weather.encoding-key}")
+    private String weatherKey; // 서비스 키
 
     // 단기 예보
     public String getWeatherForecastST(String[] xy, String date) {
@@ -26,7 +26,7 @@ public class WeatherApiService {
             // URL 포맷 지정
             String url = String.format(
                     "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=%s&pageNo=1&numOfRows=798&dataType=JSON&base_date=%s&base_time=1400&nx=%s&ny=%s",
-                    weatherMidKey, date, xy[0], xy[1]
+                    weatherKey, date, xy[0], xy[1]
             );
 
             // WebClient 호출
@@ -53,7 +53,7 @@ public class WeatherApiService {
             // URL 포맷 지정
             String url = String.format(
                     "http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=%s&pageNo=1&numOfRows=10&dataType=JSON&regId=%s&tmFc=%s",
-                    weatherMidKey, code, date
+                    weatherKey, code, date
             );
 
             // WebClient 호출
