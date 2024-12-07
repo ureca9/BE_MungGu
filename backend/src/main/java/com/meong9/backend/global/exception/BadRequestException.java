@@ -7,6 +7,8 @@ public class BadRequestException extends BaseException {
     static private final String INVALID_PUPPYID_FORMAT = "유효하지 않은 품종 ID 입니다.";
     static private final String INVALID_FILE_FORMAT = "%s는 유효하지 않은 FileKey 입니다.";
 
+    static private final String INVALID_REGION_NAME_FORMAT = "%s는 유효하지 않은 지역명입니다.";
+
     public BadRequestException(String message) {
         super(HttpStatus.BAD_REQUEST, message);
     }
@@ -21,5 +23,9 @@ public class BadRequestException extends BaseException {
 
     public static BadRequestException invalidFilekeyFormat(String entityName) {
         return new BadRequestException(String.format(INVALID_FILE_FORMAT, entityName));
+    }
+
+    public static BadRequestException invalidRegionNameFormat(String entityName) {
+        return new BadRequestException(String.format(INVALID_REGION_NAME_FORMAT, entityName));
     }
 }
