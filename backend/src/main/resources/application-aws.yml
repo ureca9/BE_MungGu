@@ -4,6 +4,10 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: uplus-elasticcache.fhxyu0.ng.0001.apn2.cache.amazonaws.com
+      port: 6379
 
   jpa:
     hibernate:
