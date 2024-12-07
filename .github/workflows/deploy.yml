@@ -47,7 +47,6 @@ jobs:
           echo "DB_URL=${{ secrets.DB_URL }}"
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}"
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
-          echo "WEATHER_KEY=${{ secrets.WEATHER_KEY }}"
           ./gradlew clean build -x test \
             -DdbUrl=${{ secrets.DB_URL }} \
             -DdbUsername=${{ secrets.DB_USERNAME }} \
