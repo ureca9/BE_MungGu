@@ -41,12 +41,7 @@ public class WeatherService {
 //    @Scheduled(cron = "0 * * * * ?")
     public void fetchAndStoreWeatherData() {
         for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
-            try {
-                processRegionWeather(entry.getKey(), entry.getValue());
-            } catch (Exception e) {
-                System.err.println("지역 처리 중 오류가 발생: " + entry.getKey());
-                e.printStackTrace();
-            }
+            retryProcessRegionWeather(entry.getKey(), entry.getValue(), 3); // 최대 3번 재시도
         }
     }
 
@@ -58,12 +53,37 @@ public class WeatherService {
             String key = String.format("weather:%s", RegionMapper.getRegionEng(region));
 
             String jsonString = (String) redisTemplate.opsForValue().get(key);
+
+            // redis에 데이터 없으면
+            if(jsonString == null){
+                throw NotFoundException.entityNotFound(region);
+            }
+
             WeatherDto weatherDto = objectMapper.readValue(jsonString, WeatherDto.class);
             weatherDto.setRegionName(region);
 
             return weatherDto;
         } catch (Exception e) {
-            throw new RuntimeException("Redis 데이터를 DTO로 매핑하는 데 실패했습니다.", e);
+            throw InternalServerError.redisMappingError(e.getMessage());
+        }
+    }
+
+
+    // 스케줄러 실패 시 3번 더 해보기
+    private void retryProcessRegionWeather(String regionKey, String regionValue, int maxRetries) {
+        int attempt = 0;
+        while (attempt < maxRetries) {
+            try {
+                processRegionWeather(regionKey, regionValue); // 지역 날씨 처리
+                return; // 성공 시 메서드 종료
+            } catch (Exception e) {
+                attempt++;
+                log.info(String.format("지역 처리 실패: %s (%d/%d 시도)", regionKey, attempt, maxRetries));
+                if (attempt >= maxRetries) {
+                    log.error("최대 재시도 횟수 초과: " + regionKey);
+                    throw InternalServerError.schedulerFailError(e.getMessage());
+                }
+            }
         }
     }
 
@@ -94,15 +114,7 @@ public class WeatherService {
         }
     }
 
-    private LocalDateTime getFixedTime(int hour, int minute) {
-        return LocalDateTime.now().withHour(hour).withMinute(minute);
-    }
-
-    private LocalDate getYesterday() {
-        return LocalDate.now().minusDays(1);
-    }
-
-    private JsonNode parseJsonNode(String jsonString, String... paths) {
+    private JsonNode parseJsonNode(String jsonString, String... paths) { // 가변인자
         try {
             JsonNode node = objectMapper.readTree(jsonString);
             for (String path : paths) {
@@ -127,6 +139,7 @@ public class WeatherService {
         return weatherCodes;
     }
 
+    // 단기 데이터 PTY SKY 수집
     private String findWeatherCode(JsonNode itemsNode, String targetDate) {
         String ptyValue = null;
         String skyValue = null;
@@ -190,4 +203,11 @@ public class WeatherService {
         log.info("날씨 정보 redis에 저장 완료!");
     }
 
+    private LocalDateTime getFixedTime(int hour, int minute) {
+        return LocalDateTime.now().withHour(hour).withMinute(minute);
+    }
+
+    private LocalDate getYesterday() {
+        return LocalDate.now().minusDays(1);
+    }
 }
