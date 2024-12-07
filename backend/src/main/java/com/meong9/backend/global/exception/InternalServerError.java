@@ -7,7 +7,9 @@ public class InternalServerError extends BaseException {
     static private final String WEATHER_API_ERROR = "기상청 api 호출 중 문제가 발생했습니다. %s";
     static private final String INVALID_WEATHER_RESPONSE_FORMAT = "기상청 api의 응답이 JSON이 아닙니다. %s";
 
-    static private final String REDIS_MAPPING_ERROR = "Redis 데이터를 매핑하는 데 실패했습니다. %s";
+    static private final String PARSE_JSON_ERROR = "JSON 파싱에 실패했습니다. %s";
+
+    static private final String REDIS_CONNECT_ERROR = "Redis 연결에 실패했습니다. %s";
     static private final String SCHEDULER_FAIL_ERROR = "스케쥴링 작업에 실패했습니다. %s";
 
 
@@ -27,8 +29,12 @@ public class InternalServerError extends BaseException {
         return new InternalServerError(String.format(INVALID_WEATHER_RESPONSE_FORMAT, entityName));
     }
 
-    public static InternalServerError redisMappingError(String entityName) {
-        return new InternalServerError(String.format(REDIS_MAPPING_ERROR, entityName));
+    public static InternalServerError parseJsonError(String entityName) {
+        return new InternalServerError(String.format(PARSE_JSON_ERROR, entityName));
+    }
+
+    public static InternalServerError redisConnectError(String entityName) {
+        return new InternalServerError(String.format(REDIS_CONNECT_ERROR, entityName));
     }
 
     public static InternalServerError schedulerFailError(String entityName) {
