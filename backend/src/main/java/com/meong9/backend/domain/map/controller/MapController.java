@@ -3,6 +3,7 @@ package com.meong9.backend.domain.map.controller;
 import com.meong9.backend.domain.map.dto.MapLikePointDto;
 import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
 import com.meong9.backend.domain.map.dto.MapPlaceDto;
+import com.meong9.backend.domain.map.dto.MapSearchDto;
 import com.meong9.backend.domain.map.service.MapSearchService;
 import com.meong9.backend.domain.map.service.MapService;
 import com.meong9.backend.domain.member.entity.Member;
@@ -53,9 +54,9 @@ public class MapController {
             pageable = PageRequest.of(pageable.getPageNumber(), maxPageSize, pageable.getSort());
         }
 
-        Page<MapPlaceDto> mapPlaceDtoList = mapSearchService.getSearchPlcPen(member, keyword, latitude, longitude, pageable);
+        MapSearchDto dto = mapSearchService.getSearchPlcPen(member, keyword, latitude, longitude, pageable);
 
-        return CommonResponse.ok("success", mapPlaceDtoList);
+        return CommonResponse.ok("success", dto);
     }
 
     // 찜한 장소 위도, 경도 조회 (마커용)
@@ -65,6 +66,7 @@ public class MapController {
 
         return CommonResponse.ok("success", mapPointList);
     }
+
     // 장소 조회
     @GetMapping("/places")
     public ResponseEntity<?> getSelectPlcPen(@CurrentMember Member member,
