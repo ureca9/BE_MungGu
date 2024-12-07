@@ -37,8 +37,8 @@ public class WeatherService {
     private final WeatherApiService weatherApiService;
 
     // 지역 별 날씨 데이터 (기상청  api 호출)
-//    @Scheduled(cron = "0 0 7 * * ?")
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
+//    @Scheduled(cron = "0 * * * * ?")
     public void fetchAndStoreWeatherData() {
         for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
             try {
