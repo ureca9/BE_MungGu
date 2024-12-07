@@ -174,7 +174,7 @@ public class WeatherService {
     private void saveToRedis(String region, ObjectNode weatherSummary) {
         String key = WEATHER_KEY + RegionMapper.getRegionEng(region);
         redisTemplate.opsForValue().setIfAbsent(key, weatherSummary.toString(), Duration.ofHours(24));
-        log.info("redis에 저장 완료!");
+        log.info("날씨 정보 redis에 저장 완료!");
     }
 
 }

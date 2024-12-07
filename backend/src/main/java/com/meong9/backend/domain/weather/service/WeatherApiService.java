@@ -41,8 +41,6 @@ public class WeatherApiService {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-type", "application/json");
 
-            System.out.println("Request URL: " + urlBuilder.toString());
-
             // 응답 코드 확인
             int responseCode = conn.getResponseCode();
             System.out.println("Response code: " + responseCode);
