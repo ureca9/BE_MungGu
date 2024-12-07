@@ -73,15 +73,19 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())
                 ));
+//
+//        // 요청별 권한 관리
+//        http.authorizeHttpRequests(auth -> auth
+//                .requestMatchers(ignoredRequests).permitAll()
+//                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
+//                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations").permitAll()
+//                .requestMatchers("/index.html", "/favicon.ico").permitAll()
+//                .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
+//                .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
+//        );
 
-        // 요청별 권한 관리
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(ignoredRequests).permitAll()
-                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
-                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations").permitAll()
-                .requestMatchers("/index.html", "/favicon.ico").permitAll()
-                .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
-                .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
+                .anyRequest().permitAll() // 모든 요청 허용
         );
 
         // CSRF 비활성화 및 CORS 설정
