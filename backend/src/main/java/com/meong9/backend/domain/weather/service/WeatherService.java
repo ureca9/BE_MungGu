@@ -1,127 +1,180 @@
 package com.meong9.backend.domain.weather.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.meong9.backend.domain.weather.dto.WeatherDto;
+import com.meong9.backend.global.exception.InternalServerError;
+import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.RegionMapper;
+import com.meong9.backend.global.utils.WeatherMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Mono;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WeatherService {
 
-    private final WebClient webClient;
+    private static final String WEATHER_KEY = "weather:";
+    private static final DateTimeFormatter FULL_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    @Value("${weather.mid.encoding-key}")
-    private String weatherMidKey; // 중기 예보 키
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
+    private final WeatherApiService weatherApiService;
 
-    public String getWeatherForecast() {
-        try {
-            // URL 빌드
-            StringBuilder urlBuilder = new StringBuilder("http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst");
-            urlBuilder.append("?").append("serviceKey").append("=").append(weatherMidKey);
-            urlBuilder.append("&").append(URLEncoder.encode("pageNo", "UTF-8")).append("=").append(URLEncoder.encode("1", "UTF-8")); // 페이지 번호
-            urlBuilder.append("&").append(URLEncoder.encode("numOfRows", "UTF-8")).append("=").append(URLEncoder.encode("10", "UTF-8")); // 한 페이지 결과 수
-            urlBuilder.append("&").append(URLEncoder.encode("dataType", "UTF-8")).append("=").append(URLEncoder.encode("JSON", "UTF-8")); // 데이터 형식
-            urlBuilder.append("&").append(URLEncoder.encode("regId", "UTF-8")).append("=").append(URLEncoder.encode("11B00000", "UTF-8")); // 지역 코드
-            urlBuilder.append("&").append(URLEncoder.encode("tmFc", "UTF-8")).append("=").append(URLEncoder.encode("202412030600", "UTF-8")); // 발표 시각
-
-            // URL 객체 생성
-            URL url = new URL(urlBuilder.toString());
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-type", "application/json");
-
-            System.out.println("Request URL: " + urlBuilder.toString());
-
-            // 응답 코드 확인
-            int responseCode = conn.getResponseCode();
-            System.out.println("Response code: " + responseCode);
-
-            // 응답 처리
-            BufferedReader rd;
-            if (responseCode >= 200 && responseCode <= 300) {
-                rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            } else {
-                rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+    // 지역 별 날씨 데이터 (기상청  api 호출)
+//    @Scheduled(cron = "0 0 7 * * ?")
+    @Scheduled(cron = "0 * * * * ?")
+    public void fetchAndStoreWeatherData() {
+        for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
+            try {
+                processRegionWeather(entry.getKey(), entry.getValue());
+            } catch (Exception e) {
+                System.err.println("지역 처리 중 오류가 발생: " + entry.getKey());
+                e.printStackTrace();
             }
-
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = rd.readLine()) != null) {
-                response.append(line);
-            }
-            rd.close();
-            conn.disconnect();
-
-            // 응답 반환
-            return response.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to call Weather API", e);
         }
     }
 
-    public String getWeatherForecast2() {
+    // 날씨 데이터 조회
+    @Transactional(readOnly = true)
+    public WeatherDto getWeatherData(String region) {
         try {
-            // URL 빌드
-            StringBuilder urlBuilder = new StringBuilder("http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst");
-            urlBuilder.append("?").append("serviceKey").append("=").append(weatherMidKey);
-            urlBuilder.append("&").append(URLEncoder.encode("pageNo", "UTF-8")).append("=").append(URLEncoder.encode("1", "UTF-8")); // 페이지 번호
-            urlBuilder.append("&").append(URLEncoder.encode("numOfRows", "UTF-8")).append("=").append(URLEncoder.encode("10", "UTF-8")); // 한 페이지 결과 수
-            urlBuilder.append("&").append(URLEncoder.encode("dataType", "UTF-8")).append("=").append(URLEncoder.encode("JSON", "UTF-8")); // 데이터 형식
-            urlBuilder.append("&").append(URLEncoder.encode("base_date", "UTF-8")).append("=").append(URLEncoder.encode("20241203", "UTF-8")); // 발표 날짜
-            urlBuilder.append("&").append(URLEncoder.encode("base_time", "UTF-8")).append("=").append(URLEncoder.encode("0500", "UTF-8")); // 발표 시간
-            urlBuilder.append("&").append(URLEncoder.encode("nx", "UTF-8")).append("=").append(URLEncoder.encode("55", "UTF-8")); // 예보 지점 X 좌표 값
-            urlBuilder.append("&").append(URLEncoder.encode("ny", "UTF-8")).append("=").append(URLEncoder.encode("127", "UTF-8")); // 예보 지점 Y 좌표 값
+            // redis 키
+            String key = String.format("weather:%s", RegionMapper.getRegionEng(region));
 
-            // URL 객체 생성
-            URL url = new URL(urlBuilder.toString());
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-type", "application/json");
+            String jsonString = (String) redisTemplate.opsForValue().get(key);
+            WeatherDto weatherDto = objectMapper.readValue(jsonString, WeatherDto.class);
+            weatherDto.setRegionName(region);
 
-            System.out.println("Request URL: " + urlBuilder.toString());
-
-            // 응답 코드 확인
-            int responseCode = conn.getResponseCode();
-            System.out.println("Response code: " + responseCode);
-
-            // 응답 처리
-            BufferedReader rd;
-            if (responseCode >= 200 && responseCode <= 300) {
-                rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            } else {
-                rd = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-            }
-
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = rd.readLine()) != null) {
-                response.append(line);
-            }
-            rd.close();
-            conn.disconnect();
-
-            // 응답 반환
-            return response.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to call Weather API", e);
+            return weatherDto;
+        } catch (Exception e) {
+            throw new RuntimeException("Redis 데이터를 DTO로 매핑하는 데 실패했습니다.", e);
         }
     }
+
+    // 날씨 데이터 처리
+    private void processRegionWeather(String region, String code) {
+        String dateFormatMid = getFixedTime(6, 0).format(FULL_DATE_TIME_FORMATTER);
+        String dateFormatST = getYesterday().format(DATE_FORMATTER);
+
+        String[] xy = RegionMapper.getWeatherXYRegion(region);
+
+        String responseMid = weatherApiService.getWeatherForecastMid(code, dateFormatMid);
+        String responseST = weatherApiService.getWeatherForecastST(xy, dateFormatST);
+
+        // 단기
+        List<String> weatherCodes = parseShortTermWeather(responseST);
+
+        // 중기
+        JsonNode itemsNodeMid = parseJsonNode(responseMid, "response", "body", "items", "item");
+
+        if (itemsNodeMid.isArray() && itemsNodeMid.size() > 0) {
+            // 저장 전 매핑
+            ObjectNode weatherSummary = createWeatherSummary(itemsNodeMid, weatherCodes);
+
+            // redis에 저장
+            saveToRedis(region, weatherSummary);
+        } else {
+            throw NotFoundException.entityNotFound("중기 예보 데이터");
+        }
+    }
+
+    private LocalDateTime getFixedTime(int hour, int minute) {
+        return LocalDateTime.now().withHour(hour).withMinute(minute);
+    }
+
+    private LocalDate getYesterday() {
+        return LocalDate.now().minusDays(1);
+    }
+
+    private JsonNode parseJsonNode(String jsonString, String... paths) {
+        try {
+            JsonNode node = objectMapper.readTree(jsonString);
+            for (String path : paths) {
+                node = node.path(path);
+            }
+            return node;
+        } catch (Exception e) {
+            throw InternalServerError.weatherApiError("JSON 데이터 파싱 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    // 단기 데이터 파싱
+    private List<String> parseShortTermWeather(String response) {
+        JsonNode itemsNode = parseJsonNode(response, "response", "body", "items", "item");
+        List<String> weatherCodes = new ArrayList<>();
+        List<LocalDate> targetDates = List.of(LocalDate.now(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
+
+        for (LocalDate targetDate : targetDates) {
+            String targetDateString = targetDate.format(DATE_FORMATTER);
+            weatherCodes.add(findWeatherCode(itemsNode, targetDateString));
+        }
+        return weatherCodes;
+    }
+
+    private String findWeatherCode(JsonNode itemsNode, String targetDate) {
+        String ptyValue = null;
+        String skyValue = null;
+
+        for (JsonNode item : itemsNode) {
+            String category = item.path("category").asText();
+            String fcstDate = item.path("fcstDate").asText();
+            String fcstTime = item.path("fcstTime").asText();
+
+            // 15시 기준 데이터 반환
+            if (fcstDate.equals(targetDate) && "1500".equals(fcstTime)) {
+                // 강수 없음이면 SKY 코드, 강수 있으면 PTY 코드
+                if ("PTY".equals(category)) ptyValue = item.path("fcstValue").asText();
+                if ("SKY".equals(category)) skyValue = item.path("fcstValue").asText();
+            }
+        }
+
+        // 날씨 코드 텍스트로 매핑
+        if (ptyValue != null && !"0".equals(ptyValue)) return WeatherMapper.getWeatherPtyCode(ptyValue);
+        if (skyValue != null) return WeatherMapper.getWeatherSkyCode(skyValue);
+        return "";
+    }
+
+    // 저장 전 매핑
+    private ObjectNode createWeatherSummary(JsonNode itemsNodeMid, List<String> weatherCodes) {
+        JsonNode firstItem = itemsNodeMid.get(0);
+        ObjectNode summary = objectMapper.createObjectNode();
+
+        for (int i = 0; i < weatherCodes.size(); i++) {
+            summary.put("day" + (i + 1), weatherCodes.get(i));
+        }
+
+        summary.put("day4", firstItem.path("wf4Pm").asText());
+        summary.put("day5", firstItem.path("wf5Pm").asText());
+        summary.put("day6", firstItem.path("wf6Pm").asText());
+        summary.put("day7", firstItem.path("wf7Pm").asText());
+        summary.put("day8", firstItem.path("wf8").asText());
+        summary.put("day9", firstItem.path("wf9").asText());
+        summary.put("day10", firstItem.path("wf10").asText());
+
+        return summary;
+    }
+
+    // 레디스에 저장
+    private void saveToRedis(String region, ObjectNode weatherSummary) {
+        String key = WEATHER_KEY + RegionMapper.getRegionEng(region);
+        redisTemplate.opsForValue().setIfAbsent(key, weatherSummary.toString(), Duration.ofHours(24));
+        log.info("redis에 저장 완료!");
+    }
+
 }
-
