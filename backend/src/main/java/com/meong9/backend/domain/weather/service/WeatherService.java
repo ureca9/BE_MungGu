@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.weather.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -8,6 +9,7 @@ import com.meong9.backend.global.exception.InternalServerError;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.utils.RegionMapper;
 import com.meong9.backend.global.utils.WeatherMapper;
+import io.lettuce.core.RedisConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -37,8 +39,8 @@ public class WeatherService {
     private final WeatherApiService weatherApiService;
 
     // 지역 별 날씨 데이터 (기상청  api 호출)
-    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
-//    @Scheduled(cron = "0 * * * * ?")
+//    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
+    @Scheduled(cron = "0 * * * * ?")
     public void fetchAndStoreWeatherData() {
         for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
             retryProcessRegionWeather(entry.getKey(), entry.getValue(), 3); // 최대 3번 재시도
@@ -63,8 +65,14 @@ public class WeatherService {
             weatherDto.setRegionName(region);
 
             return weatherDto;
-        } catch (Exception e) {
-            throw InternalServerError.redisMappingError(e.getMessage());
+        } catch (JsonProcessingException e) {
+            // json 파싱 오류
+            throw InternalServerError.parseJsonError(e.getMessage());
+        } catch (RedisConnectionException e) {
+            // redis 연결 오류
+            throw InternalServerError.redisConnectError(e.getMessage());
+        } catch (Exception e){
+            throw new RuntimeException("날씨 데이터 조회에 실패" + e.getMessage());
         }
     }
 
@@ -199,7 +207,7 @@ public class WeatherService {
     // 레디스에 저장
     private void saveToRedis(String region, ObjectNode weatherSummary) {
         String key = WEATHER_KEY + RegionMapper.getRegionEng(region);
-        redisTemplate.opsForValue().setIfAbsent(key, weatherSummary.toString(), Duration.ofHours(24));
+        redisTemplate.opsForValue().set(key, weatherSummary.toString(), Duration.ofHours(24));
         log.info("날씨 정보 redis에 저장 완료!");
     }
 

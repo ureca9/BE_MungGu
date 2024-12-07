@@ -1,7 +1,7 @@
 package com.meong9.backend.global.utils;
 
-import com.meong9.backend.domain.weather.service.WeatherApiService;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,6 +54,6 @@ public class RegionMapper {
     }
 
     public static Map<String, String> getWeatherRegionAll(){
-        return WEATHER_REGION_CODE_MAP;
+        return Collections.unmodifiableMap(WEATHER_REGION_CODE_MAP);
     }
 }
