@@ -50,7 +50,7 @@ public class MapSearchService {
     @Transactional(readOnly = true)
     public MapSearchDto getSearchPlcPen(Member member, String searchWord, Double userLatitude, Double userLongitude, Pageable pageable) {
         // 검색어로 조회
-        Slice<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWord(searchWord, pageable);
+        Slice<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWordForMap(searchWord, pageable);
         Slice<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWord(searchWord, pageable);
 
         // Place와 Pension ID로 조회

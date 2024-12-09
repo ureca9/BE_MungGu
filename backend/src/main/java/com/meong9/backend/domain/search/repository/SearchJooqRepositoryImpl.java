@@ -26,7 +26,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     private final DSLContext dsl;
 
     @Override
-    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String sizeCode, String typeCode, Long memberId) {
+    public Slice<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String sizeCode, String typeCode, Long memberId, Pageable pageable) {
 
         List<SearchPlaceDto> places = dsl.select(
                         PLACE.PLACE_ID, // placeId
@@ -47,6 +47,8 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                                 .and(getWeightCondition(sizeCode))
                 )
                 .orderBy(DSL.field("review_count").desc())
+                .limit(pageable.getPageSize())
+                .offset((int)pageable.getOffset())
                 .fetchInto(SearchPlaceDto.class);
 
         // filteredPlaceIds에 해당하는 태그 & 이미지 데이터를 한 번에 조회
@@ -71,7 +73,9 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
             place.setImages(images);
         });
 
-        return places;
+        boolean hasNext = places.size() > pageable.getPageSize();
+
+        return new SliceImpl<>(places, pageable, hasNext);
     }
 
     @Override
@@ -150,8 +154,21 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     }
 
     @Override
-    public Slice<Long> findPlaceIdsBySearchWord(String searchWord, Pageable pageable) {
-        // 검색어를 단어별로 나누어 배열에 담기
+    public Slice<Long> findPlaceIdsBySearchWordForMap(String searchWord, Pageable pageable) {
+        List<Long> result = findPlaceIdsBySearchWordInternal(searchWord, pageable);
+
+        boolean hasNext = result.size() > pageable.getPageSize();
+
+        return new SliceImpl<>(result, pageable, hasNext);
+    }
+
+    @Override
+    public List<Long> findPlaceIdsBySearchWord(String searchWord) {
+        return findPlaceIdsBySearchWordInternal(searchWord, null);
+    }
+
+    private List<Long> findPlaceIdsBySearchWordInternal(String searchWord, Pageable pageable) {
+        // 검색어를 단어별로 나누기
         String[] searchWords = searchWord.split(" ");
 
         // place 테이블에서 검색
@@ -177,16 +194,18 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
 
-        // 두 결과를 UNION으로 합치기
-        List<Long> result =  dsl.selectDistinct(DSL.field("place_id", Long.class))
-                .from(placeQuery.union(addressQuery).asTable("combined_results"))
-                .limit(pageable.getPageSize())
-                .offset((int) pageable.getOffset())
-                .fetchInto(Long.class);
+        // UNION으로 검색 결과 합치기
+        var combinedQuery = dsl.selectDistinct(DSL.field("place_id", Long.class))
+                .from(placeQuery.union(addressQuery).asTable("combined_results"));
 
-        boolean hasNext = result.size() > pageable.getPageSize();
+        // 페이징을 해야 되는 상황에서만 처리하도록
+        if (pageable != null) {
+            return combinedQuery.limit(pageable.getPageSize())
+                    .offset((int) pageable.getOffset())
+                    .fetchInto(Long.class);
+        }
 
-        return new SliceImpl<>(result, pageable, hasNext);
+        return combinedQuery.fetchInto(Long.class);
     }
 
     @Override
@@ -226,7 +245,6 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
 
         return new SliceImpl<>(result, pageable, hasNext);
     }
-
 
     private Field<String> getAddressFieldForPlace(String typeCode) {
         return dsl.select(ADDRESS.ADDRESS_)
