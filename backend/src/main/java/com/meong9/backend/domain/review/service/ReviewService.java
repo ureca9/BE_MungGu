@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -39,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -75,7 +77,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, InterruptedException {
+    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, InterruptedException, TimeoutException {
         List<MediaFile> mediaFiles = new ArrayList<>();
         Review review = Review.builder()
                 .member(member)
@@ -93,7 +95,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException, InterruptedException {
+    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
         // 기존 리뷰 조회
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
@@ -118,7 +120,8 @@ public class ReviewService {
         processFile(files, review, mediaFiles);
     }
 
-    private void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException {
+    @Async
+    protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
             AtomicInteger fileNum = new AtomicInteger(0);
@@ -155,7 +158,7 @@ public class ReviewService {
      * @return 저장된 MediaFile 엔티티
      * @throws IOException 이미지 처리 오류
      */
-    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException {
+    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException, TimeoutException {
         String contentType = file.getContentType();
         String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
         if (contentType == null) {
@@ -311,7 +314,7 @@ public class ReviewService {
                         .build());
     }
 
-    private MediaFile saveVideo(MultipartFile video, String fileKey) throws IOException, InterruptedException {
+    private MediaFile saveVideo(MultipartFile video, String fileKey) throws IOException, InterruptedException, TimeoutException {
         // S3에 파일 업로드
         String videoUrl = mediaFileService.uploadToS3WithCustomKey(video, fileKey);
 

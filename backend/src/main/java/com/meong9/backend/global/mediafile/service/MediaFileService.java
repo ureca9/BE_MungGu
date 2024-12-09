@@ -252,7 +252,7 @@ public class MediaFileService {
     /**
      * MultipartFile에서 이미지 메타데이터 추출
      */
-    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException, InterruptedException {
+    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException, InterruptedException, TimeoutException {
         // 타임아웃 설정 (초 단위)
         int timeout = 30;
 
@@ -280,7 +280,7 @@ public class MediaFileService {
             // FFprobe 출력 결과를 파싱하여 메타데이터 DTO로 변환
             return parseMetadata(result);
         } catch (TimeoutException e) {
-            throw new IOException("비디오 메타데이터 추출 시간 초과");
+            throw new TimeoutException("비디오 메타데이터 추출 시간 초과");
         } catch (Exception e) {
             throw new IOException("비디오 메타데이터 추출 실패: " + e.getMessage());
         } finally {
@@ -313,7 +313,7 @@ public class MediaFileService {
             } catch (IOException e) {
                 throw new RuntimeException("FFprobe 실행 중 오류 발생", e);
             }
-        }, taskExecutor); // ThreadPoolTaskExecutor 사용
+        }, taskExecutor);
     }
 
     /**
