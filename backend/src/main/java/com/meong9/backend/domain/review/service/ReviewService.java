@@ -120,7 +120,7 @@ public class ReviewService {
         processFile(files, review, mediaFiles);
     }
 
-    @Async
+    @Async // AOP 기반으로 작동되기 때문에 private 메서드에서는 작동하지 않음
     protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
