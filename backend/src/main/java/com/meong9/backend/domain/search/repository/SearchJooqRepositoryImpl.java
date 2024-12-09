@@ -32,7 +32,8 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
         // 1. 1차 필터링된 장소ID에 더해, 2차로 카테고리 필터링, 3차로 무게 필터링을 마친 filted_placesid_field 생성
         var filteredPlaceSubquery = dsl.select(PLACE.PLACE_ID)
                 .from(PLACE)
-                .where(PLACE.PLC_CATEGORY_ID.in(categoryIds))
+                .where(PLACE.PLACE_ID.in(filteredPlaceIds))
+                .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
                 .and(getWeightCondition(sizeCode))
                 .limit(pageable.getPageSize() + 1)
                 .offset((int) pageable.getOffset())
@@ -194,7 +195,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(
                         Arrays.stream(searchWords)
                                 .map(word -> DSL.condition(
-                                        "MATCH(place_name, plc_description) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                        "MATCH(place_name, plc_description) AGAINST (? IN NATURAL LANGUAGE MODE)", word + "*"
                                 ))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
@@ -206,7 +207,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(
                         Arrays.stream(searchWords)
                                 .map(word -> DSL.condition(
-                                        "MATCH(address, province, city_district, subdistrict) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                        "MATCH(address, province, city_district, subdistrict) AGAINST (? IN NATURAL LANGUAGE MODE)", word + "*"
                                 ))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
