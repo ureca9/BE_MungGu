@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -39,7 +40,7 @@ public class ReviewController {
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException, InterruptedException {
+            @CurrentMember Member member) throws IOException, InterruptedException, TimeoutException {
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }
@@ -49,7 +50,7 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> newFiles,
-            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException {
+            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
         reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
