@@ -29,6 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,6 +123,7 @@ public class ReviewService {
     }
 
     @Async // AOP 기반으로 작동되기 때문에 private 메서드에서는 작동하지 않음
+    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000)) // 재시도
     protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
