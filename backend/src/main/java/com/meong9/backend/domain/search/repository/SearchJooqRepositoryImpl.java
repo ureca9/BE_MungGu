@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -26,8 +27,21 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     private final DSLContext dsl;
 
     @Override
-    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String sizeCode, String typeCode, Long memberId) {
+    public Slice<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String sizeCode, String typeCode, Long memberId, Pageable pageable) {
 
+        // 1. 1차 필터링된 장소ID에 더해, 2차로 카테고리 필터링, 3차로 무게 필터링을 마친 filted_placesid_field 생성
+        var filteredPlaceSubquery = dsl.select(PLACE.PLACE_ID)
+                .from(PLACE)
+                .where(PLACE.PLACE_ID.in(filteredPlaceIds))
+                .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
+                .and(getWeightCondition(sizeCode))
+                .limit(pageable.getPageSize() + 1)
+                .offset((int) pageable.getOffset())
+                .asTable("filtered_places");
+
+        Field<Long> filteredPlaceIdField = DSL.field("filtered_places.place_id", Long.class);
+
+        // 2. 필터링이 끝난 id를 기반으로 정보를 가져와 dto에 매핑
         List<SearchPlaceDto> places = dsl.select(
                         PLACE.PLACE_ID, // placeId
                         PLACE.PLACE_NAME.as("placeName"), // placeName
@@ -41,11 +55,9 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 )
                 .from(PLACE)
                 .join(PLC_CATEGORY).on(PLACE.PLC_CATEGORY_ID.eq(PLC_CATEGORY.PLC_CATEGORY_ID))
-                .where(
-                        PLACE.PLACE_ID.in(filteredPlaceIds)
-                                .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
-                                .and(getWeightCondition(sizeCode))
-                )
+                .where(PLACE.PLACE_ID.in(
+                        dsl.select(filteredPlaceIdField).from(filteredPlaceSubquery)
+                ))
                 .orderBy(DSL.field("review_count").desc())
                 .fetchInto(SearchPlaceDto.class);
 
@@ -53,13 +65,17 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
         Map<Long, List<String>> tagsByPlaceId = dsl.select(PLACE_TAG.PLACE_ID, TAG.TAG_NAME)
                 .from(PLACE_TAG)
                 .join(TAG).on(PLACE_TAG.TAG_ID.eq(TAG.TAG_ID))
-                .where(PLACE_TAG.PLACE_ID.in(filteredPlaceIds))
+                .where(PLACE_TAG.PLACE_ID.in(
+                        dsl.select(filteredPlaceIdField).from(filteredPlaceSubquery)
+                ))
                 .fetchGroups(PLACE_TAG.PLACE_ID, TAG.TAG_NAME);
 
         Map<Long, List<String>> imagesByPlaceId = dsl.select(PLACE_FILE.PLACE_ID, MEDIA_FILE.FILE_URL)
                 .from(PLACE_FILE)
                 .join(MEDIA_FILE).on(PLACE_FILE.MEDIA_FILE_ID.eq(MEDIA_FILE.MEDIA_FILE_ID))
-                .where(PLACE_FILE.PLACE_ID.in(filteredPlaceIds))
+                .where(PLACE_FILE.PLACE_ID.in(
+                        dsl.select(filteredPlaceIdField).from(filteredPlaceSubquery)
+                ))
                 .fetchGroups(PLACE_FILE.PLACE_ID, MEDIA_FILE.FILE_URL);
 
         // 태그 & 이미지 데이터 매핑
@@ -71,7 +87,12 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
             place.setImages(images);
         });
 
-        return places;
+        boolean hasNext = places.size() > pageable.getPageSize();
+
+        // slice는 다음에 데이터가 있는지 알 수 없기 때문에, 먼저 11개를 요청한 다음 11개가 들고와지면 10개로 줄여서 보내기
+        if (hasNext) places.remove(places.size() - 1);
+
+        return new SliceImpl<>(places, pageable, hasNext);
     }
 
     @Override
@@ -150,8 +171,22 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     }
 
     @Override
-    public Slice<Long> findPlaceIdsBySearchWord(String searchWord, Pageable pageable) {
-        // 검색어를 단어별로 나누어 배열에 담기
+    public Slice<Long> findPlaceIdsBySearchWordForMap(String searchWord, Pageable pageable) {
+        List<Long> result = findPlaceIdsBySearchWordInternal(searchWord, pageable);
+
+        boolean hasNext = result.size() > pageable.getPageSize();
+        if (hasNext) result.remove(result.size() - 1);
+
+        return new SliceImpl<>(result, pageable, hasNext);
+    }
+
+    @Override
+    public List<Long> findPlaceIdsBySearchWord(String searchWord) {
+        return findPlaceIdsBySearchWordInternal(searchWord, null);
+    }
+
+    private List<Long> findPlaceIdsBySearchWordInternal(String searchWord, Pageable pageable) {
+        // 검색어를 단어별로 나누기
         String[] searchWords = searchWord.split(" ");
 
         // place 테이블에서 검색
@@ -160,7 +195,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(
                         Arrays.stream(searchWords)
                                 .map(word -> DSL.condition(
-                                        "MATCH(place_name, plc_description) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                        "MATCH(place_name, plc_description) AGAINST (? IN NATURAL LANGUAGE MODE)", word + "*"
                                 ))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
@@ -172,21 +207,23 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(
                         Arrays.stream(searchWords)
                                 .map(word -> DSL.condition(
-                                        "MATCH(address, province, city_district, subdistrict) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                        "MATCH(address, province, city_district, subdistrict) AGAINST (? IN NATURAL LANGUAGE MODE)", word + "*"
                                 ))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
 
-        // 두 결과를 UNION으로 합치기
-        List<Long> result =  dsl.selectDistinct(DSL.field("place_id", Long.class))
-                .from(placeQuery.union(addressQuery).asTable("combined_results"))
-                .limit(pageable.getPageSize())
-                .offset((int) pageable.getOffset())
-                .fetchInto(Long.class);
+        // UNION으로 검색 결과 합치기
+        var combinedQuery = dsl.selectDistinct(DSL.field("place_id", Long.class))
+                .from(placeQuery.union(addressQuery).asTable("combined_results"));
 
-        boolean hasNext = result.size() > pageable.getPageSize();
+        // 페이징을 해야 되는 상황에서만 처리하도록
+        if (pageable != null) {
+            return combinedQuery.limit(pageable.getPageSize()+1)
+                    .offset((int) pageable.getOffset())
+                    .fetchInto(Long.class);
+        }
 
-        return new SliceImpl<>(result, pageable, hasNext);
+        return combinedQuery.fetchInto(Long.class);
     }
 
     @Override
@@ -223,48 +260,38 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .fetchInto(Long.class);
 
         boolean hasNext = result.size() > pageable.getPageSize();
+        if (hasNext) result.remove(result.size() - 1);
 
         return new SliceImpl<>(result, pageable, hasNext);
     }
 
-
     private Field<String> getAddressFieldForPlace(String typeCode) {
-        return dsl.select(ADDRESS.ADDRESS_)
-                .from(PLC_PEN_ADDRESS)
-                .join(ADDRESS).on(PLC_PEN_ADDRESS.ADDRESS_ID.eq(ADDRESS.ADDRESS_ID))
-                .where(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(PLACE.PLACE_ID))
-                .and(PLC_PEN_ADDRESS.TYPE.eq(typeCode))
-                .asField();
+        return getAddressField(PLACE.PLACE_ID, typeCode);
     }
 
     private Field<String> getAddressFieldForPension(String typeCode) {
+        return getAddressField(PENSION.PENSION_ID, typeCode);
+    }
+
+    private Field<String> getAddressField(Field<Long> idField, String typeCode) {
         return dsl.select(ADDRESS.ADDRESS_)
                 .from(PLC_PEN_ADDRESS)
                 .join(ADDRESS).on(PLC_PEN_ADDRESS.ADDRESS_ID.eq(ADDRESS.ADDRESS_ID))
-                .where(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(PENSION.PENSION_ID))
+                .where(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(idField))
                 .and(PLC_PEN_ADDRESS.TYPE.eq(typeCode))
                 .asField();
     }
 
-    private Field<Boolean> getLikeStatusFieldForPlace(Long memberId) {
-        if (memberId == null) {
-            return DSL.inline(false).as("likeStatus");
-        }
 
-        return DSL.when(
-                        DSL.exists(
-                                DSL.selectOne()
-                                        .from(LIKES)
-                                        .where(LIKES.MEMBER_ID.eq(memberId))
-                                        .and(LIKES.PLACE_ID.eq(PLACE.PLACE_ID))
-                        ),
-                        DSL.inline(true)
-                )
-                .otherwise(DSL.inline(false))
-                .as("likeStatus");
+    private Field<Boolean> getLikeStatusFieldForPlace(Long memberId) {
+        return getLikeStatusField(memberId, LIKES.PLACE_ID, PLACE.PLACE_ID);
     }
 
     private Field<Boolean> getLikeStatusFieldForPension(Long memberId) {
+        return getLikeStatusField(memberId, LIKES.PENSION_ID, PENSION.PENSION_ID);
+    }
+
+    private Field<Boolean> getLikeStatusField(Long memberId, Field<Long> idField1, Field<Long> idField2) {
         if (memberId == null) {
             return DSL.inline(false).as("likeStatus");
         }
@@ -274,7 +301,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                                 DSL.selectOne()
                                         .from(LIKES)
                                         .where(LIKES.MEMBER_ID.eq(memberId))
-                                        .and(LIKES.PENSION_ID.eq(PENSION.PENSION_ID))
+                                        .and(idField1.eq(idField2))
                         ),
                         DSL.inline(true)
                 )

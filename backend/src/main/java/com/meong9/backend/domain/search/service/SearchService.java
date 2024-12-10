@@ -50,18 +50,18 @@ public class SearchService {
                                                 double heaviestDogWeight, Pageable pageable, Long memberId) {
         String typeCode = "010"; // 시설 코드
 
-        Slice<Long> filteredPlaceIds; // 최종 필터링된 시설 ID 목록
+        List<Long> filteredPlaceIds; // 최종 필터링된 시설 ID 목록
 
         if (searchWord != null && !searchWord.trim().isEmpty()) {
             // 1. 검색어로 시설 ID 필터링
-            filteredPlaceIds = searchRepository.findPlaceIdsBySearchWord(searchWord, pageable);
+            filteredPlaceIds = searchRepository.findPlaceIdsBySearchWord(searchWord);
         } else {
             // 2. 지역으로 시설 ID 필터링
             List<Long> regionIds = (regionList == null || regionList.isEmpty())
                     ? regionRepository.findAllRegionIds()
                     : regionRepository.findRegionIdsByNameIn(regionList);
 
-            filteredPlaceIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode, pageable);
+            filteredPlaceIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode);
         }
 
         List<Long> categoryIds = (placeTypes == null || placeTypes.isEmpty())
@@ -72,16 +72,17 @@ public class SearchService {
         String sizeCode = heaviestDogWeight < 10 ? "010" : heaviestDogWeight < 25 ? "020" : "030";
 
         // 3. 최종 필터링된 시설 조회
-        List<SearchPlaceDto> filteredPlaces =
+        Slice<SearchPlaceDto> filteredPlaces =
                 searchRepository.searchPlaces(
-                filteredPlaceIds.getContent(),
+                filteredPlaceIds,
                 categoryIds,
                 sizeCode,
                 typeCode,
-                memberId);
+                memberId,
+                pageable);
 
         // 4. 반환
-        return new SearchPlacesResponseDto(filteredPlaces, filteredPlaceIds.hasNext());
+        return new SearchPlacesResponseDto(filteredPlaces.getContent(), filteredPlaces.hasNext());
     }
 
     @Transactional(readOnly = true)
@@ -101,7 +102,7 @@ public class SearchService {
                     ? regionRepository.findAllRegionIds()
                     : regionRepository.findRegionIdsByNameIn(regionList);
 
-            filteredPensionIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode, pageable);
+            filteredPensionIds = plcPenAddressRepository.findFacilityIdsByRegionIdInWithPagination(regionIds, typeCode, pageable);
         }
 
         // 2. 반려견 체중 조건 추가

@@ -19,7 +19,7 @@ import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.repository.RegionRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j(topic = "MemberService")
 public class MemberService {
@@ -48,6 +47,7 @@ public class MemberService {
     /**
      * refresh token 사용하여 access token 재발급하는 서비스 메서드
      */
+    @Transactional
     public String refreshAccessToken(String refreshToken) {
         if (refreshToken == null) {
             throw AuthenticationException.noRefreshToken();
@@ -73,6 +73,7 @@ public class MemberService {
     /**
      * refresh token의 Max age를 0으로 만들어 로그아웃 시키는 메서드
      */
+    @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null) {
             throw AuthenticationException.noRefreshToken();
@@ -85,6 +86,7 @@ public class MemberService {
     /**
      * 사용자의 선호 시설을 저장하는 서비스 메서드
      */
+    @Transactional
     public void insertPreferredPlaces(InterestDto dto, Member member) {
         if (dto.getPlaces() == null || dto.getPlaces().isEmpty()) return;
 
@@ -107,6 +109,7 @@ public class MemberService {
     /**
      * 사용자의 선호 지역을 저장하는 서비스 메서드
      */
+    @Transactional
     public void insertPreferredRegions(RegionDto dto, Member member) {
         if (dto.getRegions() == null || dto.getRegions().isEmpty()) return;
 
@@ -129,6 +132,7 @@ public class MemberService {
     /**
      * 사용자 정보를 등록하는 서비스 메서드
      */
+    @Transactional
     public void insertMemberInfo(MultipartFile profileImage,MemberInfoDto dto, Member member) throws IOException {
         updateMember(profileImage, dto, member);
 
@@ -138,6 +142,7 @@ public class MemberService {
     /**
      * 프로필 이미지를 삭제하는 서비스 메서드
      */
+    @Transactional
     public void deleteProfileImage(Member member) {
         mediaFileService.deleteProfileImage(member.getMemberId(),"Mprofile/","_profile.jpg");
     }
@@ -145,6 +150,7 @@ public class MemberService {
     /**
      * 닉네임 중복을 확인하는 서비스 메서드
      */
+    @Transactional(readOnly = true)
     public boolean isNicknameAvailable(String nickname) {
         return !memberRepository.existsByNickname(nickname);
     }
@@ -152,6 +158,7 @@ public class MemberService {
     /**
      * 마이페이지를 조회하는 서비스 메서드
      */
+    @Transactional(readOnly = true)
     public MypageDto getMyPage(Member member) {
         List<Puppy> puppies = puppyRepository.findByMemberIdWithPuppyProfileImage(member.getMemberId());
         Member foundMember = memberRepository.findMemberWithProfileImage(member.getMemberId()).orElseThrow();
@@ -170,6 +177,10 @@ public class MemberService {
                 .build();
     }
 
+    /**
+     * 마이페이지 상세 조회 메서드
+     */
+    @Transactional(readOnly = true)
     public MyPageDetailDto getMyPageDetail(Member member) {
         Member foundMember = memberRepository.findMemberWithProfileImage(member.getMemberId()).orElseThrow();
         return MyPageDetailDto.builder()
@@ -181,6 +192,10 @@ public class MemberService {
                 .build();
     }
 
+    /**
+     * 마이페이지 수정 메서드
+     */
+    @Transactional
     public UpdateMyPageResponseDto updateMyPage(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
         updateMember(profileImage, dto, member);
 
@@ -203,6 +218,10 @@ public class MemberService {
         }
     }
 
+    /**
+     * 선호 지역 조회 메서드
+     */
+    @Transactional(readOnly = true)
     public RegionDto getPreferredRegions(Member member) {
         List<FavoriteRegion> favRegionList = favoriteRegionRepository.findByMemberId(member.getMemberId());
         return new RegionDto(favRegionList.stream()
@@ -210,6 +229,10 @@ public class MemberService {
                 .collect(Collectors.toSet()));
     }
 
+    /**
+     * 선호 시설 조회 메서드
+     */
+    @Transactional(readOnly = true)
     public InterestDto getPreferredPlaces(Member member) {
         List<PlcFavCategory> favCategoryList = plcFavCategoryRepository.findByMemberId(member.getMemberId());
         return new InterestDto(favCategoryList.stream()
