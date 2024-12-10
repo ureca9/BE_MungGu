@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.recommendation.recommendation.controller;
 
+import com.meong9.backend.domain.like.service.LikeService;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.recommendation.recommendation.dto.RecommendationDto;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PensionRecommendation;
@@ -22,14 +23,20 @@ import java.util.Map;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final LikeService likeService;
 
     @GetMapping("/spots/recommendations")
     public ResponseEntity<?> recommendPensions(@CurrentMember Member member) {
-        List<RecommendationDto> recommendItem = recommendationService.getPensionRecommendations(member, 5);
-
         Map<String, List<RecommendationDto>> recommend = new HashMap<>();
-        recommend.put("recommend", recommendItem);
 
+        if(member == null) { // 로그인 되지 않은 사용자
+            // 좋아요 인기 펜션
+            List<RecommendationDto> recommendItem = likeService.getTopLikedPensions();
+            recommend.put("recommend", recommendItem);
+        } else { // 로그인 된 사용자
+            List<RecommendationDto> recommendItem = recommendationService.getPensionRecommendations(member, 5);
+            recommend.put("recommend", recommendItem);
+        }
         return CommonResponse.ok("success", recommend);
     }
 
