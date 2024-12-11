@@ -90,16 +90,15 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public Object getPlacePensionInfo(PlacePensionInfoRequestDto placePensionRequestDto) {
-        Long plcPenId = placePensionRequestDto.getPlcPenId();
-        String type=placePensionRequestDto.getType();
+    public Object getPlacePensionInfo(String type,Long plcPenId) {
+
         String fullAddress=plcPenAddressRepository.findFullAddress(type, plcPenId)
                 .orElseThrow(() -> NotFoundException
-                        .entityNotFound("찾으시는 주소가 없습니다, type: " +placePensionRequestDto.getType()+", id: " + placePensionRequestDto.getPlcPenId()));
-        if(Objects.equals(placePensionRequestDto.getType(), "010")){ // 장소
+                        .entityNotFound("찾으시는 주소가 없습니다, type: " +type+", id: " + plcPenId));
+        if(Objects.equals(type, "010")){ // 장소
             Place place=placeRepository.findByPlaceIdWithImage(plcPenId)
                     .orElseThrow(() -> NotFoundException
-                    .entityNotFound("type: " +placePensionRequestDto.getType()+", place_id: " + placePensionRequestDto.getPlcPenId()));
+                    .entityNotFound("type: " +type+", place_id: " + plcPenId));
             String fileUrl=null;
             if(place.getPlaceFiles() != null) {
                 fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
@@ -107,10 +106,10 @@ public class ReviewService {
 
             return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl);
         }
-        if(Objects.equals(placePensionRequestDto.getType(), "020")){ // 펜션
+        if(Objects.equals(type, "020")){ // 펜션
             Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
                     .orElseThrow(() -> NotFoundException
-                            .entityNotFound("type: " +placePensionRequestDto.getType()+", pension_id: " + placePensionRequestDto.getPlcPenId()));
+                            .entityNotFound("type: " +type+", pension_id: " + plcPenId));
 
             String fileUrl=null;
             if(pension.getPensionFiles() != null) {
