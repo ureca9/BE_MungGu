@@ -43,8 +43,8 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews/info")
-    public ResponseEntity<?> getPlacePensionInfo(@Valid @RequestBody PlacePensionInfoRequestDto placePensionRequestDto) {
-        return CommonResponse.ok("success", reviewService.getPlacePensionInfo(placePensionRequestDto));
+    public ResponseEntity<?> getPlacePensionInfo(@RequestParam(required = true) String type,@RequestParam(required = true) Long id) {
+        return CommonResponse.ok("success", reviewService.getPlacePensionInfo(type,id));
     }
 
     @PostMapping("/reviews")
