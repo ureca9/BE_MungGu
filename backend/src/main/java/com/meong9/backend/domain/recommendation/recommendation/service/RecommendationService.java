@@ -13,6 +13,7 @@ import com.meong9.backend.domain.recommendation.recommendation.repository.Pensio
 import com.meong9.backend.domain.recommendation.recommendation.repository.PlaceRecommendationRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.AddressMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.impl.model.jdbc.ReloadFromJDBCDataModel;
 import org.apache.mahout.cf.taste.model.DataModel;
@@ -123,7 +124,7 @@ public class RecommendationService {
             PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020")
                     .orElseThrow(() -> NotFoundException.entityNotFound("시설 주소"));
 
-            String address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
+            String address = AddressMapper.formatAddress(plcPenAddress);
 
             // 이미지 null 체크
             String img = null;
