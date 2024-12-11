@@ -15,7 +15,9 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.support.IteratorItemReader;
@@ -116,17 +118,30 @@ public class RecommendationBatchConfig {
     @Bean
     public IteratorItemReader<Long> userBasedReader() {
         List<Long> memberIds = recommendationService.getActiveMemberIds();
+        List<Long> pensionIds = recommendationService.getPensionsWithReviews();
         log.info("Reader initialized with member IDs: {}", memberIds);
+        log.info("Reader initialized with pension IDs: {}", pensionIds);
+
+        // StepExecutionContext에 데이터를 저장
         return new IteratorItemReader<>(memberIds.iterator()) {
             @Override
             public Long read() {
-                log.info("Reader is attempting to fetch data...");
                 Long memberId = super.read();
+                if (memberId != null) {
+                    // ExecutionContext에 pensionIds 저장
+                    ExecutionContext executionContext = StepSynchronizationManager.getContext().getStepExecution().getExecutionContext();
+                    if (!executionContext.containsKey("pensionIds")) {
+                        executionContext.put("pensionIds", pensionIds);
+                        log.info("Saved pensionIds to ExecutionContext: {}", pensionIds);
+                    }
+                }
                 log.info("Reader fetched memberId: {}", memberId);
                 return memberId;
             }
         };
     }
+
+
 
 
 
@@ -140,32 +155,39 @@ public class RecommendationBatchConfig {
     // 사용자 기반 추천 Processor
     @Bean
     public ItemProcessor<Long, List<PensionRecommendation>> userRecommendationProcessor() {
-        log.info("user base processor 실행중---");
-        return new ItemProcessor<Long, List<PensionRecommendation>>() {
-            @Override
-            public List<PensionRecommendation> process(Long userId) throws Exception {
-                log.info("Processor received userId: {}", userId);
-                if (userId == null) {
-                    log.warn("Processor received null userId.");
-                    return null;
-                }
+        return userId -> {
+            log.info("Processor received userId: {}", userId);
 
-                List<RecommendedItem> recommendations = recommendationService.processUserRecommendations(userId);
-                log.info("Processor generated recommendations for userId {}: {}", userId, recommendations);
-
-                List<PensionRecommendation> pensionRecommendations = new ArrayList<>();
-                for (RecommendedItem item : recommendations) {
-                    PensionRecommendation pensionRecommendation = PensionRecommendation.builder()
-                            .pensionMemberId(new PensionMemberId(item.getItemID(), userId))
-                            .score(item.getValue())
-                            .build();
-                    pensionRecommendations.add(pensionRecommendation);
-                }
-
-                return pensionRecommendations;
+            if (userId == null) {
+                log.warn("Processor received null userId.");
+                return null;
             }
+
+            // ExecutionContext에서 pensionIds 가져오기
+            ExecutionContext executionContext = StepSynchronizationManager.getContext().getStepExecution().getExecutionContext();
+            List<Long> pensionIds = (List<Long>) executionContext.get("pensionIds");
+
+            log.info("Processor fetched pensionIds from ExecutionContext: {}", pensionIds);
+
+            // 협업 필터링 결과 가져오기
+            List<RecommendedItem> recommendations = recommendationService.recommend(userId, pensionIds, "Pension");
+            log.info("Processor generated recommendations for userId {}: {}", userId, recommendations);
+
+            // 추천 결과를 PensionRecommendation 형태로 변환
+            List<PensionRecommendation> pensionRecommendations = new ArrayList<>();
+            for (RecommendedItem item : recommendations) {
+                PensionRecommendation recommendation = PensionRecommendation.builder()
+                        .pensionMemberId(new PensionMemberId(item.getItemID(), userId))
+                        .score(item.getValue())
+                        .build();
+                pensionRecommendations.add(recommendation);
+            }
+
+            return pensionRecommendations;
         };
     }
+
+
 
     // 점수 업데이트 + 추천 데이터 생성 Processor
     @Bean

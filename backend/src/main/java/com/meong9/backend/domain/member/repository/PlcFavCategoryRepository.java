@@ -16,4 +16,7 @@ public interface PlcFavCategoryRepository extends JpaRepository<PlcFavCategory, 
 
     @Query("SELECT p FROM PlcFavCategory p where p.member.memberId = :memberId")
     List<PlcFavCategory> findByMemberId(Long memberId);
+
+    @Query("SELECT p.plcCategory.plcCategoryId FROM PlcFavCategory p where p.member.memberId = :memberId")
+    List<Long> findCategoryIdsByMemberId(@Param("memberId") Long memberId);
 }

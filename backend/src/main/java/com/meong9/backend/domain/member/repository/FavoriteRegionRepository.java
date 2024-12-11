@@ -5,6 +5,7 @@ import com.meong9.backend.domain.member.entity.id.FavoriteRegionId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -15,4 +16,7 @@ public interface FavoriteRegionRepository extends JpaRepository<FavoriteRegion, 
 
     @Query("SELECT f FROM FavoriteRegion f where f.member.memberId = :memberId")
     List<FavoriteRegion> findByMemberId(Long memberId);
+
+    @Query("SELECT f.region.regionId FROM FavoriteRegion f where f.member.memberId = :memberId")
+    List<Long> findRegionIdsByMemberId(@Param("memberId") Long memberId);
 }

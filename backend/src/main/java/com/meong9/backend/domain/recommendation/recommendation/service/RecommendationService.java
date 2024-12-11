@@ -16,6 +16,7 @@ import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.impl.model.jdbc.ReloadFromJDBCDataModel;
+import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,7 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -45,11 +49,13 @@ public class RecommendationService {
     private final PensionRecommendationRepository pensionRecommendationRepository;
     private final PlaceRecommendationRepository placeRecommendationRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
+    private final ContentBasedRecommendation contentBasedRecommendation;
+
 
     public RecommendationService(@Qualifier("pensionDataModel")DataModel pensionDataModel, @Qualifier("placeDataModel")DataModel placeDataModel,
                                  UserBasedRecommendation userBasedRecommendation, ItemBasedRecommendation itemBasedRecommendation,
                                  ReviewRepository reviewRepository, MemberRepository memberRepository,
-                                 PensionRecommendationRepository pensionRecommendationRepository, PlaceRecommendationRepository placeRecommendationRepository, PlcPenAddressRepository plcPenAddressRepository) {
+                                 PensionRecommendationRepository pensionRecommendationRepository, PlaceRecommendationRepository placeRecommendationRepository, PlcPenAddressRepository plcPenAddressRepository, ContentBasedRecommendation contentBasedRecommendation) {
         this.pensionDataModel = pensionDataModel;
         this.placeDataModel = placeDataModel;
         this.userBasedRecommendation = userBasedRecommendation;
@@ -59,11 +65,12 @@ public class RecommendationService {
         this.pensionRecommendationRepository = pensionRecommendationRepository;
         this.placeRecommendationRepository = placeRecommendationRepository;
         this.plcPenAddressRepository = plcPenAddressRepository;
+        this.contentBasedRecommendation = contentBasedRecommendation;
     }
 
     // 사용자 기반 펜션 추천 (User-Based)
     @Transactional(readOnly = true)
-    public List<RecommendedItem> processUserRecommendations(Long userId) {
+    public Map<Long, Double> processUserRecommendations(Long userId) {
         log.info("Processing recommendations for userId: {}", userId); // 로그 추가
         try {
             if (pensionDataModel instanceof ReloadFromJDBCDataModel) {
@@ -72,10 +79,18 @@ public class RecommendationService {
 
                 log.info("DataModel 새로고침.");
             }
-            return userBasedRecommendation.recommend(pensionDataModel, userId, 10);
+            // 협업 필터링 추천
+            List<RecommendedItem> recommendedItems = userBasedRecommendation.recommend(pensionDataModel, userId, 10);
+
+            // 점수를 Map 형태로 변환
+            return recommendedItems.stream()
+                    .collect(Collectors.toMap(
+                            RecommendedItem::getItemID,
+                            item -> (double) item.getValue() // float -> Double 변환
+                    ));
         } catch (Exception e) {
             log.error("Error processing user recommendations for userId: {}", userId, e);
-            return List.of();
+            return new HashMap<>();
         }
     }
 
@@ -214,6 +229,64 @@ public class RecommendationService {
             placeRecommendationList.add(placeRecommendationDto);
         }
         return placeRecommendationList;
+    }
+
+    public List<RecommendedItem> recommend(Long userId, List<Long> allPensionIds, String type) {
+        log.info("추천 계산 시작 (userId: {}, type: {})", userId, type);
+
+        // 1. 점수 계산
+        Map<Long, Double> combinedScores = calculateScores(userId, allPensionIds, type);
+
+        // 2. 상위 추천 항목 반환
+        return getTopRecommendations(combinedScores, 5);
+    }
+
+    private Map<Long, Double> calculateScores(Long userId, List<Long> allPensionIds, String type) {
+        // 협업 필터링 점수 계산
+        Map<Long, Double> collaborativeScores = processUserRecommendations(userId);
+        log.info("협업 필터링 점수: {}", collaborativeScores);
+
+        // 콘텐츠 기반 점수 계산
+        Map<Long, Double> contentScores = contentBasedRecommendation.calculateContentScores(userId, allPensionIds, type);
+        log.info("콘텐츠 기반 점수: {}", contentScores);
+
+        // 점수 결합
+        return combineScores(collaborativeScores, contentScores, 0.4);
+    }
+
+    private List<RecommendedItem> getTopRecommendations(Map<Long, Double> combinedScores, int limit) {
+        // 정렬 및 상위 항목 반환
+        List<RecommendedItem> recommendations = combinedScores.entrySet().stream()
+                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
+                .limit(limit)
+                .map(entry -> new GenericRecommendedItem(entry.getKey(), entry.getValue().floatValue()))
+                .collect(Collectors.toList());
+
+        log.info("Top {} recommendations: {}", limit, recommendations);
+        return recommendations;
+    }
+
+    public static Map<Long, Double> combineScores(
+            Map<Long, Double> collaborativeScores,
+            Map<Long, Double> contentScores,
+            double collaborativeWeight
+    ) {
+        double contentWeight = 1.0 - collaborativeWeight;
+        Map<Long, Double> combinedScores = new HashMap<>();
+
+        for (Long id : contentScores.keySet()) {
+            double collaborativeScore = collaborativeScores.getOrDefault(id, 0.0);
+            double contentScore = contentScores.getOrDefault(id, 0.0);
+
+            // 최종 점수 계산
+            double combinedScore = (collaborativeScore * collaborativeWeight) + (contentScore * contentWeight);
+            combinedScores.put(id, combinedScore);
+
+            log.info("ID: {}, Collaborative Score: {}, Content Score: {}, Combined Score: {}",
+                    id, collaborativeScore, contentScore, combinedScore);
+        }
+
+        return combinedScores;
     }
 
 }
