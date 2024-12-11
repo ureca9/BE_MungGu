@@ -87,6 +87,10 @@ public class LikeService {
         Page<Long> pensionIdPage = likeRepository.findTopPensionIds(pageRequest);
         List<Long> pensionIdList = pensionIdPage.getContent();
 
+        if (pensionIdList.isEmpty()) {
+            throw NotFoundException.entityNotFound("추천된 펜션");
+        }
+
         // 펜션 및 주소 가져오기
         List<Pension> pensions = pensionRepository.findAllDataByIds(pensionIdList);
         List<PlcPenAddress> plcPenAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIdList, "020");
