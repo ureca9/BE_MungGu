@@ -59,5 +59,6 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
             @Param("member") Member member
     );
 
-
+    @Query("SELECT p.name FROM Pension p WHERE p.pensionId = :pensionId")
+    String findNameByPensionId(@Param("pensionId") Long pensionId); // 이름만 조회
 }

@@ -26,6 +26,7 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -38,10 +39,10 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -73,9 +74,52 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<MyReviewResponseDto> getMyReviews(Member member) {
-        List<Review> reviews = reviewRepository.findByMember(member);
-        return reviews.stream().map(MyReviewResponseDto::from).toList();
+    public List<MyReviewResponseDto> getMyReviews(Member member,Long lastReviewId,Pageable pageable) {
+        List<Review> reviews = reviewRepository.findByMember(member,lastReviewId,pageable).getContent();
+        List<MyReviewResponseDto> result = new ArrayList<>();
+        for (Review review : reviews) {
+            if(Objects.equals(review.getType(), "010")){ // 장소
+                result.add(MyReviewResponseDto.from(review,placeRepository.findNameByPlaceId(review.getPlacePensionId())));
+            }
+            if(Objects.equals(review.getType(), "020")){ // 펜션
+                result.add(MyReviewResponseDto.from(review,pensionRepository.findNameByPensionId(review.getPlacePensionId())));
+            }
+        }
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Object getPlacePensionInfo(PlacePensionInfoRequestDto placePensionRequestDto) {
+        Long plcPenId = placePensionRequestDto.getPlcPenId();
+        String type=placePensionRequestDto.getType();
+        String fullAddress=plcPenAddressRepository.findFullAddress(type, plcPenId)
+                .orElseThrow(() -> NotFoundException
+                        .entityNotFound("찾으시는 주소가 없습니다, type: " +placePensionRequestDto.getType()+", id: " + placePensionRequestDto.getPlcPenId()));
+        if(Objects.equals(placePensionRequestDto.getType(), "010")){ // 장소
+            Place place=placeRepository.findByPlaceIdWithImage(plcPenId)
+                    .orElseThrow(() -> NotFoundException
+                    .entityNotFound("type: " +placePensionRequestDto.getType()+", place_id: " + placePensionRequestDto.getPlcPenId()));
+            String fileUrl=null;
+            if(place.getPlaceFiles() != null) {
+                fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
+            }
+
+            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl);
+        }
+        if(Objects.equals(placePensionRequestDto.getType(), "020")){ // 펜션
+            Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
+                    .orElseThrow(() -> NotFoundException
+                            .entityNotFound("type: " +placePensionRequestDto.getType()+", pension_id: " + placePensionRequestDto.getPlcPenId()));
+
+            String fileUrl=null;
+            if(pension.getPensionFiles() != null) {
+                fileUrl=pension.getPensionFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
+            }
+
+            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl);
+        }
+        return null;
     }
 
     @Transactional
@@ -93,7 +137,7 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
-        processFile(files, savedReview, mediaFiles);
+        processFileAsync(files, savedReview, mediaFiles);
     }
 
     @Transactional
@@ -119,17 +163,32 @@ public class ReviewService {
 
         // 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
-        processFile(files, review, mediaFiles);
+        processFileAsync(files, review, mediaFiles);
     }
 
-    @Async // AOP 기반으로 작동되기 때문에 private 메서드에서는 작동하지 않음
-    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000)) // 재시도
-    protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
+
+    @Async // 비동기 실행
+    public CompletableFuture<Void> processFileAsync(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) {
+        try {
+            processFileWithRetry(files, review, mediaFiles); // 재시도 로직 호출
+        } catch (Exception e) {
+            // 에러 처리
+            log.error("파일 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Retryable( // 재시도 로직 정의
+            value = TimeoutException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000)
+    )
+    protected void processFileWithRetry(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, TimeoutException, InterruptedException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
             AtomicInteger fileNum = new AtomicInteger(0);
             for (MultipartFile mf : files) {
-                MediaFile file = handleFileUpload(mf, review.getReviewId(),fileNum);
+                MediaFile file = handleFileUpload(mf, review.getReviewId(), fileNum);
                 mediaFiles.add(file);
 
                 // 복합 키 생성
@@ -151,7 +210,7 @@ public class ReviewService {
             }
         }
 
-        synchronizeTransaction(mediaFiles);
+        synchronizeTransaction(mediaFiles); // 트랜잭션 동기화 처리
     }
 
     /**
@@ -566,5 +625,5 @@ public class ReviewService {
     }
 
 
-
 }
+

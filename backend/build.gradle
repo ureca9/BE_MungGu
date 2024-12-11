@@ -83,7 +83,7 @@ jooq {
 					driver = 'com.mysql.cj.jdbc.Driver'
 					url = System.getProperty('dbUrl', 'jdbc:mysql://localhost:3306/meong9')
 					user = System.getProperty('dbUsername', 'root')
-					password = System.getProperty('dbPassword', 'root')
+					password = System.getProperty('dbPassword', '1234')
 				}
 				generator {
 					database {
