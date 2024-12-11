@@ -26,6 +26,9 @@ public class AddressMapper {
         }
 
         if(cityDistrict == null || cityDistrict.isBlank()) {
+            if(subDistrict == null || subDistrict.isBlank()) {
+                return province;
+            }
             subDistrict = subDistrict.substring(0, Math.min(2, subDistrict.length()));
             return province + " " + subDistrict;
         } else {
