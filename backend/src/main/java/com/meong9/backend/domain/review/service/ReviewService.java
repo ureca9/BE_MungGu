@@ -26,6 +26,7 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -38,7 +39,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,9 +73,52 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<MyReviewResponseDto> getMyReviews(Member member) {
-        List<Review> reviews = reviewRepository.findByMember(member);
-        return reviews.stream().map(MyReviewResponseDto::from).toList();
+    public List<MyReviewResponseDto> getMyReviews(Member member,Long lastReviewId,Pageable pageable) {
+        List<Review> reviews = reviewRepository.findByMember(member,lastReviewId,pageable).getContent();
+        List<MyReviewResponseDto> result = new ArrayList<>();
+        for (Review review : reviews) {
+            if(Objects.equals(review.getType(), "010")){ // 장소
+                result.add(MyReviewResponseDto.from(review,placeRepository.findNameByPlaceId(review.getPlacePensionId())));
+            }
+            if(Objects.equals(review.getType(), "020")){ // 펜션
+                result.add(MyReviewResponseDto.from(review,pensionRepository.findNameByPensionId(review.getPlacePensionId())));
+            }
+        }
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Object getPlacePensionInfo(PlacePensionInfoRequestDto placePensionRequestDto) {
+        Long plcPenId = placePensionRequestDto.getPlcPenId();
+        String type=placePensionRequestDto.getType();
+        String fullAddress=plcPenAddressRepository.findFullAddress(type, plcPenId)
+                .orElseThrow(() -> NotFoundException
+                        .entityNotFound("찾으시는 주소가 없습니다, type: " +placePensionRequestDto.getType()+", id: " + placePensionRequestDto.getPlcPenId()));
+        if(Objects.equals(placePensionRequestDto.getType(), "010")){ // 장소
+            Place place=placeRepository.findByPlaceIdWithImage(plcPenId)
+                    .orElseThrow(() -> NotFoundException
+                    .entityNotFound("type: " +placePensionRequestDto.getType()+", place_id: " + placePensionRequestDto.getPlcPenId()));
+            String fileUrl=null;
+            if(place.getPlaceFiles() != null) {
+                fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
+            }
+
+            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl);
+        }
+        if(Objects.equals(placePensionRequestDto.getType(), "020")){ // 펜션
+            Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
+                    .orElseThrow(() -> NotFoundException
+                            .entityNotFound("type: " +placePensionRequestDto.getType()+", pension_id: " + placePensionRequestDto.getPlcPenId()));
+
+            String fileUrl=null;
+            if(pension.getPensionFiles() != null) {
+                fileUrl=pension.getPensionFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
+            }
+
+            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl);
+        }
+        return null;
     }
 
     @Transactional
@@ -123,7 +166,11 @@ public class ReviewService {
     }
 
     @Async // AOP 기반으로 작동되기 때문에 private 메서드에서는 작동하지 않음
-    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000)) // 재시도
+    @Retryable(
+            value = TimeoutException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000)
+    )
     protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
@@ -566,5 +613,5 @@ public class ReviewService {
     }
 
 
-
 }
+

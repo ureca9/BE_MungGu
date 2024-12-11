@@ -12,6 +12,7 @@ import java.util.List;
 @Builder
 public class MyReviewResponseDto {
     private Long reviewId;
+    private String plcPenName;
     private String content;
     private Float score;
     private LocalDate visitDate;
@@ -20,9 +21,11 @@ public class MyReviewResponseDto {
     private String nickname;
     private List<FileResponseDto> file;
 
-    public static MyReviewResponseDto from(Review review) {
+    public static MyReviewResponseDto from(Review review,String plcPenName) {
+
         return MyReviewResponseDto.builder()
                 .reviewId(review.getReviewId())
+                .plcPenName(plcPenName)
                 .content(review.getContent())
                 .score(review.getScore())
                 .visitDate(review.getVisitDate())

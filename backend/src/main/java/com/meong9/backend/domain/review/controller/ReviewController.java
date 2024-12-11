@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.review.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.PlacePensionInfoRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.service.ReviewService;
@@ -9,6 +10,9 @@ import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,8 +36,15 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
-        return CommonResponse.ok("success",reviewService.getMyReviews(member));
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member, @PageableDefault(size = 5, sort = "reviewId",
+                                          direction = Sort.Direction.DESC) Pageable pageable,
+    @RequestParam(value = "lastReviewId", required = false) Long lastReviewId) {
+        return CommonResponse.ok("success",reviewService.getMyReviews(member,lastReviewId,pageable));
+    }
+
+    @GetMapping("/reviews/info")
+    public ResponseEntity<?> getPlacePensionInfo(@Valid @RequestBody PlacePensionInfoRequestDto placePensionRequestDto) {
+        return CommonResponse.ok("success", reviewService.getPlacePensionInfo(placePensionRequestDto));
     }
 
     @PostMapping("/reviews")
