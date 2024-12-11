@@ -15,6 +15,7 @@ public class AddressMapper {
 
         String province = plcPenAddress.getAddress().getProvince();
         String cityDistrict = plcPenAddress.getAddress().getCityDistrict();
+        String subDistrict = plcPenAddress.getAddress().getSubDistrict();
 
         // Province가 4글자일 때 1번째, 3번째 추출 -> 충청남도 -> 충남
         if (province.length() == 4) {
@@ -23,9 +24,14 @@ public class AddressMapper {
             // 그 외의 경우 앞 두 글자만 추출
             province = province.substring(0, Math.min(2, province.length()));
         }
-        cityDistrict = cityDistrict.substring(0, Math.min(2, cityDistrict.length()));
 
-        return province + " " + cityDistrict;
+        if(cityDistrict == null || cityDistrict.isBlank()) {
+            subDistrict = subDistrict.substring(0, Math.min(2, subDistrict.length()));
+            return province + " " + subDistrict;
+        } else {
+            cityDistrict = cityDistrict.substring(0, Math.min(2, cityDistrict.length()));
+            return province + " " + cityDistrict;
+        }
     }
 
     // 주소 정보 담는 Map
