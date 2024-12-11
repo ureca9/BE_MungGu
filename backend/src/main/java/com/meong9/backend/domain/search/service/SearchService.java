@@ -50,18 +50,18 @@ public class SearchService {
                                                 double heaviestDogWeight, Pageable pageable, Long memberId) {
         String typeCode = "010"; // 시설 코드
 
-        List<Long> filteredPlaceIds; // 최종 필터링된 시설 ID 목록
+        List<Long> firstFilteredPlaceIds; // 1차로 필터링된 시설 ID 목록
 
         if (searchWord != null && !searchWord.trim().isEmpty()) {
             // 1. 검색어로 시설 ID 필터링
-            filteredPlaceIds = searchRepository.findPlaceIdsBySearchWord(searchWord);
+            firstFilteredPlaceIds = searchRepository.findPlaceIdsBySearchWord(searchWord);
         } else {
             // 2. 지역으로 시설 ID 필터링
             List<Long> regionIds = (regionList == null || regionList.isEmpty())
                     ? regionRepository.findAllRegionIds()
                     : regionRepository.findRegionIdsByNameIn(regionList);
 
-            filteredPlaceIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode);
+            firstFilteredPlaceIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode);
         }
 
         List<Long> categoryIds = (placeTypes == null || placeTypes.isEmpty())
@@ -71,18 +71,19 @@ public class SearchService {
         // 2. 반려견 체중 조건 추가
         String sizeCode = heaviestDogWeight < 10 ? "010" : heaviestDogWeight < 25 ? "020" : "030";
 
-        // 3. 최종 필터링된 시설 조회
-        Slice<SearchPlaceDto> filteredPlaces =
+        // 3. 최종 필터링된 placeId 조회
+        Slice<Long> secondFilteredPlaceIds = searchRepository.findPlaceIdsMatchWithCategoryIds(firstFilteredPlaceIds, categoryIds, sizeCode, pageable);
+
+        // 4. placeId를 가지고 정보 조회
+        List<SearchPlaceDto> filteredPlaces =
                 searchRepository.searchPlaces(
-                filteredPlaceIds,
+                secondFilteredPlaceIds.getContent(),
                 categoryIds,
-                sizeCode,
                 typeCode,
-                memberId,
-                pageable);
+                memberId);
 
         // 4. 반환
-        return new SearchPlacesResponseDto(filteredPlaces.getContent(), filteredPlaces.hasNext());
+        return new SearchPlacesResponseDto(filteredPlaces, secondFilteredPlaceIds.hasNext());
     }
 
     @Transactional(readOnly = true)

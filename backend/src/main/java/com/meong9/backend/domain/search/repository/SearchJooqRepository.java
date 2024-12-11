@@ -8,7 +8,7 @@ import org.springframework.data.domain.Slice;
 import java.util.List;
 
 public interface SearchJooqRepository {
-    Slice<SearchPlaceDto> searchPlaces(List<Long> regionIds, List<Long> categoryIds, String sizeCode, String typeCode, Long memberId, Pageable pageable);
+    List<SearchPlaceDto> searchPlaces(List<Long> regionIds, List<Long> categoryIds, String typeCode, Long memberId);
     List<SearchPensionDto> searchPensions(List<Long> filteredPensionIds, String startDate, String endDate, String sizeCode, String typeCode, Long memberId);
 
     Slice<Long> findPlaceIdsBySearchWordForMap(String searchWord, Pageable pageable);
@@ -16,4 +16,5 @@ public interface SearchJooqRepository {
 
     List<Long> findPlaceIdsBySearchWord(String searchWord);
 
+    Slice<Long> findPlaceIdsMatchWithCategoryIds(List<Long> firstFilteredPlaceIds, List<Long> categoryIds, String sizeCode, Pageable pageable);
 }
