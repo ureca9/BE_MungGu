@@ -84,4 +84,13 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
 
 
+    // 좋아요를 많이 받은 순 펜션 목록
+    @Query("""
+        SELECT p.pensionId
+        FROM PensionLike pl
+        JOIN pl.pension p
+        GROUP BY p.pensionId
+        ORDER BY COUNT(pl) DESC
+    """)
+    Page<Long> findTopPensionIds(Pageable pageable);
 }

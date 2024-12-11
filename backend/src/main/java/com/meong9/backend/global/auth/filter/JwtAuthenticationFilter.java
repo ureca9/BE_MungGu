@@ -47,6 +47,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     filterChain.doFilter(req, res);
                     return;
                 }
+
+                // Authorization 헤더가 있지만 잘못된 토큰일 경우 익명 사용자로 처리
+                String tokenValue = jwtProvider.getTokenFromRequest(req, JwtProvider.AUTHORIZATION_HEADER);
+                if (!StringUtils.hasText(tokenValue)) {
+                    filterChain.doFilter(req, res);
+                    return;
+                }
+
+                try {
+                    jwtProvider.validateToken(tokenValue);
+
+                    String username = jwtProvider.getSubjectFromToken(tokenValue);
+                    UserDetails userDetails = detailsService.loadUserByUsername(username);
+                    validateUserRole(userDetails, jwtProvider.getRoleFromToken(tokenValue));
+                    setAuthentication(userDetails);
+                } catch (Exception e) {
+                    // 잘못된 토큰인 경우 SecurityContext 초기화 후 요청을 계속 처리
+                    SecurityContextHolder.clearContext();
+                    log.warn("토큰이 유효하지 않습니다.");
+                }
+
+                filterChain.doFilter(req, res);
+                return;
             }
 
             // 3. Access Token 인증 처리
