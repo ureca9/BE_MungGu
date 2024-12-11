@@ -42,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -136,7 +137,7 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
-        processFile(files, savedReview, mediaFiles);
+        processFileAsync(files, savedReview, mediaFiles);
     }
 
     @Transactional
@@ -162,21 +163,32 @@ public class ReviewService {
 
         // 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
-        processFile(files, review, mediaFiles);
+        processFileAsync(files, review, mediaFiles);
     }
 
-    @Async // AOP 기반으로 작동되기 때문에 private 메서드에서는 작동하지 않음
-    @Retryable(
+
+    @Async // 비동기 실행
+    public CompletableFuture<Void> processFileAsync(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) {
+        try {
+            processFileWithRetry(files, review, mediaFiles); // 재시도 로직 호출
+        } catch (Exception e) {
+            // 에러 처리
+            log.error("파일 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Retryable( // 재시도 로직 정의
             value = TimeoutException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000)
     )
-    protected void processFile(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, InterruptedException, TimeoutException {
+    protected void processFileWithRetry(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, TimeoutException, InterruptedException {
         if (files != null) {
             List<ReviewFile> reviewFiles = new ArrayList<>();
             AtomicInteger fileNum = new AtomicInteger(0);
             for (MultipartFile mf : files) {
-                MediaFile file = handleFileUpload(mf, review.getReviewId(),fileNum);
+                MediaFile file = handleFileUpload(mf, review.getReviewId(), fileNum);
                 mediaFiles.add(file);
 
                 // 복합 키 생성
@@ -198,7 +210,7 @@ public class ReviewService {
             }
         }
 
-        synchronizeTransaction(mediaFiles);
+        synchronizeTransaction(mediaFiles); // 트랜잭션 동기화 처리
     }
 
     /**
