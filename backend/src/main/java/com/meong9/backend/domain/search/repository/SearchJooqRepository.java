@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface SearchJooqRepository {
-    List<SearchPlaceDto> searchPlaces(List<Long> regionIds, List<Long> categoryIds, String typeCode, Long memberId);
+    List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String typeCode, Long memberId);
     List<SearchPensionDto> searchPensions(List<Long> filteredPensionIds, String startDate, String endDate, String sizeCode, String typeCode, Long memberId);
 
     Slice<Long> findPlaceIdsBySearchWordForMap(String searchWord, Pageable pageable);
