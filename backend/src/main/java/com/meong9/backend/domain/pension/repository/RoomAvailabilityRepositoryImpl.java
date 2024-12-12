@@ -1,11 +1,11 @@
-package com.meong9.backend.domain.pension.service;
+package com.meong9.backend.domain.pension.repository;
 
 import com.meong9.backend.domain.pension.dto.RoomDto;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -13,10 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.meong9.backend.jooq.generated.Tables.*;
+import static com.meong9.backend.jooq.generated.Tables.ROOM_FILE;
 
-@Service // Spring Service 클래스임을 나타냄
-@RequiredArgsConstructor // 생성자를 자동으로 생성하여 의존성을 주입
-public class RoomService {
+@Repository
+@RequiredArgsConstructor
+public class RoomAvailabilityRepositoryImpl implements RoomAvailabilityRepository{
 
     private final DSLContext dsl; // jOOQ의 핵심 클래스, SQL 쿼리를 작성하고 실행하는 데 사용
 
@@ -32,6 +33,7 @@ public class RoomService {
      * @param endDate 예약 종료 날짜
      * @return 예약 가능한 방 목록 (각 방의 이미지 정보 포함)
      */
+    @Override
     @Transactional(readOnly = true)
     public List<RoomResponseDto> findAvailableRoomsWithImages(Long pensionId, LocalDate startDate, LocalDate endDate) {
         List<RoomResponseDto> roomResponseDtos = new ArrayList<>();
@@ -59,6 +61,7 @@ public class RoomService {
      * @param endDate 예약 종료 날짜
      * @return 예약 가능한 방의 목록
      */
+    @Override
     @Transactional(readOnly = true)
     public List<RoomDto> findAvailableRooms(Long pensionId, LocalDate startDate, LocalDate endDate) {
         return dsl.select(
@@ -105,6 +108,7 @@ public class RoomService {
      * @param roomId Room ID
      * @return 해당 Room의 이미지 URL 리스트
      */
+    @Override
     @Transactional(readOnly = true)
     public List<String> findRoomImages(Long roomId) {
         // ROOM_FILE과 MEDIA_FILE을 조인하여 fileUrl 조회
@@ -114,6 +118,4 @@ public class RoomService {
                 .where(ROOM_FILE.ROOM_ID.eq(roomId))                // Room ID 조건
                 .fetchInto(String.class);                          // 결과를 String 리스트로 반환
     }
-
 }
-

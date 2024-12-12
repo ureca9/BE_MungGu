@@ -3,8 +3,10 @@ package com.meong9.backend.domain.review.dto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
 import lombok.*;
+import org.springframework.data.domain.Slice;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 리뷰 요약 정보를 전달하기 위한 DTO 클래스.
@@ -40,12 +42,41 @@ public class ReviewSummaryResponseDto {
     public static ReviewSummaryResponseDto from(Review review, List<ReviewSummaryFileDto> files, Member member) {
         return ReviewSummaryResponseDto.builder()
                 .reviewId(review.getReviewId())
-                .profileImageUrl(member.getProfileImage() != null ? member.getProfileImage().getFileUrl() : null)
+                .profileImageUrl(member != null && member.getProfileImage() != null
+                        ? member.getProfileImage().getFileUrl()
+                        : null)
                 .content(review.getContent())
                 .score(review.getScore() != null ? review.getScore().doubleValue() : null)
                 .visitDate(review.getVisitDate() != null ? review.getVisitDate().toString() : null)
-                .nickname(member.getNickname())
+                .nickname(member != null ? member.getNickname() : null)
                 .file(files)
                 .build();
+    }
+
+    /**
+     * 리뷰 리스트를 ReviewSummaryResponseDto 리스트로 변환하는 메서드.
+     *
+     * @param reviews 리뷰 리스트 (Slice 객체)
+     * @return ReviewSummaryResponseDto 리스트
+     */
+    public static List<ReviewSummaryResponseDto> fromList(Slice<Review> reviews) {
+        return reviews.stream()
+                .map(review -> {
+                    // 리뷰 파일 리스트 변환
+                    List<ReviewSummaryFileDto> files = review.getReviewFiles().stream()
+                            .map(file -> ReviewSummaryFileDto.builder()
+                                    .mediaFileId(file.getFile().getMediaFileId())
+                                    .fileType(file.getFile().getFileType().name())
+                                    .fileUrl(file.getFile().getFileUrl())
+                                    .build())
+                            .collect(Collectors.toList());
+                    // ReviewSummaryResponseDto 생성
+                    return ReviewSummaryResponseDto.from(
+                            review,
+                            files,
+                            review.getMember() // Member 정보 전달
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }

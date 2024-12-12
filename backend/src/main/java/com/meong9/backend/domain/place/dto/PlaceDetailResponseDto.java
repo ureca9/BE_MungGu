@@ -1,13 +1,12 @@
 package com.meong9.backend.domain.place.dto;
 
 import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
-import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Slice;
 
+import java.util.Collections;
 import java.util.List;
 
 @Getter
@@ -30,11 +29,56 @@ public class PlaceDetailResponseDto {
     private final String limitInfo;
     private final String description;
     private final String enterPetSize;
+    private final Boolean likeStatus;
 
     private final List<String> images;
 
     private final List<PhotoReviewSummaryResponseDto> photoReviewList;
     private final List<ReviewSummaryResponseDto> review;
+
+    /**
+     * PlaceDetailResponseDto 객체를 생성하는 정적 팩토리 메서드.
+     *
+     * @param placeInfoDto 장소 정보 DTO
+     * @param address 주소 문자열
+     * @param tags 태그 리스트
+     * @param images 이미지 리스트
+     * @param photoReviewSummaryList 사진 리뷰 요약 리스트 (Slice 객체)
+     * @param reviewSummaryList 일반 리뷰 요약 리스트
+     * @return PlaceDetailResponseDto 객체
+     */
+    public static PlaceDetailResponseDto of(
+            PlaceInfoDto placeInfoDto,
+            String address,
+            List<String> tags,
+            List<String> images,
+            Slice<PhotoReviewSummaryResponseDto> photoReviewSummaryList,
+            List<ReviewSummaryResponseDto> reviewSummaryList
+    ) {
+        return PlaceDetailResponseDto.builder()
+                .placeId(placeInfoDto.getPlaceId()) // 장소 ID
+                .placeName(placeInfoDto.getPlaceName()) // 장소 이름
+                .category(placeInfoDto.getCategory()) // 카테고리
+                .reviewCount(placeInfoDto.getReviewCount()) // 리뷰 수
+                .reviewAvg(placeInfoDto.getReviewAvg()) // 리뷰 평균
+                .address(address) // 주소
+                .tags(tags) // 태그 리스트
+                .businessHour(placeInfoDto.getBusinessHour()) // 영업 시간
+                .telNo(placeInfoDto.getTelNo()) // 전화번호
+                .hmpgUrl(placeInfoDto.getHmpgUrl()) // 홈페이지 URL
+                .latitude(placeInfoDto.getLatitude()) // 위도
+                .longitude(placeInfoDto.getLongitude()) // 경도
+                .closedDays(placeInfoDto.getClosedDays()) // 휴무일
+                .price(placeInfoDto.getPrice()) // 가격 정보
+                .limitInfo(placeInfoDto.getLimitInfo()) // 제한 정보
+                .description(placeInfoDto.getDescription()) // 설명
+                .enterPetSize(placeInfoDto.getEnterPetSize()) // 반려동물 허용 크기
+                .images(images) // 이미지 리스트
+                .likeStatus(placeInfoDto.getLikeStatus()) // 좋아요 여부
+                .photoReviewList(photoReviewSummaryList.getContent().size() >= 4 // 사진 리뷰 4개 이상일 경우
+                        ? photoReviewSummaryList.getContent() // 내용을 추가
+                        : Collections.emptyList()) // 그렇지 않으면 빈 리스트 반환
+                .review(reviewSummaryList) // 일반 리뷰 리스트
+                .build();
+    }
 }
-
-

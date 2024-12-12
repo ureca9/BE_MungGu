@@ -18,5 +18,5 @@ public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFi
     JOIN FETCH rf.file
     WHERE rf.review.reviewId IN :reviewIds
 """)
-    Optional<List<ReviewFile>> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
+    List<ReviewFile> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
 }
