@@ -44,7 +44,6 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .join(PLC_PEN_ADDRESS).on(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(PLACE.PLACE_ID)).and(PLC_PEN_ADDRESS.TYPE.eq(typeCode))
                 .join(ADDRESS).on(ADDRESS.ADDRESS_ID.eq(PLC_PEN_ADDRESS.ADDRESS_ID))
                 .where(PLACE.PLACE_ID.in(filteredPlaceIds))
-                .orderBy(DSL.field("review_count").desc())
                 .fetchInto(SearchPlaceDto.class);
 
         // filteredPlaceIds에 해당하는 태그 & 이미지 데이터를 한 번에 조회
@@ -200,6 +199,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(PLACE.PLACE_ID.in(firstFilteredPlaceIds))
                 .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
                 .and(getWeightCondition(sizeCode))
+                .orderBy(PLACE.REVIEW_COUNT.desc())
                 .limit(pageable.getPageSize() + 1)
                 .offset((int) pageable.getOffset())
                 .fetchInto(Long.class);
