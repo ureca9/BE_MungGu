@@ -89,7 +89,7 @@ public class MapSearchService {
                         Double.parseDouble(longitude));
             }
 
-            String mainImage = !place.getPlaceFiles().isEmpty() ? place.getPlaceFiles().get(0).getMediaFile().getFileUrl() : null;
+            List<String> images = !place.getPlaceFiles().isEmpty() ? ImageMapper.getPlaceImageUrl(place) : null;
             String address = placeAddressMap.getOrDefault(place.getPlaceId(), null);
             String businessHour = place.getBusinessHour();
 
@@ -99,7 +99,7 @@ public class MapSearchService {
                     place.getName(),
                     latitude,
                     longitude,
-                    mainImage,
+                    images,
                     distance,
                     address,
                     businessHour,
@@ -123,7 +123,7 @@ public class MapSearchService {
                         Double.parseDouble(longitude));
             }
 
-            String mainImage = !pension.getPensionFiles().isEmpty() ? pension.getPensionFiles().get(0).getMediaFile().getFileUrl() : null;
+            List<String> images = !pension.getPensionFiles().isEmpty() ? ImageMapper.getPensionImageUrl(pension) : null;
             String address = pensionAddressMap.getOrDefault(pension.getPensionId(), null);
 
             MapPlaceDto mapPlaceDto = createMapPlaceDto(
@@ -132,7 +132,7 @@ public class MapSearchService {
                     pension.getName(),
                     latitude,
                     longitude,
-                    mainImage,
+                    images,
                     distance,
                     address,
                     null,
