@@ -1,9 +1,6 @@
 package com.meong9.backend.domain.map.controller;
 
-import com.meong9.backend.domain.map.dto.MapLikePointDto;
-import com.meong9.backend.domain.map.dto.MapLikeResponseDto;
-import com.meong9.backend.domain.map.dto.MapPlaceDto;
-import com.meong9.backend.domain.map.dto.MapSearchDto;
+import com.meong9.backend.domain.map.dto.*;
 import com.meong9.backend.domain.map.service.MapSearchService;
 import com.meong9.backend.domain.map.service.MapService;
 import com.meong9.backend.domain.member.entity.Member;
@@ -72,8 +69,7 @@ public class MapController {
     public ResponseEntity<?> getSelectPlcPen(@CurrentMember Member member,
                                              @RequestParam("id") Long id, @RequestParam("type") String type,
                                              @RequestParam(name = "latitude") Double latitude, @RequestParam(name = "longitude") Double longitude){
-
-        MapPlaceDto mapPlaceDto = mapSearchService.getSelectPlcPen(member, id, type, latitude, longitude);
+        MapPlaceSelectDto mapPlaceDto = mapSearchService.getSelectPlcPen(member, id, type, latitude, longitude);
 
         return CommonResponse.ok("success", mapPlaceDto);
     }
