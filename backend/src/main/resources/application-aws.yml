@@ -32,7 +32,7 @@ s3:
 
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
-  redirect-uri: http://localhost:5173/login
+  redirect-uri: https://mungtivity.vercel.app/login
   client-secret: ${KAKAO_CLIENT_SECRET}
 
 jwt:
