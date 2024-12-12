@@ -78,49 +78,37 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
         List<SearchPensionDto> pensions = dsl.select(
                         PENSION.PENSION_ID.as("pensionId"),
                         PENSION.PENSION_NAME.as("pensionName"),
-                        getAddressFieldForPension(typeCode).as("address"),
+                        ADDRESS.ADDRESS_.as("address"),
                         DSL.inline("펜션").as("placeType"),
                         PENSION.REVIEW_AVG.as("reviewAvg"),
                         PENSION.REVIEW_COUNT.as("reviewCount"),
                         PENSION.ENTER_PET_SIZE.as("weightLimit"),
-                        DSL.min(ROOM.PRICE).as("lowestPrice"), // 최소 가격
-                        DSL.max(ROOM.GUEST_COUNT).as("guestCount"), // 최대 게스트 수
-                        DSL.max(ROOM.PET_COUNT).as("petCount"), // 최대 반려동물 수
+                        DSL.min(ROOM.PRICE).as("lowestPrice"),
+                        DSL.max(ROOM.GUEST_COUNT).as("guestCount"),
+                        DSL.max(ROOM.PET_COUNT).as("petCount"),
                         PENSION.START_TIME.as("startTime"),
                         PENSION.END_TIME.as("endTime"),
-                        getLikeStatusFieldForPension(memberId),
-                        DSL.when(
-                                DSL.exists(
-                                        DSL.selectOne()
-                                                .from(ROOM)
-                                                .join(ROOM_AVAILABILITY).on(ROOM.ROOM_ID.eq(ROOM_AVAILABILITY.ROOM_ID))
-                                                .where(ROOM.PENSION_ID.eq(PENSION.PENSION_ID))
-                                                .and(ROOM_AVAILABILITY.DATE.between(
-                                                        DSL.val(LocalDate.parse(startDate)),
-                                                        DSL.val(LocalDate.parse(endDate))
-                                                ))
-                                                .and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
-                                ),
-                                DSL.inline(1) // 예약 가능
-                        ).otherwise(DSL.inline(0)).as("isAvailable") // 예약 가능 여부 플래그
+                        getLikeStatusFieldForPension(memberId)
                 )
                 .from(PENSION)
                 .leftJoin(ROOM).on(PENSION.PENSION_ID.eq(ROOM.PENSION_ID))
+                .join(PLC_PEN_ADDRESS).on(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(PENSION.PENSION_ID)).and(PLC_PEN_ADDRESS.TYPE.eq(typeCode))
+                .join(ADDRESS).on(ADDRESS.ADDRESS_ID.eq(PLC_PEN_ADDRESS.ADDRESS_ID))
                 .where(
-                        PENSION.PENSION_ID.in(filteredPensionIds) // 필터링된 펜션 ID
+                        PENSION.PENSION_ID.in(filteredPensionIds)
                 )
-                .groupBy( // 모든 SELECT 열을 GROUP BY에 추가
+                .groupBy(
                         PENSION.PENSION_ID,
                         PENSION.PENSION_NAME,
-                        getAddressFieldForPension(typeCode),
+                        ADDRESS.ADDRESS_,
                         PENSION.REVIEW_AVG,
                         PENSION.REVIEW_COUNT,
                         PENSION.ENTER_PET_SIZE,
                         PENSION.START_TIME,
                         PENSION.END_TIME
                 )
-                .orderBy(DSL.field("isAvailable").desc(), PENSION.REVIEW_COUNT.desc()) // 예약 가능 여부 > 리뷰 평균 기준 정렬
-                .fetchInto(SearchPensionDto.class); // DTO로 매핑
+                .orderBy(PENSION.REVIEW_COUNT.desc())
+                .fetchInto(SearchPensionDto.class);
 
         // filteredPlaceIds에 해당하는 태그 & 이미지 데이터를 한 번에 조회
         Map<Long, List<String>> tagsByPensionId = dsl.select(PENSION_TAG.PENSION_ID, TAG.TAG_NAME)
@@ -160,25 +148,6 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     @Override
     public List<Long> findPlaceIdsBySearchWord(String searchWord) {
         return findPlaceIdsBySearchWordInternal(searchWord, null);
-    }
-
-    @Override
-    public Slice<Long> findPlaceIdsMatchWithCategoryIds(List<Long> firstFilteredPlaceIds, List<Long> categoryIds,
-                                                        String sizeCode, Pageable pageable) {
-        // 1. 1차 필터링된 장소ID에 더해, 2차로 카테고리 필터링, 3차로 무게 필터링을 마친 filteredPlaceIds 생성
-        List<Long> results = dsl.select(PLACE.PLACE_ID)
-                .from(PLACE)
-                .where(PLACE.PLACE_ID.in(firstFilteredPlaceIds))
-                .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
-                .and(getWeightCondition(sizeCode))
-                .limit(pageable.getPageSize() + 1)
-                .offset((int) pageable.getOffset())
-                .fetchInto(Long.class);
-
-        boolean hasNext = results.size() > pageable.getPageSize();
-        if (hasNext) results.remove(results.size() - 1);
-
-        return new SliceImpl<>(results, pageable, hasNext);
     }
 
     private List<Long> findPlaceIdsBySearchWordInternal(String searchWord, Pageable pageable) {
@@ -223,7 +192,40 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     }
 
     @Override
-    public Slice<Long> findPensionIdsBySearchWord(String searchWord, Pageable pageable) {
+    public Slice<Long> findPlaceIdsMatchWithCategoryIds(List<Long> firstFilteredPlaceIds, List<Long> categoryIds,
+                                                        String sizeCode, Pageable pageable) {
+        // 1. 1차 필터링된 장소ID에 더해, 2차로 카테고리 필터링, 3차로 무게 필터링을 마친 filteredPlaceIds 생성
+        List<Long> results = dsl.select(PLACE.PLACE_ID)
+                .from(PLACE)
+                .where(PLACE.PLACE_ID.in(firstFilteredPlaceIds))
+                .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
+                .and(getWeightCondition(sizeCode))
+                .limit(pageable.getPageSize() + 1)
+                .offset((int) pageable.getOffset())
+                .fetchInto(Long.class);
+
+        boolean hasNext = results.size() > pageable.getPageSize();
+        if (hasNext) results.remove(results.size() - 1);
+
+        return new SliceImpl<>(results, pageable, hasNext);
+    }
+
+    @Override
+    public Slice<Long> findPensionIdsBySearchWordForMap(String searchWord, Pageable pageable) {
+        List<Long> result = findPensionIdsBySearchWordInternal(searchWord, pageable);
+
+        boolean hasNext = result.size() > pageable.getPageSize();
+        if (hasNext) result.remove(result.size() - 1);
+
+        return new SliceImpl<>(result, pageable, hasNext);
+    }
+
+    @Override
+    public List<Long> findPensionIdsBySearchWord(String searchWord) {
+        return findPensionIdsBySearchWordInternal(searchWord, null);
+    }
+
+    private List<Long> findPensionIdsBySearchWordInternal(String searchWord, Pageable pageable) {
         // 검색어를 단어별로 나누어 배열에 담기
         String[] searchWords = searchWord.split(" ");
 
@@ -248,32 +250,41 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
 
-        // 두 결과를 UNION으로 합치기
-        List<Long> result = dsl.selectDistinct(DSL.field("pension_id", Long.class))
-                .from(pensionQuery.union(addressQuery).asTable("combined_results"))
-                .limit(pageable.getPageSize())
-                .offset((int) pageable.getOffset())
-                .fetchInto(Long.class);
+        // UNION으로 검색 결과 합치기
+        var combinedQuery = dsl.selectDistinct(DSL.field("pension_id", Long.class))
+                .from(pensionQuery.unionAll(addressQuery).asTable("combined_results"));
 
-        boolean hasNext = result.size() > pageable.getPageSize();
-        if (hasNext) result.remove(result.size() - 1);
+        // 페이징을 해야 되는 상황에서만 처리하도록
+        if (pageable != null) {
+            return combinedQuery.limit(pageable.getPageSize() + 1)
+                    .offset((int) pageable.getOffset())
+                    .fetchInto(Long.class);
+        }
 
-        return new SliceImpl<>(result, pageable, hasNext);
+        return combinedQuery.fetchInto(Long.class);
     }
 
-    private Field<String> getAddressFieldForPension(String typeCode) {
-        return getAddressField(PENSION.PENSION_ID, typeCode);
-    }
+    @Override
+    public Slice<Long> findPensionIdsIsAvailable(List<Long> firstFilteredPensionIds, String sizeCode, LocalDate start, LocalDate end, Pageable pageable) {
 
-    private Field<String> getAddressField(Field<Long> idField, String typeCode) {
-        return dsl.select(ADDRESS.ADDRESS_)
-                .from(PLC_PEN_ADDRESS)
-                .join(ADDRESS).on(PLC_PEN_ADDRESS.ADDRESS_ID.eq(ADDRESS.ADDRESS_ID))
-                .where(PLC_PEN_ADDRESS.PLC_PEN_ID.eq(idField))
-                .and(PLC_PEN_ADDRESS.TYPE.eq(typeCode))
-                .asField();
-    }
+        List<Long> results =
+                dsl.select(ROOM.PENSION_ID)
+                        .from(ROOM)
+                        .join(ROOM_AVAILABILITY).on(ROOM.ROOM_ID.eq(ROOM_AVAILABILITY.ROOM_ID))
+                        .where(
+                                ROOM_AVAILABILITY.DATE.between(start, end
+                                ).and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
+                        )
+                        .and(getWeightCondition(sizeCode))
+                        .groupBy(ROOM.PENSION_ID)
+                        .fetchInto(Long.class);
 
+        boolean hasNext = results.size() > pageable.getPageSize();
+        if (hasNext) results.remove(results.size() - 1);
+
+        return new SliceImpl<>(results, pageable, hasNext);
+
+    }
 
     private Field<Boolean> getLikeStatusFieldForPlace(Long memberId) {
         return getLikeStatusField(memberId, LIKES.PLACE_ID, PLACE.PLACE_ID);

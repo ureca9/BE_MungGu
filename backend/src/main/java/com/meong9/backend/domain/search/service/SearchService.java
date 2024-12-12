@@ -14,6 +14,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -43,7 +44,7 @@ public class SearchService {
     }
 
     /**
-     * 1) 지역, 2) 장소 카테고리, 3) 강아지 무게 를 기반으로 필터링하여 장소를 검색하는 서비스 메서드
+     * 1) 검색어 및 지역, 2) 장소 카테고리, 3) 강아지 무게 를 기반으로 필터링하여 장소를 검색하는 서비스 메서드
      */
     @Transactional(readOnly = true)
     public SearchPlacesResponseDto searchPlaces(String searchWord, List<String> regionList, List<String> placeTypes,
@@ -86,33 +87,42 @@ public class SearchService {
         return new SearchPlacesResponseDto(filteredPlaces, secondFilteredPlaceIds.hasNext());
     }
 
+    /**
+     * 1) 검색어 및 지역, 2) 장소 카테고리, 3) 강아지 무게 를 기반으로 필터링하여 장소를 검색하는 서비스 메서드
+     */
     @Transactional(readOnly = true)
     public SearchPensionsResponseDto searchPensions(String searchWord, List<String> regionList,
                                                     double heaviestDogWeight, String startDate, String endDate,
                                                     Pageable pageable, Long memberId) {
         String typeCode = "020"; // 펜션 코드
 
-        Slice<Long> filteredPensionIds; // 최종 필터링된 펜션 ID 목록
+        List<Long> firstFilteredPensionIds; // 최종 필터링된 펜션 ID 목록
 
         if (searchWord != null && !searchWord.trim().isEmpty()) {
             // 1. 검색어로 펜션 ID 필터링
-            filteredPensionIds = searchRepository.findPensionIdsBySearchWord(searchWord, pageable);
+            firstFilteredPensionIds = searchRepository.findPensionIdsBySearchWord(searchWord);
         } else {
             // 2. 지역으로 펜션 ID 필터링
             List<Long> regionIds = (regionList == null || regionList.isEmpty())
                     ? regionRepository.findAllRegionIds()
                     : regionRepository.findRegionIdsByNameIn(regionList);
 
-            filteredPensionIds = plcPenAddressRepository.findFacilityIdsByRegionIdInWithPagination(regionIds, typeCode, pageable);
+            firstFilteredPensionIds = plcPenAddressRepository.findFacilityIdsByRegionIdIn(regionIds, typeCode);
         }
 
         // 2. 반려견 체중 조건 추가
         String sizeCode = heaviestDogWeight < 10 ? "010" : heaviestDogWeight < 25 ? "020" : "030";
 
-        // 3. 최종 필터링된 시설 조회
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+
+        // 3. 최종 필터링된 펜션ID 조회
+        Slice<Long> secondFilteredPlaceIds = searchRepository.findPensionIdsIsAvailable(firstFilteredPensionIds, sizeCode, start, end, pageable);
+
+        // 4. pendionId를 가지고 정보 조회
         List<SearchPensionDto> filteredPensions =
                 searchRepository.searchPensions(
-                        filteredPensionIds.getContent(),
+                        secondFilteredPlaceIds.getContent(),
                         startDate,
                         endDate,
                         sizeCode,
@@ -120,6 +130,6 @@ public class SearchService {
                         memberId);
 
         // 4. 반환
-        return new SearchPensionsResponseDto(filteredPensions, filteredPensionIds.hasNext());
+        return new SearchPensionsResponseDto(filteredPensions, secondFilteredPlaceIds.hasNext());
     }
 }
