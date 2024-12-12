@@ -1,10 +1,10 @@
 package com.meong9.backend.domain.meongPhoto.service;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
 import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
-import com.meong9.backend.domain.meongPhoto.entity.id.MeongPhotoId;
 import com.meong9.backend.domain.meongPhoto.repository.MeongPhotoRepository;
 import com.meong9.backend.global.exception.InternalServerError;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
@@ -12,15 +12,19 @@ import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.tempFile.service.TempFileService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,8 +51,7 @@ public class MeongPhotoService {
 
             String downloadImageUrl = mediaFileService.generateDownloadUrl(s3UploadResultDto.getS3Url(), 1);
 
-            MeongPhotoId meongPhotoId = new MeongPhotoId(member.getMemberId(), savedMeongPhoto.getMediaFileId());
-            MeongPhoto meongPhoto = new MeongPhoto(meongPhotoId, member, savedMeongPhoto);
+            MeongPhoto meongPhoto = MeongPhoto.createMeongPhoto(member, savedMeongPhoto);
             meongPhotoRepository.save(meongPhoto);
 
             return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl);
@@ -59,7 +62,26 @@ public class MeongPhotoService {
         }
     }
 
-    public MeongPhotoListDto getAllMeongPhoto(Long lastPhotoId) {
-        return null;
+    @Transactional(readOnly = true)
+    public MeongPhotoListDto getAllMeongPhoto(Long lastPhotoId, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByLastPhotoId(lastPhotoId, pageable);
+
+        // DTO 변환
+        List<MeongPhotoDto> meongPhotoDtos = meongPhotos.stream()
+                .map(photo -> new MeongPhotoDto(
+                        photo.getMeongPhotoId(),
+                        photo.getMember().getNickname(),
+                        photo.getMember().getProfileImage().getFileUrl(),
+                        photo.getMediaFile().getFileUrl(),
+                        photo.getMediaFile().getCreatedAt().format(formatter)
+                ))
+                .collect(Collectors.toList());
+
+        boolean hasNext = meongPhotos.size() == size;
+
+        return new MeongPhotoListDto(meongPhotoDtos, hasNext);
     }
 }

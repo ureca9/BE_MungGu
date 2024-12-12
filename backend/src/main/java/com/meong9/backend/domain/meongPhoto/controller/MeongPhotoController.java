@@ -34,8 +34,9 @@ public class MeongPhotoController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId") Long lastPhotoId) {
-        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId);
+    public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId", required = false) Long lastPhotoId,
+                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId, size);
         return CommonResponse.ok("success", dto);
     }
 }
