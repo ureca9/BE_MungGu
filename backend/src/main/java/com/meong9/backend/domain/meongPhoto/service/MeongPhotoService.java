@@ -1,10 +1,15 @@
 package com.meong9.backend.domain.meongPhoto.service;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
+import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
+import com.meong9.backend.domain.meongPhoto.entity.id.MeongPhotoId;
+import com.meong9.backend.domain.meongPhoto.repository.MeongPhotoRepository;
 import com.meong9.backend.global.exception.InternalServerError;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
+import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 public class MeongPhotoService {
 
     private final MediaFileService mediaFileService;
+    private final MeongPhotoRepository meongPhotoRepository;
 
     /**
      * 멍생네컷을 S3에 저장한 후 다운로드 url을 제공하는 서비스 메서드
@@ -35,8 +41,13 @@ public class MeongPhotoService {
                     file, member.getMemberId(),"MeongPhoto/", suffix);
 
             ImageMetadataDto metadata = mediaFileService.extractImageMetadata(file);
-            mediaFileService.saveMediaFile(metadata, s3UploadResultDto);
+            MediaFile savedMeongPhoto = mediaFileService.saveMediaFile(metadata, s3UploadResultDto);
+
             String downloadImageUrl = mediaFileService.generateDownloadUrl(s3UploadResultDto.getS3Url(), 1);
+
+            MeongPhotoId meongPhotoId = new MeongPhotoId(member.getMemberId(), savedMeongPhoto.getMediaFileId());
+            MeongPhoto meongPhoto = new MeongPhoto(meongPhotoId, member, savedMeongPhoto);
+            meongPhotoRepository.save(meongPhoto);
 
             return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl);
         } catch (IOException e) {
@@ -44,6 +55,5 @@ public class MeongPhotoService {
             throw InternalServerError.photoProcessingError();
         }
     }
-
 
 }
