@@ -113,8 +113,6 @@ public class RecommendationBatchConfig {
                 .build();
     }
 
-
-
     @Bean
     public IteratorItemReader<Long> userBasedReader() {
         List<Long> memberIds = recommendationService.getActiveMemberIds();
@@ -140,10 +138,6 @@ public class RecommendationBatchConfig {
             }
         };
     }
-
-
-
-
 
     // 리뷰가 1개 이상 있는 펜션 조회 Reader
     @Bean

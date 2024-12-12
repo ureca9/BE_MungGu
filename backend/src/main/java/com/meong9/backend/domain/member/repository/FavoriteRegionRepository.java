@@ -17,6 +17,5 @@ public interface FavoriteRegionRepository extends JpaRepository<FavoriteRegion, 
     @Query("SELECT f FROM FavoriteRegion f where f.member.memberId = :memberId")
     List<FavoriteRegion> findByMemberId(Long memberId);
 
-    @Query("SELECT f.region.regionId FROM FavoriteRegion f where f.member.memberId = :memberId")
-    List<Long> findRegionIdsByMemberId(@Param("memberId") Long memberId);
+
 }

@@ -1,9 +1,9 @@
 package com.meong9.backend.domain.recommendation.recommendation.service;
 
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
-import com.meong9.backend.domain.member.repository.FavoriteRegionRepository;
-import com.meong9.backend.domain.member.repository.PlcFavCategoryRepository;
-import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
+import com.meong9.backend.domain.member.repository.FavoriteRegionRepository2;
+import com.meong9.backend.domain.member.repository.PlcFavCategoryRepository2;
+import com.meong9.backend.domain.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,10 +17,10 @@ import java.util.Map;
 @Slf4j
 public class ContentBasedRecommendation {
 
-    private final FavoriteRegionRepository favoriteRegionRepository;
-    private final PlcFavCategoryRepository plcFavCategoryRepository;
-    private final PlcCategoryRepository plcCategoryRepository;
+    private final FavoriteRegionRepository2 favoriteRegionRepository;
+    private final PlcFavCategoryRepository2 plcFavCategoryRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
+    private final PlaceRepository placeRepository;
 
     public Map<Long, Double> calculateContentScores(Long userId, List<Long> allPensionIds, String type) {
         // 선호 지역 및 카테고리 가져오기
@@ -69,13 +69,13 @@ public class ContentBasedRecommendation {
         return contentScores;
     }
 
-    private boolean categoryMatches(Long pensionId, List<Long> favoriteCategories) {
-        // 해당 펜션의 카테고리가 사용자의 선호 카테고리와 일치하는지 확인
-        List<Long> pensionCategories = plcCategoryRepository.findCategoryIdsByPensionId(pensionId);
-        log.debug("펜션 ID {}의 카테고리: {}", pensionId, pensionCategories);
+    private boolean categoryMatches(Long placeId, List<Long> favoriteCategories) {
+        // 해당 시설의 카테고리가 사용자의 선호 카테고리와 일치하는지 확인
+        List<Long> placeCategories = placeRepository.findCategoryIdsByPensionId(placeId);
+        log.debug("시설 ID {}의 카테고리: {}", placeId, placeCategories);
 
-        boolean matches = favoriteCategories.stream().anyMatch(pensionCategories::contains);
-        log.debug("펜션 ID {}가 선호 카테고리에 해당하는지: {}", pensionId, matches);
+        boolean matches = favoriteCategories.stream().anyMatch(placeCategories::contains);
+        log.debug("시설 ID {}가 선호 카테고리에 해당하는지: {}", placeId, matches);
 
         return matches;
     }

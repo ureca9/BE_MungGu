@@ -23,12 +23,5 @@ public interface PlcCategoryRepository extends JpaRepository<PlcCategory, Long> 
     @Query("select pc from PlcCategory pc where pc.name = :name")
     Optional<PlcCategory> findByName(@Param("name") String categoryName);
 
-    @Query("""
-        SELECT pc.plcCategoryId
-        FROM PlcCategory pc
-        JOIN PensionCategoryMapping pcm ON pc.plcCategoryId = pcm.plcCategoryId
-        WHERE pcm.pensionId = :pensionId
-    """)
-    List<Long> findCategoryIdsByPensionId(Long pensionId);
 
 }
