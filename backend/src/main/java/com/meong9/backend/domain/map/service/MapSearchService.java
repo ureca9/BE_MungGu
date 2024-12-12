@@ -58,8 +58,8 @@ public class MapSearchService {
 
 
         // Place와 Pension ID로 조회
-        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member);  // List로 Place 조회
-        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member);  // List로 Pension 조회
+        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member.getMemberId());  // List로 Place 조회
+        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member.getMemberId());  // List로 Pension 조회
 
         // PlcPenAddress에서 주소 가져오기
         List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds.getContent(), "020");
