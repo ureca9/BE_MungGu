@@ -11,6 +11,7 @@ import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
+import com.meong9.backend.global.tempFile.service.TempFileService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +29,13 @@ public class MeongPhotoService {
 
     private final MediaFileService mediaFileService;
     private final MeongPhotoRepository meongPhotoRepository;
+    private final TempFileService tempFileService;
 
     /**
      * 멍생네컷을 S3에 저장한 후 다운로드 url을 제공하는 서비스 메서드
      */
     @Transactional
-    public MeongPhotoResponseDto createMeongPhoto(Member member, MultipartFile file) {
+    public MeongPhotoResponseDto createMeongPhoto(Member member, MultipartFile file, String serviceUrl) {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             String suffix = "_" + timestamp + "_meongPhoto.jpg";
@@ -52,8 +54,12 @@ public class MeongPhotoService {
             return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl);
         } catch (IOException e) {
             log.error("멍생네컷 저장 중 오류 발생: {}", e.getMessage(), e);
+            tempFileService.saveTemporaryFile(serviceUrl, file);
             throw InternalServerError.photoProcessingError();
         }
     }
 
+    public MeongPhotoListDto getAllMeongPhoto(Long lastPhotoId) {
+        return null;
+    }
 }

@@ -205,7 +205,7 @@ public class MediaFileService {
     /**
      * 미디어 파일 저장
      */
-    public void saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
+    public MediaFile saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
         MediaFile mediaFile = MediaFile.builder()
                 .fileType(FileType.IMAGE)
                 .fileSize((int) metadata.getFileSize())
@@ -216,7 +216,7 @@ public class MediaFileService {
                 .fileKey(s3UploadResultDto.getFileKey())
                 .build();
 
-        mediaFileRepository.save(mediaFile);
+        return mediaFileRepository.save(mediaFile);
     }
 
     /**

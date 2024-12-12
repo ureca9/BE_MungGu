@@ -1,17 +1,16 @@
 package com.meong9.backend.domain.meongPhoto.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
 import com.meong9.backend.domain.meongPhoto.service.MeongPhotoService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -25,10 +24,18 @@ public class MeongPhotoController {
     /**
      * 멍생네컷 저장 컨트롤러
      */
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<?> createMeongPhoto(@CurrentMember Member member,
-                                              @RequestPart(name = "image") MultipartFile image) {
-        MeongPhotoResponseDto dto = meongPhotoService.createMeongPhoto(member, image);
+                                              @RequestPart(name = "image") MultipartFile image,
+                                              HttpServletRequest request) {
+        String serviceUrl = request.getRequestURI();
+        MeongPhotoResponseDto dto = meongPhotoService.createMeongPhoto(member, image, serviceUrl);
+        return CommonResponse.ok("success", dto);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId") Long lastPhotoId) {
+        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId);
         return CommonResponse.ok("success", dto);
     }
 }
