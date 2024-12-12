@@ -15,4 +15,13 @@ public interface MeongPhotoRepository extends JpaRepository<MeongPhoto, Long> {
                 ORDER BY mp.mediaFile.createdAt DESC
             """)
     List<MeongPhoto> findAllByLastPhotoId(Long lastPhotoId, Pageable pageable);
+
+    @Query("""
+                SELECT mp
+                FROM MeongPhoto mp
+                WHERE mp.member.memberId = :memberId
+                  AND (:lastPhotoId IS NULL OR mp.meongPhotoId < :lastPhotoId)
+                ORDER BY mp.mediaFile.createdAt DESC
+            """)
+    List<MeongPhoto> findAllByMemberIdAndLastPhotoId(Long memberId, Long lastPhotoId, Pageable pageable);
 }

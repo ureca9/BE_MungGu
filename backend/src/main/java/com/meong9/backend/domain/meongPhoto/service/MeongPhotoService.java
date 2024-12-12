@@ -1,9 +1,7 @@
 package com.meong9.backend.domain.meongPhoto.service;
 
 import com.meong9.backend.domain.member.entity.Member;
-import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoDto;
-import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
-import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
+import com.meong9.backend.domain.meongPhoto.dto.*;
 import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
 import com.meong9.backend.domain.meongPhoto.repository.MeongPhotoRepository;
 import com.meong9.backend.global.exception.InternalServerError;
@@ -84,4 +82,25 @@ public class MeongPhotoService {
 
         return new MeongPhotoListDto(meongPhotoDtos, hasNext);
     }
+
+    @Transactional(readOnly = true)
+    public MyMeongPhotoListDto getMyMeongPhotos(Member member, Long lastPhotoId, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+
+        List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByMemberIdAndLastPhotoId(
+                member.getMemberId(), lastPhotoId, pageable);
+
+        List<MyMeongPhotoDto> myMeongPhotoDtos = meongPhotos.stream()
+                .map(photo -> new MyMeongPhotoDto(
+                        photo.getMeongPhotoId(),
+                        photo.getMediaFile().getFileUrl(),
+                        photo.getMediaFile().getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                ))
+                .toList();
+
+        boolean hasNext = meongPhotos.size() == size;
+
+        return new MyMeongPhotoListDto(myMeongPhotoDtos, hasNext);
+    }
+
 }

@@ -3,6 +3,7 @@ package com.meong9.backend.domain.meongPhoto.controller;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
+import com.meong9.backend.domain.meongPhoto.dto.MyMeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.service.MeongPhotoService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -37,6 +38,15 @@ public class MeongPhotoController {
     public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId", required = false) Long lastPhotoId,
                                               @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
         MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId, size);
+        return CommonResponse.ok("success", dto);
+    }
+
+    @GetMapping("/mine")
+    public ResponseEntity<?> getMyMeongPhotos(@CurrentMember Member member,
+                                                              @RequestParam(required = false) Long lastPhotoId,
+                                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+
+        MyMeongPhotoListDto dto = meongPhotoService.getMyMeongPhotos(member, lastPhotoId, size);
         return CommonResponse.ok("success", dto);
     }
 }
