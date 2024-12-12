@@ -1,12 +1,13 @@
 package com.meong9.backend.domain.place.controller;
 
+import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.service.PlaceDetailService;
 import com.meong9.backend.domain.place.service.PlaceService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
-import com.meong9.backend.global.entity.PLACE_PEN_TYPE_CODE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -31,8 +32,12 @@ public class PlaceController {
     private final PlaceService placeService;
 
     @GetMapping("/places/detail/{placeId}")
-    public ResponseEntity<?> getPlaceDetail(@PathVariable(name = "placeId") Long placeId) {
-        return CommonResponse.ok("success", placeDetailService.getPlaceDetail(placeId));
+    public ResponseEntity<?> getPlaceDetail(
+            @PathVariable(name = "placeId") Long placeId,
+            @CurrentMember Member member) {
+
+        Long memberId = (member != null) ? member.getMemberId() : null;
+        return CommonResponse.ok("success", placeDetailService.getPlaceDetail(placeId, memberId));
     }
 
     @GetMapping("/places/{placeId}/reviews")
@@ -42,7 +47,7 @@ public class PlaceController {
     ) {
         Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
-                PLACE_PEN_TYPE_CODE.PLACE.getCode(),
+                "010",
                 placeId,
                 pageable
         );

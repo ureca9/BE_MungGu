@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.place.repository;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -14,11 +15,6 @@ import java.util.List;
 
 @Repository
 public interface PlaceRepository extends JpaRepository<Place, Long> {
-
-    @EntityGraph(attributePaths = {"plcCategory", "placeTags.tag", "placeFiles.mediaFile"})
-    @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
-    Optional<Place> findPlaceWithDetails(@Param("placeId") Long placeId);
-
 
     @Query("""
         SELECT pl
@@ -57,4 +53,25 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
             @Param("member") Member member
     );
 
+
+    @Query(""" 
+    SELECT new com.meong9.backend.domain.place.dto.PlaceInfoDto(
+        p.placeId, p.name, p.plcCategory.name, p.reviewCount, p.reviewAvg,
+        p.businessHour, p.telNo, p.hmpgUrl,
+        p.latitude, p.longitude, p.closedDays,
+        p.priceContent, p.petLimitInfo,
+        p.plcDescription, p.enterPetSize,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM PlaceLike l
+                WHERE l.member.memberId = :memberId
+                  AND l.place.placeId = p.placeId
+            ) THEN true
+            ELSE false
+        END
+    )
+    FROM Place p
+    WHERE p.placeId = :placeId
+""")
+    Optional<PlaceInfoDto> findPlaceInfoById(@Param("placeId") Long placeId, @Param("memberId") Long memberId);
 }
