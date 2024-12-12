@@ -10,7 +10,6 @@ import java.util.List;
 @Builder
 public class MapLikeResponseDto {
     private Long categoryId; // 카테고리 아이디
-    private String categoryName;
     private List<MapLikePlaceDto> places;
 
 }
