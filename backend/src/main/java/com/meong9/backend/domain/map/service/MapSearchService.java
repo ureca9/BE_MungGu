@@ -2,19 +2,14 @@ package com.meong9.backend.domain.map.service;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
-import com.meong9.backend.domain.like.entity.PensionLike;
-import com.meong9.backend.domain.like.entity.PlaceLike;
 import com.meong9.backend.domain.like.repository.LikeRepository;
 import com.meong9.backend.domain.map.dto.MapPlaceDto;
 import com.meong9.backend.domain.map.dto.MapPlaceSelectDto;
 import com.meong9.backend.domain.map.dto.MapSearchDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
-import com.meong9.backend.domain.pension.entity.PensionFile;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
-import com.meong9.backend.domain.place.entity.PlaceFile;
-import com.meong9.backend.domain.place.entity.PlaceFile;
 import com.meong9.backend.domain.place.repository.PlaceFileRepository;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
 import com.meong9.backend.domain.search.repository.SearchJooqRepository;
@@ -42,7 +37,6 @@ public class MapSearchService {
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final LikeRepository likeRepository;
     private final SearchJooqRepository searchJooqRepository;
-    private final PlaceFileRepository placeFileRepository;
 
     // 장소 조회
     @Transactional(readOnly = true)
