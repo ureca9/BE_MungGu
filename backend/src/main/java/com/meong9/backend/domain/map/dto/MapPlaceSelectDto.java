@@ -9,8 +9,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class MapPlaceDto {
-    private Long placeId; // 펜션 or 시설 아이디
+public class MapPlaceSelectDto {
+    private Long id; // 펜션 or 시설 아이디
     private String type; // 펜션 or 시설
     private String name;
     private Double distance; // 미터 단위
@@ -21,11 +21,11 @@ public class MapPlaceDto {
     private String longitude;
     private Boolean isLike;
 
-    public static MapPlaceDto createMapPlaceDto(Long id, String type, String name, String latitude, String longitude,
-                                                List<String> images, Double distance, String address, String businessHour, boolean isLike)
+    public static MapPlaceSelectDto createMapPlaceDto(Long id, String type, String name, String latitude, String longitude,
+                                                      List<String> images, Double distance, String address, String businessHour, boolean isLike)
     {
-        return MapPlaceDto.builder()
-                .placeId(id)
+        return MapPlaceSelectDto.builder()
+                .id(id)
                 .type(type)
                 .name(name)
                 .distance(distance)

@@ -17,6 +17,7 @@ import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.utils.AddressMapper;
 import com.meong9.backend.global.utils.DistanceMapper;
+import com.meong9.backend.global.utils.ImageMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
@@ -122,7 +123,7 @@ public class MapService {
                         Double.parseDouble(longitude));
             }
             String address = placeAddressMap.getOrDefault(placeLike.getPlace().getPlaceId(), null);
-            List<String> image = getPlaceImageUrl(placeLike);
+            List<String> image = ImageMapper.getPlaceImageUrl(placeLike.getPlace());
 
             MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, latitude, longitude, address, distance, image);
 
@@ -135,7 +136,6 @@ public class MapService {
         // MapLikeResponseDto 생성
         MapLikeResponseDto mapLikeResponseDto = MapLikeResponseDto.builder()
                 .categoryId(plcCategory.getPlcCategoryId())
-                .categoryName(plcCategory.getName())
                 .places(mapLikePlaceDtos)
                 .build();
 
@@ -167,7 +167,7 @@ public class MapService {
                         Double.parseDouble(longitude));
             }
             String address = pensionAddressMap.getOrDefault(pensionLike.getPension().getPensionId(), null);
-            List<String> image = getPlaceImageUrl(pensionLike);
+            List<String> image = ImageMapper.getPensionImageUrl(pensionLike.getPension());
 
             MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
@@ -179,7 +179,6 @@ public class MapService {
         // MapLikeResponseDto 생성
         MapLikeResponseDto mapLikeResponseDto = MapLikeResponseDto.builder()
                 .categoryId(0L)
-                .categoryName("펜션")
                 .places(mapLikePlaceDtos)
                 .build();
 
@@ -225,7 +224,7 @@ public class MapService {
                         Double.parseDouble(longitude));
             }
             String address = pensionAddressMap.getOrDefault(pensionLike.getPension().getPensionId(), null);
-            List<String> image = getPlaceImageUrl(pensionLike);
+            List<String> image = ImageMapper.getPensionImageUrl(pensionLike.getPension());
 
             MapLikePlaceDto mapLikePlaceDto = getPensionToLikePlaceDto(pensionLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
@@ -243,7 +242,7 @@ public class MapService {
                         Double.parseDouble(longitude));
             }
             String address = placeAddressMap.getOrDefault(placeLike.getPlace().getPlaceId(), null);
-            List<String> image = getPlaceImageUrl(placeLike);
+            List<String> image = ImageMapper.getPlaceImageUrl(placeLike.getPlace());
 
             MapLikePlaceDto mapLikePlaceDto = getPlaceToLikePlaceDto(placeLike, latitude, longitude, address, distance, image);
             mapLikeList.add(mapLikePlaceDto);
@@ -255,42 +254,12 @@ public class MapService {
         // MapLikeResponseDto 생성
         MapLikeResponseDto mapLikeResponseDto = MapLikeResponseDto.builder()
                 .categoryId(null)
-                .categoryName("전체")
                 .places(mapLikePlaceDtos)
                 .build();
 
         return mapLikeResponseDto;
     }
 
-    // PensionLike 이미지 URL 추출
-    private List<String> getPlaceImageUrl(PensionLike pensionLike) {
-        List<String> imageUrls = new ArrayList<>();
-        if (!pensionLike.getPension().getPensionFiles().isEmpty()) {
-            for (PensionFile pensionFile : pensionLike.getPension().getPensionFiles()) {
-                if (imageUrls.size() < 3) {
-                    imageUrls.add(pensionFile.getMediaFile().getFileUrl());
-                } else {
-                    break;
-                }
-            }
-        }
-        return imageUrls;
-    }
-
-    // PlaceLike 이미지 URL 추출
-    private List<String> getPlaceImageUrl(PlaceLike placeLike) {
-        List<String> imageUrls = new ArrayList<>();
-        if (!placeLike.getPlace().getPlaceFiles().isEmpty()) {
-            for (PlaceFile placeFile : placeLike.getPlace().getPlaceFiles()) {
-                if (imageUrls.size() < 3) {
-                    imageUrls.add(placeFile.getMediaFile().getFileUrl());
-                } else {
-                    break;
-                }
-            }
-        }
-        return imageUrls;
-    }
 
     // 사용자가 찜한 펜션
     private List<PensionLike> getPensionLikes(Member member){
