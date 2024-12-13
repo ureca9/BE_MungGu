@@ -89,16 +89,16 @@ public class MeongPhotoService {
 
         List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByMemberIdAndLastPhotoId(
                 member.getMemberId(), lastPhotoId, pageable);
+        boolean hasNext = meongPhotos.size() > size;
+        List<MeongPhoto> trimmedMeongPhotos = meongPhotos.stream().limit(size).toList();
 
-        List<MyMeongPhotoDto> myMeongPhotoDtos = meongPhotos.stream()
+        List<MyMeongPhotoDto> myMeongPhotoDtos = trimmedMeongPhotos.stream()
                 .map(photo -> new MyMeongPhotoDto(
                         photo.getMeongPhotoId(),
                         photo.getMediaFile().getFileUrl(),
                         photo.getMediaFile().getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                 ))
                 .toList();
-
-        boolean hasNext = meongPhotos.size() == size;
 
         return new MyMeongPhotoListDto(myMeongPhotoDtos, hasNext);
     }
