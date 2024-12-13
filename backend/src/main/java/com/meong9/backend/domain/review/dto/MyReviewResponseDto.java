@@ -19,6 +19,7 @@ public class MyReviewResponseDto {
     private String type;
     private Long plcPenId;
     private String nickname;
+    private Integer likeCount;
     private List<FileResponseDto> file;
 
     public static MyReviewResponseDto from(Review review,String plcPenName) {

@@ -104,7 +104,7 @@ public class ReviewService {
                 fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
 
-            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl);
+            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl,place.getLikeCount());
         }
         if(Objects.equals(type, "020")){ // 펜션
             Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
@@ -116,7 +116,7 @@ public class ReviewService {
                 fileUrl=pension.getPensionFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
 
-            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl);
+            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl,pension.getLikeCount());
         }
         return null;
     }

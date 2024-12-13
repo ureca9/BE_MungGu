@@ -15,6 +15,7 @@ public class PlacePensionInfoResponseDto {
         private final Double reviewAvg;
         private final Integer reviewCount;
         private final String fileUrl;
+        private final Integer likeCount;
     }
 
 
@@ -26,5 +27,6 @@ public class PlacePensionInfoResponseDto {
         private final Double reviewAvg;
         private final Integer reviewCount;
         private final String fileUrl;
+        private final Integer likeCount;
     }
 }
