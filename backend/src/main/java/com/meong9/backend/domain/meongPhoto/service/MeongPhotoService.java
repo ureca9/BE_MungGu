@@ -62,13 +62,15 @@ public class MeongPhotoService {
 
     @Transactional(readOnly = true)
     public MeongPhotoListDto getAllMeongPhoto(Long lastPhotoId, int size) {
-        Pageable pageable = PageRequest.of(0, size);
+        Pageable pageable = PageRequest.of(0, size+1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByLastPhotoId(lastPhotoId, pageable);
+        boolean hasNext = meongPhotos.size() > size;
+        List<MeongPhoto> trimmedMeongPhotos = meongPhotos.stream().limit(size).toList();
 
         // DTO 변환
-        List<MeongPhotoDto> meongPhotoDtos = meongPhotos.stream()
+        List<MeongPhotoDto> meongPhotoDtos = trimmedMeongPhotos.stream()
                 .map(photo -> new MeongPhotoDto(
                         photo.getMeongPhotoId(),
                         photo.getMember().getNickname(),
@@ -76,9 +78,7 @@ public class MeongPhotoService {
                         photo.getMediaFile().getFileUrl(),
                         photo.getMediaFile().getCreatedAt().format(formatter)
                 ))
-                .collect(Collectors.toList());
-
-        boolean hasNext = meongPhotos.size() == size;
+                .toList();
 
         return new MeongPhotoListDto(meongPhotoDtos, hasNext);
     }
