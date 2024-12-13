@@ -41,6 +41,7 @@ public class TopPensionService {
 
     // ----------------- 핵심 로직 -----------------
 
+    @Transactional(readOnly = true)
     public List<TopPensionResponseDto> getTop9PensionsByCategory() {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(7);
@@ -91,6 +92,7 @@ public class TopPensionService {
      *
      * @return TopPension 객체의 리스트
      */
+    @Transactional
     public List<TopPension> fetchAllPensionsFromRedis() {
         LocalDate today = LocalDate.now();
 
@@ -196,7 +198,7 @@ public class TopPensionService {
      * @param tagIds 태그 ID 리스트
      * @return 생성된 TopFeature 객체
      */
-    public TopFeature createTopFeatureFromTags(List<Long> tagIds) {
+    private TopFeature createTopFeatureFromTags(List<Long> tagIds) {
         TopFeature topFeature = new TopFeature();
         for (Long tagId : tagIds) {
             TagToFeatureMapping.applyFeature(tagId, topFeature);
@@ -255,7 +257,7 @@ public class TopPensionService {
     /**
      * 모든 펜션의 조회수 데이터를 삭제합니다.
      */
-    public void clearAllPensionViewCounts() {
+    private void clearAllPensionViewCounts() {
         String sortedSetKey = "pension:viewCount";
         // Sorted Set 키 삭제
         redisTemplate.delete(sortedSetKey);

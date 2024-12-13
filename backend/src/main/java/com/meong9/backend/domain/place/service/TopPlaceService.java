@@ -48,6 +48,7 @@ public class TopPlaceService {
      *
      * @param category 시설의 이름
      */
+    @Transactional(readOnly = true)
     public List<TopPlaceResponseDto> getTop9PlacesByCategory(String category) {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(7);
@@ -115,6 +116,7 @@ public class TopPlaceService {
      * @param category 카테고리 이름
      * @return TopPlace 객체의 리스트
      */
+    @Transactional
     public List<TopPlace> fetchTopPlacesFromRedis(String category) {
         LocalDate today = LocalDate.now();
         Set<ZSetOperations.TypedTuple<String>> topViewPlaces = getTopViewPlacesFromRedis(category);
@@ -281,7 +283,7 @@ public class TopPlaceService {
      * @return 설정된 TopFeature 객체
      *         - 태그 ID에 해당하는 필드가 true로 설정된 객체가 반환됩니다.
      */
-    public TopFeature createTopFeatureFromTags(List<Long> tagIds) {
+    private TopFeature createTopFeatureFromTags(List<Long> tagIds) {
         TopFeature topFeature = new TopFeature(); // 빈 TopFeature 객체 생성
 
         // 태그 ID 리스트를 순회하며 각 태그 ID에 해당하는 설정 적용
@@ -311,7 +313,7 @@ public class TopPlaceService {
     /**
      * 모든 펜션의 조회수 데이터를 삭제합니다.
      */
-    public void clearAllPlaceViewCounts() {
+    private void clearAllPlaceViewCounts() {
         List<String> categoryList = CategoryMapper.getAllCategoryNames();
 
         for (String category : categoryList) {
