@@ -34,6 +34,9 @@ public class MeongPhotoController {
         return CommonResponse.ok("success", dto);
     }
 
+    /**
+     * 멍생네컷 전체 조회 컨트롤러
+     */
     @GetMapping
     public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId", required = false) Long lastPhotoId,
                                               @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
@@ -41,10 +44,13 @@ public class MeongPhotoController {
         return CommonResponse.ok("success", dto);
     }
 
+    /**
+     * 멤버의 본인 멍생네컷 조회 컨트롤러
+     */
     @GetMapping("/mine")
     public ResponseEntity<?> getMyMeongPhotos(@CurrentMember Member member,
-                                                              @RequestParam(required = false) Long lastPhotoId,
-                                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+                                              @RequestParam(required = false) Long lastPhotoId,
+                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
 
         MyMeongPhotoListDto dto = meongPhotoService.getMyMeongPhotos(member, lastPhotoId, size);
         return CommonResponse.ok("success", dto);
