@@ -49,16 +49,23 @@ public class RecommendationBatchConfig {
     private final MemberScoreService memberScoreService;
     private final DataSource dataSource;
 
+    @Bean
+    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
 
     @Bean
     public Job recommendationJob() {
         return new JobBuilder("recommendationJob", jobRepository)
-                .start(userBasedStep())                // 사용자 기반 추천
-                .next(itemBasedPlaceStep())          // 펜션 기반 시설 추천 (+ 점수 업데이트)
-                .next(cleanupScoreStep()) // 오래된 데이터 삭제
+                .start(deleteOldRecommendationsStep())       // 기존 추천 데이터 삭제
+                .next(initializeAndUpdateScoresStep())      // 펜션-시설 점수 초기화 및 업데이트
+                .next(userBasedStep())                      // 사용자 기반 추천
+                .next(itemBasedPlaceStep())                // 펜션 기반 시설 추천
+                .next(cleanupScoreStep())                  // 오래된 점수 데이터 삭제
                 .incrementer(new RunIdIncrementer())
                 .build();
     }
+
 
     // 오래된 점수 데이터 정리 Step
     @Bean
@@ -68,6 +75,16 @@ public class RecommendationBatchConfig {
                     memberScoreService.cleanupOldScores(); // 오래된 점수 삭제
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
+                .build();
+    }
+
+    // 오래된 추천 데이터 정리 Step
+    @Bean
+    public Step deleteOldRecommendationsStep() {
+        return new StepBuilder("deleteOldRecommendationsStep", jobRepository)
+                .<Long, Long>chunk(10, transactionManager)
+                .reader(deleteOldRecommendationsReader()) // 최근 7일 간 활동한 사용자 조회
+                .writer(userRecommendationDeleter()) // 데이터 삭제
                 .build();
     }
 
@@ -81,13 +98,6 @@ public class RecommendationBatchConfig {
                 .writer(userRecommendationWriter()) // Writer 호출
                 .build();
     }
-
-    @Bean
-    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
-    }
-
-
 
     // 펜션-시설 초기화 및 점수 업데이트 Step
     @Bean
@@ -108,11 +118,21 @@ public class RecommendationBatchConfig {
         return new StepBuilder("itemBasedPlaceStep", jobRepository)
                 .<Long, List<PlaceRecommendation>>chunk(10, transactionManager)
                 .reader(pensionItemReader())           // 리뷰가 1개 이상 있는 펜션 조회
-                .processor(combinedProcessor())        // 점수 업데이트와 추천 데이터 생성
+                .processor(combinedProcessor())        // 추천 데이터 생성
                 .writer(placeRecommendationWriter())   // 리스트를 저장하는 Writer
                 .build();
     }
 
+    // 추천 삭제
+    @Bean
+    public IteratorItemReader<Long> deleteOldRecommendationsReader() {
+        List<Long> memberIds = recommendationService.getActiveMemberIds(); // 삭제할 사용자 ID 조회
+        log.info("Delete Recommendations Reader initialized with member IDs: {}", memberIds);
+
+        return new IteratorItemReader<>(memberIds.iterator());
+    }
+
+    // 사용자 기반 Reader
     @Bean
     public IteratorItemReader<Long> userBasedReader() {
         List<Long> memberIds = recommendationService.getActiveMemberIds();
@@ -157,6 +177,7 @@ public class RecommendationBatchConfig {
                 return null;
             }
 
+            // 추천 저장
             // ExecutionContext에서 pensionIds 가져오기
             ExecutionContext executionContext = StepSynchronizationManager.getContext().getStepExecution().getExecutionContext();
             List<Long> pensionIds = (List<Long>) executionContext.get("pensionIds");
@@ -182,13 +203,42 @@ public class RecommendationBatchConfig {
     }
 
 
-
     // 점수 업데이트 + 추천 데이터 생성 Processor
     @Bean
     public ItemProcessor<Long, List<PlaceRecommendation>> combinedProcessor() {
         return pensionId -> {
             log.info("Processing item-based recommendation for pensionId: {}", pensionId);
-            return pensionPlaceScoreService.recommendPlacesForPension(pensionId);
+            return recommendationService.recommendFacilitiesForPension(pensionId);
+        };
+    }
+
+    // 기존 추천 데이터 삭제
+    @Bean
+    public ItemWriter<Long> userRecommendationDeleter() {
+        return memberIds -> {
+            try (Connection connection = dataSource.getConnection()) {
+                String deleteQuery = """
+                DELETE FROM pension_recommendation
+                WHERE member_id = ?
+            """;
+
+                try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+                    connection.setAutoCommit(false); // 수동 커밋 모드
+
+                    for (Long memberId : memberIds) {
+                        preparedStatement.setLong(1, memberId);
+                        preparedStatement.addBatch(); // 배치에 추가
+                    }
+
+                    preparedStatement.executeBatch(); // 배치 실행
+                    connection.commit(); // 트랜잭션 커밋
+                } catch (Exception e) {
+                    connection.rollback(); // 롤백
+                    throw e;
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to delete recommendations from database", e);
+            }
         };
     }
 
@@ -233,9 +283,6 @@ public class RecommendationBatchConfig {
             }
         };
     }
-
-
-
 
     // 펜션 연관 시설 추천 데이터 저장 Writer
     @Bean

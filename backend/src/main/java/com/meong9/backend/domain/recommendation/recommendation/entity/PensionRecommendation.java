@@ -17,7 +17,7 @@ public class PensionRecommendation {
     @EmbeddedId
     private PensionMemberId pensionMemberId;
 
-    private float score;
+    private Float score;
 
     private LocalDateTime lastUpdatedAt;
 

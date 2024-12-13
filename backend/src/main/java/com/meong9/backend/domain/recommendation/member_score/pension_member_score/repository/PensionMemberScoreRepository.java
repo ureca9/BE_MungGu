@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 public interface PensionMemberScoreRepository extends JpaRepository<PensionMemberScore, PensionMemberId> {
     @Transactional
@@ -15,4 +17,13 @@ public interface PensionMemberScoreRepository extends JpaRepository<PensionMembe
 
     @Query("SELECT pms.score FROM PensionMemberScore pms WHERE pms.pensionMemberId.pensionId = :pensionId AND pms.pensionMemberId.memberId = :memberId")
     float findScoreByPensionIdAndMemberId(@Param("pensionId") Long pensionId, @Param("memberId") Long memberId);
+
+    @Query("""
+        SELECT pms.member.memberId, AVG(pms.score)
+        FROM PensionMemberScore pms
+        WHERE pms.member.memberId IN :memberIds AND pms.pension.pensionId IN :pensionIds
+        GROUP BY pms.member.memberId
+    """)
+    List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("pensionIds") List<Long> pensionIds);
+
 }

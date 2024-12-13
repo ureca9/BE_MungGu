@@ -8,21 +8,16 @@ import com.meong9.backend.domain.recommendation.id_class.PensionPlaceId;
 import com.meong9.backend.domain.recommendation.member_score.pension_member_score.repository.PensionMemberScoreRepository;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.entity.PensionPlaceScore;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.repository.PensionPlaceScoreRepository;
-import com.meong9.backend.domain.recommendation.member_score.place_member_score.entity.PlaceMemberScore;
 import com.meong9.backend.domain.recommendation.member_score.place_member_score.repository.PlaceMemberScoreRepository;
-import com.meong9.backend.domain.recommendation.recommendation.entity.PlaceRecommendation;
-import com.meong9.backend.domain.recommendation.recommendation.service.RecommendationService;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.mahout.cf.taste.recommender.RecommendedItem;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,116 +28,144 @@ public class PensionPlaceScoreService {
     private final PlaceMemberScoreRepository placeMemberScoreRepository;
     private final PensionRepository pensionRepository;
     private final PlaceRepository placeRepository;
-    private final RecommendationService recommendationService;
     private final ReviewRepository reviewRepository;
+
     private final PensionMemberScoreRepository pensionMemberScoreRepository;
 
-
-    // 펜션-시설 점수를 초기화하고 업데이트하는 메서드
-    // 리뷰가 있는 펜션을 대상으로 점수 초기화, 업데이트
     @Transactional
     public void initializeAndUpdateScores() {
+        // 1. 리뷰가 있는 펜션과 시설 정보 로드
         List<Long> pensionIds = reviewRepository.findPensionReviewCount(1);
-        for (Long pensionId : pensionIds) {
-            initializeOrUpdateScoresForPension(pensionId);
-        }
-    }
-
-    // 특정 펜션의 점수를 초기화하거나 업데이트한다.
-    private void initializeOrUpdateScoresForPension(Long pensionId) {
         List<Long> placeIds = placeMemberScoreRepository.findAllPlaceIds();
-        for (Long placeId : placeIds) {
-            List<Long> commonMembers = findCommonMembers(pensionId, placeId);
 
-            if (!commonMembers.isEmpty()) {
-                float score = calculateScore(commonMembers, pensionId, placeId);
-                saveOrUpdatePensionPlaceScore(pensionId, placeId, score);
-            }
+        // 2. 공통 멤버를 조회하여 매핑
+        Map<Long, Map<Long, List<Long>>> pensionPlaceMembers = findAllCommonMembers(pensionIds, placeIds);
+
+        // 3. 모든 멤버에 대한 점수를 한 번에 조회
+        List<Long> allMemberIds = pensionPlaceMembers.values().stream()
+                .flatMap(placeMap -> placeMap.values().stream())
+                .flatMap(List::stream)
+                .distinct()
+                .toList();
+
+        Map<Long, Float> pensionScores = convertToScoreMap(
+                pensionMemberScoreRepository.findScoresBatch(allMemberIds, pensionIds)
+        );
+        Map<Long, Float> placeScores = convertToScoreMap(
+                placeMemberScoreRepository.findScoresBatch(allMemberIds, placeIds)
+        );
+
+        // 4. 기존 데이터를 미리 로드
+        Map<PensionPlaceId, PensionPlaceScore> existingScores = loadExistingScores(pensionPlaceMembers);
+
+        // 5. 펜션과 시설 데이터를 한 번에 조회
+        Map<Long, Pension> pensions = loadPensions(pensionIds);
+        Map<Long, Place> places = loadPlaces(placeIds);
+
+        // 6. 점수 계산 및 저장할 리스트 생성
+        List<PensionPlaceScore> scoresToSave = new ArrayList<>();
+        processScores(pensionPlaceMembers, pensionScores, placeScores, pensions, places, existingScores, scoresToSave);
+
+        // 7. 배치 저장
+        pensionPlaceScoreRepository.saveAll(scoresToSave);
+    }
+
+    private Map<Long, Map<Long, List<Long>>> findAllCommonMembers(List<Long> pensionIds, List<Long> placeIds) {
+        List<Object[]> results = pensionPlaceScoreRepository.findCommonMembersBatch(pensionIds, placeIds);
+
+        Map<Long, Map<Long, List<Long>>> pensionPlaceMembers = new HashMap<>();
+        for (Object[] result : results) {
+            Long pensionId = (Long) result[0];
+            Long placeId = (Long) result[1];
+            Long memberId = (Long) result[2];
+
+            pensionPlaceMembers
+                    .computeIfAbsent(pensionId, k -> new HashMap<>())
+                    .computeIfAbsent(placeId, k -> new ArrayList<>())
+                    .add(memberId);
         }
+        return pensionPlaceMembers;
     }
 
-    // 특정 펜션과 시설 간의 공통 멤버 조회
-    private List<Long> findCommonMembers(Long pensionId, Long placeId) {
-        return pensionPlaceScoreRepository.findCommonMembers(pensionId, placeId);
+    private void processScores(
+            Map<Long, Map<Long, List<Long>>> pensionPlaceMembers,
+            Map<Long, Float> pensionScores,
+            Map<Long, Float> placeScores,
+            Map<Long, Pension> pensions,
+            Map<Long, Place> places,
+            Map<PensionPlaceId, PensionPlaceScore> existingScores,
+            List<PensionPlaceScore> scoresToSave
+    ) {
+        pensionPlaceMembers.forEach((pensionId, placeMembers) -> {
+            placeMembers.forEach((placeId, commonMembers) -> {
+                if (!commonMembers.isEmpty()) {
+                    float score = calculateScore(commonMembers, pensionScores, placeScores);
+                    Pension pension = pensions.get(pensionId);
+                    Place place = places.get(placeId);
+
+                    if (pension != null && place != null) {
+                        PensionPlaceId pensionPlaceId = new PensionPlaceId(pensionId, placeId);
+                        PensionPlaceScore pensionPlaceScore = existingScores.getOrDefault(
+                                pensionPlaceId,
+                                PensionPlaceScore.builder()
+                                        .pensionPlaceId(pensionPlaceId)
+                                        .pension(pension)
+                                        .place(place)
+                                        .lastUpdatedAt(LocalDateTime.now())
+                                        .score(score)
+                                        .build()
+                        );
+                        pensionPlaceScore.setScore(score);
+                        pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
+                        scoresToSave.add(pensionPlaceScore);
+                    }
+                }
+            });
+        });
     }
 
-    // 공통 멤버 기반 펜션 시설 간 점수 계산
-    private float calculateScore(List<Long> commonMembers, Long pensionId, Long placeId) {
+    private Map<Long, Float> convertToScoreMap(List<Object[]> results) {
+        Map<Long, Float> scoreMap = new HashMap<>();
+        for (Object[] result : results) {
+            Long memberId = (Long) result[0];
+            Float score = ((Number) result[1]).floatValue();
+            scoreMap.put(memberId, score);
+        }
+        return scoreMap;
+    }
+
+    private Map<Long, Pension> loadPensions(List<Long> pensionIds) {
+        return pensionRepository.findAllByIdIn(pensionIds).stream()
+                .collect(HashMap::new, (map, pension) -> map.put(pension.getPensionId(), pension), HashMap::putAll);
+    }
+
+    private Map<Long, Place> loadPlaces(List<Long> placeIds) {
+        return placeRepository.findAllByIdIn(placeIds).stream()
+                .collect(HashMap::new, (map, place) -> map.put(place.getPlaceId(), place), HashMap::putAll);
+    }
+
+    private Map<PensionPlaceId, PensionPlaceScore> loadExistingScores(
+            Map<Long, Map<Long, List<Long>>> pensionPlaceMembers
+    ) {
+        Set<PensionPlaceId> ids = new HashSet<>();
+        pensionPlaceMembers.forEach((pensionId, placeMap) -> placeMap.keySet()
+                .forEach(placeId -> ids.add(new PensionPlaceId(pensionId, placeId))));
+
+        return pensionPlaceScoreRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(PensionPlaceScore::getPensionPlaceId, score -> score));
+    }
+
+    private float calculateScore(
+            List<Long> commonMembers,
+            Map<Long, Float> pensionScores,
+            Map<Long, Float> placeScores
+    ) {
         float totalScore = 0.0f;
         for (Long memberId : commonMembers) {
-            float pensionScore = pensionMemberScoreRepository.findScoreByPensionIdAndMemberId(pensionId, memberId);
-            float placeScore = placeMemberScoreRepository.findScoreByPlaceIdAndMemberId(placeId, memberId);
-            totalScore += (pensionScore + placeScore) / 2; // 평균 점수
+            float pensionScore = pensionScores.getOrDefault(memberId, 0.0f);
+            float placeScore = placeScores.getOrDefault(memberId, 0.0f);
+            totalScore += (pensionScore + placeScore) / 2;
         }
         return totalScore / commonMembers.size();
     }
-
-    // 특정 펜션의 점수 업데이트
-    public void updateScoresForPension(Long pensionId) {
-        List<Long> placeIds = pensionPlaceScoreRepository.findPlaceIdsByPensionId(pensionId);
-        for (Long placeId : placeIds) {
-            float score = calculateMemberScoreForPlace(placeId);
-            saveOrUpdatePensionPlaceScore(pensionId, placeId, score);
-        }
-    }
-
-    // 특정 펜션에 대한 시설 추천 생성
-    public List<PlaceRecommendation> recommendPlacesForPension(Long pensionId) {
-        List<RecommendedItem> recommendations = recommendationService.recommendFacilitiesForPension(pensionId);
-        return recommendations.stream()
-                .map(item -> PlaceRecommendation.builder()
-                        .pensionPlaceId(new PensionPlaceId(pensionId, item.getItemID()))
-                        .score(item.getValue())
-                        .build())
-                .toList();
-    }
-
-    // 특정 시설에 대한 사용자 점수 계산
-    private float calculateMemberScoreForPlace(Long placeId) {
-        List<PlaceMemberScore> scores = placeMemberScoreRepository.findByPlaceId(placeId);
-        return (float) scores.stream()
-                .mapToDouble(PlaceMemberScore::getScore)
-                .average()
-                .orElse(0.0);
-    }
-
-    // 펜션-시설 점수 저장, 업데이트
-    @Transactional
-    public void saveOrUpdatePensionPlaceScore(Long pensionId, Long placeId, float score) {
-
-        // 복합 키 객체 생성
-        PensionPlaceId pensionPlaceId = new PensionPlaceId(pensionId, placeId);
-
-        Pension pension = pensionRepository.findById(pensionId)
-                .orElseThrow(() -> new IllegalArgumentException("Pension not found: " + pensionId));
-        Place place = placeRepository.findById(placeId)
-                .orElseThrow(() -> new IllegalArgumentException("Place not found: " + placeId));
-
-        // 엔티티 조회 (없으면 새로 생성)
-        // PensionPlaceScore 조회 또는 생성
-        PensionPlaceScore pensionPlaceScore = pensionPlaceScoreRepository.findById(pensionPlaceId).orElse(null);
-
-        if (pensionPlaceScore == null) {
-
-            pensionPlaceScore = PensionPlaceScore.builder()
-                    .pensionPlaceId(pensionPlaceId)
-                    .pension(pension)
-                    .place(place)
-                    .score(0.0f)
-                    .lastUpdatedAt(LocalDateTime.now())
-                    .build();
-
-            log.info("Created new PensionPlaceScore: {}", pensionPlaceScore);
-        } else {
-            log.info("Found existing PensionPlaceScore: {}", pensionPlaceScore);
-        }
-
-        // 값 업데이트
-        pensionPlaceScore.setScore(score);
-        pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
-
-        // 저장 (새로 생성된 경우 Insert, 기존에 있으면 Update)
-        pensionPlaceScoreRepository.save(pensionPlaceScore);
-    }
 }
-

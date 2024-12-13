@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.List;
 
@@ -90,4 +91,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     String findNameByPlaceId(@Param("placeId") Long placeId); // 이름만 조회
     @Query("SELECT c.plcCategoryId FROM Place p JOIN p.plcCategory c WHERE p.placeId = :placeId")
     List<Long> findCategoryIdsByPensionId(@Param("placeId") Long placeId);
+
+    @Query("SELECT p FROM Place p WHERE p.placeId IN :ids")
+    List<Place> findAllByIdIn(@Param("ids") List<Long> ids);
 }
