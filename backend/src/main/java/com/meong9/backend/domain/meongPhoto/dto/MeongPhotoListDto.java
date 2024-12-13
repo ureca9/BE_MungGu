@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 public class MeongPhotoListDto {
 
-    private final List<MeongPhotoDto> meongPhotoDtoList;
+    private final List<MeongPhotoDto> meongPhotoList;
     private boolean hasNext;
 
 }
