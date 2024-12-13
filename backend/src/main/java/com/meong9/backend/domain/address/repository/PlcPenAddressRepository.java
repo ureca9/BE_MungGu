@@ -1,12 +1,13 @@
 package com.meong9.backend.domain.address.repository;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,13 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
             AND ppa.type = :typeCode
             """)
     List<Long> findFacilityIdsByRegionIdIn(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode);
+
+    @Query("""
+            SELECT ppa.plcPenId FROM PlcPenAddress ppa
+            WHERE ppa.address.region.regionId IN :regionIds
+            AND ppa.type = :typeCode
+            """)
+    Slice<Long> findFacilityIdsByRegionIdInWithPagination(@Param("regionIds") List<Long> regionIds, @Param("typeCode") String typeCode, Pageable pageable);
 
     @Query("""
         SELECT pa FROM PlcPenAddress pa

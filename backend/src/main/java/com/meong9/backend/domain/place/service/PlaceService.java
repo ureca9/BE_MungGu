@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlaceService {
     private final PlaceRepository placeRepository;
 
-
+    @Transactional(readOnly = true)
     public PlaceSummaryResponseDto getPlaceSummaryById(Long id) {
         return placeRepository.findPlaceSummaryResponseDtoById(id)
                 .orElseThrow(() -> NotFoundException.entityNotFound("시설"));

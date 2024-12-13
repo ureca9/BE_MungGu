@@ -13,6 +13,7 @@ import com.meong9.backend.domain.recommendation.recommendation.repository.Pensio
 import com.meong9.backend.domain.recommendation.recommendation.repository.PlaceRecommendationRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.AddressMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.impl.model.jdbc.ReloadFromJDBCDataModel;
 import org.apache.mahout.cf.taste.model.DataModel;
@@ -123,7 +124,7 @@ public class RecommendationService {
             PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020")
                     .orElseThrow(() -> NotFoundException.entityNotFound("시설 주소"));
 
-            String address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
+            String address = AddressMapper.formatAddress(plcPenAddress);
 
             // 이미지 null 체크
             String img = null;
@@ -175,21 +176,25 @@ public class RecommendationService {
             // 주소 null 체크
             String address = "";
             if (plcPenAddress.getAddress() != null) {
-                address = plcPenAddress.getAddress().getProvince() + " " + plcPenAddress.getAddress().getCityDistrict();
+                address = AddressMapper.formatAddress(plcPenAddress);
             }
 
             // 이미지 null 체크
             String img = "";
-            if (placeRecommendation.getPlace() != null
-                    && !placeRecommendation.getPension().getPensionFiles().isEmpty()) {
-                PlaceFile placeFile = placeRecommendation.getPlace().getPlaceFiles().get(0);
-                if (placeFile != null && placeFile.getMediaFile() != null) {
-                    img = placeFile.getMediaFile().getFileUrl();
+            if (placeRecommendation.getPlace() != null) {
+                List<PlaceFile> placeFiles = placeRecommendation.getPlace().getPlaceFiles();
+                if (placeFiles != null && !placeFiles.isEmpty()) { // 리스트 null 및 비어있는지 체크
+                    PlaceFile placeFile = placeFiles.get(0); // 첫 번째 파일 가져오기
+                    if (placeFile != null && placeFile.getMediaFile() != null) {
+                        img = placeFile.getMediaFile().getFileUrl();
+                        log.info("이미지가 존재합니다. MediaFileId: {}", placeFile.getMediaFile().getMediaFileId());
+                    }
+                } else {
+                    log.info("PlaceFiles가 비어있습니다.");
                 }
-                log.info("이미지가 널이에요" + placeFile.getMediaFile().getMediaFileId());
-
+            } else {
+                log.info("PlaceRecommendation의 Place가 null입니다.");
             }
-
 
             // 리뷰 null 체크
             Double reviewAvg = placeRecommendation.getPlace() != null ? placeRecommendation.getPlace().getReviewAvg() : null;

@@ -41,16 +41,18 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
     @Query("""
-        SELECT P, 
-               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
-        FROM Place P
-        LEFT JOIN P.likes L ON L.member = :member
-        WHERE P.placeId IN :placeIds
-        GROUP BY P
+    SELECT P,
+           CASE WHEN EXISTS (SELECT 1
+                FROM PlaceLike pl
+                JOIN Like l ON pl.likeId = l.likeId
+            WHERE l.member.memberId = :memberId AND pl.place.placeId = P.placeId) 
+            THEN TRUE ELSE FALSE END AS LIKED 
+    FROM Place P
+    WHERE P.placeId IN :placeIds
     """)
     List<Object[]> findAllWithLikeStatus(
             @Param("placeIds") List<Long> placeIds,
-            @Param("member") Member member
+            @Param("memberId") Long memberId
     );
 
 
@@ -84,4 +86,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     @Query("SELECT p FROM Place p WHERE p.placeId IN :placeIds")
     List<Place> findByPlaceIds(@Param("placeIds") List<Long> placeIds);
 
+    @Query("SELECT p.name FROM Place p WHERE p.placeId = :placeId")
+    String findNameByPlaceId(@Param("placeId") Long placeId); // 이름만 조회
 }

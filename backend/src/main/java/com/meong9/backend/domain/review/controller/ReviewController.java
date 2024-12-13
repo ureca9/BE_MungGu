@@ -9,6 +9,9 @@ import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +20,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -31,15 +35,22 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
-        return CommonResponse.ok("success",reviewService.getMyReviews(member));
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member, @PageableDefault(size = 5, sort = "reviewId",
+                                          direction = Sort.Direction.DESC) Pageable pageable,
+    @RequestParam(value = "lastReviewId", required = false) Long lastReviewId) {
+        return CommonResponse.ok("success",reviewService.getMyReviews(member,lastReviewId,pageable));
+    }
+
+    @GetMapping("/reviews/info")
+    public ResponseEntity<?> getPlacePensionInfo(@RequestParam(required = true) String type,@RequestParam(required = true) Long id) {
+        return CommonResponse.ok("success", reviewService.getPlacePensionInfo(type,id));
     }
 
     @PostMapping("/reviews")
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException, InterruptedException {
+            @CurrentMember Member member) throws IOException, InterruptedException, TimeoutException {
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }
@@ -49,7 +60,7 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> newFiles,
-            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException {
+            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
         reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }

@@ -57,6 +57,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-batch'
 	implementation 'org.springframework.batch:spring-batch-core:5.1.0'
 
+	// webflux
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// redis
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'

@@ -75,18 +75,22 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
 
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("""
-        SELECT P,
-               CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
-        FROM Pension P
-        LEFT JOIN P.likes L ON L.member = :member
-        WHERE P.pensionId IN :pensionIds
-        GROUP BY P
+    SELECT P,
+           CASE WHEN EXISTS (SELECT 1
+                FROM PensionLike pl
+                JOIN Like l ON pl.likeId = l.likeId
+            WHERE l.member.memberId = :memberId AND pl.pension.pensionId = P.pensionId) 
+            THEN TRUE ELSE FALSE END AS LIKED 
+    FROM Pension P
+    WHERE P.pensionId IN :pensionIds
     """)
     List<Object[]> findAllWithLikeStatus(
             @Param("pensionIds") List<Long> pensionIds,
-            @Param("member") Member member
+            @Param("memberId") Long memberId
     );
 
+    @Query("SELECT p.name FROM Pension p WHERE p.pensionId = :pensionId")
+    String findNameByPensionId(@Param("pensionId") Long pensionId); // 이름만 조회
     /**
      * pensionId 목록으로 펜션 정보를 조회합니다.
      *

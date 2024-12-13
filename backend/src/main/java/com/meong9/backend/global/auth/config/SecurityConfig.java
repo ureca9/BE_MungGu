@@ -45,9 +45,9 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-//        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
+        configuration.setAllowedHeaders(List.of("*"));
+//        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:8080", "https://mungtivity.vercel.app"));
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT", "PATCH", "DELETE","OPTIONS"));
         configuration.setMaxAge(60L);
@@ -66,10 +66,19 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/rankings", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/reviews", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/pensions/{pensionId}", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/pensions/{placeId}", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/pensions/{placeId}/reviews", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/pensions/detail/{pensionId}", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/pensions/{pensionId}/recommendations", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/{pensionId}/rooms", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/pensions/{pensionId}/reviews", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/pensions/{pensionId}/summary", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/places/detail/{placeId}", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/places/{placeId}/reviews", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/{placeId}/summary", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/map/places", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/photos", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/weather", HttpMethod.GET.name()),
+
                         new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())
                 ));
@@ -78,11 +87,15 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(ignoredRequests).permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
-                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations", "/api/v1/map/search").permitAll()
                 .requestMatchers("/index.html", "/favicon.ico").permitAll()
                 .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
                 .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
         );
+
+//        http.authorizeHttpRequests(auth -> auth
+//                .anyRequest().permitAll() // 모든 요청 허용
+//        );
 
         // CSRF 비활성화 및 CORS 설정
         http.csrf(AbstractHttpConfigurer::disable)
