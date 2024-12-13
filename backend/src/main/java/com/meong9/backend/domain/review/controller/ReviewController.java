@@ -1,7 +1,6 @@
 package com.meong9.backend.domain.review.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
-import com.meong9.backend.domain.review.dto.PlacePensionInfoRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.service.ReviewService;
