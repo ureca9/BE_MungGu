@@ -55,7 +55,7 @@ public class MeongPhotoService {
             return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl);
         } catch (IOException e) {
             log.error("멍생네컷 저장 중 오류 발생: {}", e.getMessage(), e);
-            tempFileService.saveTemporaryFile(serviceUrl, file);
+            tempFileService.saveTemporaryFile(serviceUrl, file, member.getMemberId(), "MEMBER");
             throw InternalServerError.photoProcessingError();
         }
     }
