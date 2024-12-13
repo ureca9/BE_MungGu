@@ -94,13 +94,14 @@ public class TempFileService {
                     metadata.setContentLength(tempFile.getFileData().length);
                     metadata.setContentType(tempFile.getContentType());
 
-                    String s3Key = "MeongPhoto/" + tempFile.getOwnerId() + suffix;
-                    s3Client.putObject(new PutObjectRequest(bucket, s3Key, inputStream, metadata));
+                    String fileKey = "MeongPhoto/" + tempFile.getOwnerId() + suffix;
+                    s3Client.putObject(new PutObjectRequest(bucket, fileKey, inputStream, metadata));
 
                     // 2-2. MediaFile 엔티티 저장
                     ImageMetadataDto imageMetadata = mediaFileService.extractImageMetadata(tempFile.getFileData());
+                    String s3Url = s3Client.getUrl(bucket, fileKey).toString();
                     MediaFile mediaFile = mediaFileService.saveMediaFile(imageMetadata,
-                            new S3UploadResultDto("https://your-bucket-name.s3.amazonaws.com/" + s3Key, s3Key)
+                            new S3UploadResultDto(s3Url, fileKey)
                     );
 
                     // 2-3. MeongPhoto 엔티티 저장
