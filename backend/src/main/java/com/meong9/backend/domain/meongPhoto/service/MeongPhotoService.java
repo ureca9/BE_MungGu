@@ -4,7 +4,6 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.meongPhoto.dto.*;
 import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
 import com.meong9.backend.domain.meongPhoto.repository.MeongPhotoRepository;
-import com.meong9.backend.global.exception.InternalServerError;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
