@@ -7,12 +7,14 @@ import com.meong9.backend.domain.pension.repository.PensionTagRepository;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PensionDetailService {
 
@@ -43,7 +45,7 @@ public class PensionDetailService {
                 pensionFileRepositry.findImagesByPensionId(pensionId),
                 addressService.getAddress(pensionId, "020"),
                 reviewService.getPhotoReviewSummaryResponseDtoList(pensionId,"020",pageable),
-                reviewService.getReviewSummaryResponseDtoList(pensionId,"020",pageable)
+                reviewService.getReviews("020", pensionId, pageable).getContent()
         );
     }
 

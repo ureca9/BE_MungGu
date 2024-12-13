@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.pension.controller;
 
+import com.meong9.backend.domain.pension.dto.PensionDetailResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.repository.RoomAvailabilityRepository;
 import com.meong9.backend.global.annotation.member.CurrentMember;
@@ -7,6 +8,7 @@ import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
 import com.meong9.backend.domain.pension.service.PensionDetailService;
 import com.meong9.backend.domain.pension.service.PensionService;
+import com.meong9.backend.domain.pension.service.TopPensionService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -37,6 +39,7 @@ public class PensionController {
     private final ReviewService reviewService;
     private final PensionService pensionService;
     private final RoomAvailabilityRepository roomAvailabilityRepository;
+    private final TopPensionService topPensionService;
 
     /**
      * 특정 펜션의 상세 데이터를 조회합니다.
@@ -50,7 +53,13 @@ public class PensionController {
             @CurrentMember Member member) {
 
         Long memberId = (member != null) ? member.getMemberId() : null;
-        return CommonResponse.ok("success", pensionDetailService.getPensionDetail(pensionId, memberId));
+
+        PensionDetailResponseDto pensionDetail = pensionDetailService.getPensionDetail(pensionId, memberId);
+
+        // View count 증가 로직 서비스 호출
+        log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+
+        return CommonResponse.ok("success", pensionDetail);
     }
 
     /**
@@ -90,7 +99,7 @@ public class PensionController {
 
         // 리뷰 서비스에서 페이징된 리뷰 데이터 조회
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
-                "010",
+                "020",
                 pensionId,
                 pageable
         );
@@ -114,5 +123,16 @@ public class PensionController {
     ){
         PensionSummaryResponseDto pensionSummaryResponseDto = pensionService.getPensionSummaryResponseDto(pensionId);// 리뷰와 관련된 펜션 정보 요약
         return CommonResponse.ok("success", pensionSummaryResponseDto);
+    }
+
+    /**
+     * 인기 펜션 Top 9를 조회하는 엔드포인트
+     * 최근 7일간의 조회수를 기준으로 상위 9개 펜션을 반환
+     *
+     * @return 상위 9개 펜션 정보 응답
+     */
+    @GetMapping("/pensions/top")
+    public ResponseEntity<?> getTopPlacesByCategory(){
+        return CommonResponse.ok("success", topPensionService.getTop9PensionsByCategory());
     }
 }

@@ -75,7 +75,7 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
 
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("""
-        SELECT P, 
+        SELECT P,
                CASE WHEN (COUNT(L) > 0) THEN TRUE ELSE FALSE END AS LIKED
         FROM Pension P
         LEFT JOIN P.likes L ON L.member = :member
@@ -87,5 +87,12 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
             @Param("member") Member member
     );
 
-
+    /**
+     * pensionId 목록으로 펜션 정보를 조회합니다.
+     *
+     * @param pensionIds 조회할 pensionId 목록
+     * @return 조회된 Place 리스트
+     */
+    @Query("SELECT p FROM Pension p WHERE p.pensionId IN :pensionIds")
+    List<Pension> findByPensionIds(@Param("pensionIds") List<Long> pensionIds);
 }

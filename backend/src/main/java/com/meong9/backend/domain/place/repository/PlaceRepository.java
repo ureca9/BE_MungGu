@@ -74,4 +74,14 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     WHERE p.placeId = :placeId
 """)
     Optional<PlaceInfoDto> findPlaceInfoById(@Param("placeId") Long placeId, @Param("memberId") Long memberId);
+
+    /**
+     * placeId 목록으로 장소 정보를 조회합니다.
+     *
+     * @param placeIds 조회할 placeId 목록
+     * @return 조회된 Place 리스트
+     */
+    @Query("SELECT p FROM Place p WHERE p.placeId IN :placeIds")
+    List<Place> findByPlaceIds(@Param("placeIds") List<Long> placeIds);
+
 }

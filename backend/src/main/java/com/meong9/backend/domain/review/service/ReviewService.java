@@ -26,7 +26,6 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -471,38 +469,6 @@ public class ReviewService {
     // 리뷰 이미지
     private String getReviewImageUrl(Review review){
         return !review.getReviewFiles().isEmpty() ? review.getReviewFiles().get(0).getFile().getFileUrl() : null;
-    }
-
-    /**
-     * 리뷰를 바탕으로 ReviewSummaryResponseDto 리스트를 생성하는 메서드
-     * @param placeId 상세 정보 조회를 요청한 장소의 고유 식별자
-     * @param type 리뷰의 장소 타입
-     * @param pageable 조회할 리뷰의 페이징 정보
-     * @return ReviewSummaryResponseDto 리스트
-     */
-    @Transactional(readOnly = true)
-    public List<ReviewSummaryResponseDto> getReviewSummaryResponseDtoList(Long placeId, String type, Pageable pageable) {
-        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type ,placeId, pageable);
-
-        return reviews.stream()
-                .map(review -> ReviewSummaryResponseDto.builder()
-                        .reviewId(review.getReviewId())
-                        .profileImageUrl((review.getMember() != null && review.getMember().getProfileImage() != null)
-                                ? review.getMember().getProfileImage().getFileUrl()
-                                : null)
-                        .content(review.getContent())
-                        .score(review.getScore().doubleValue())
-                        .visitDate(review.getVisitDate().toString())
-                        .nickname(review.getNickname())
-                        .file(review.getReviewFiles().stream()
-                                .map(file -> ReviewSummaryFileDto.builder()
-                                        .mediaFileId(file.getFile().getMediaFileId())
-                                        .fileType(file.getFile().getFileType().name())
-                                        .fileUrl(file.getFile().getFileUrl())
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build())
-                .collect(Collectors.toList());
     }
 
     /**

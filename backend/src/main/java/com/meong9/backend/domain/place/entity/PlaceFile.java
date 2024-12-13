@@ -15,21 +15,21 @@ import lombok.NoArgsConstructor;
 public class PlaceFile {
 
     @EmbeddedId
-    private PlaceFileId id; // 복합 키 객체
+    private PlaceFileId placeFileId; // 복합 키 객체
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("placeId") // PlaceFileId의 placeId와 매핑
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id", nullable = false)
     private Place place;
 
+    @MapsId("mediaFileId") // PlaceFileId의 mediaFileId와 매핑
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("fileId") // PlaceFileId의 fileId와 매핑
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile mediaFile;
 
     @Builder
     public PlaceFile(Place place, MediaFile mediaFile) {
-        this.id = new PlaceFileId(place.getPlaceId(), mediaFile.getMediaFileId());
+        this.placeFileId = new PlaceFileId(place.getPlaceId(), mediaFile.getMediaFileId());
         this.place = place;
         this.mediaFile = mediaFile;
     }

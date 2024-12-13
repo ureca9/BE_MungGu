@@ -41,7 +41,7 @@ public class PlaceDetailService {
                 placeTagRepository.findNamesByPlaceId(placeId),
                 placeFileRepository.findImagesByPensionId(placeId),
                 reviewService.getPhotoReviewSummaryResponseDtoList(placeId, "010", pageable),
-                reviewService.getReviewSummaryResponseDtoList(placeId, "010", pageable)
+                reviewService.getReviews("010", placeId, pageable).getContent()
         );
     }
 
