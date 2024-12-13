@@ -2,18 +2,15 @@ package com.meong9.backend.domain.map.service;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
-import com.meong9.backend.domain.like.entity.PensionLike;
-import com.meong9.backend.domain.like.entity.PlaceLike;
 import com.meong9.backend.domain.like.repository.LikeRepository;
 import com.meong9.backend.domain.map.dto.MapPlaceDto;
 import com.meong9.backend.domain.map.dto.MapPlaceSelectDto;
 import com.meong9.backend.domain.map.dto.MapSearchDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.entity.Pension;
-import com.meong9.backend.domain.pension.entity.PensionFile;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
-import com.meong9.backend.domain.place.entity.PlaceFile;
+import com.meong9.backend.domain.place.repository.PlaceFileRepository;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
 import com.meong9.backend.domain.search.repository.SearchJooqRepository;
 import com.meong9.backend.global.exception.NotFoundException;
@@ -57,11 +54,12 @@ public class MapSearchService {
     public MapSearchDto getSearchPlcPen(Member member, String searchWord, Double userLatitude, Double userLongitude, Pageable pageable) {
         // 검색어로 조회
         Slice<Long> placeIds = searchJooqRepository.findPlaceIdsBySearchWordForMap(searchWord, pageable);
-        Slice<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWord(searchWord, pageable);
+        Slice<Long> pensionIds = searchJooqRepository.findPensionIdsBySearchWordForMap(searchWord, pageable);
+
 
         // Place와 Pension ID로 조회
-        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member);  // List로 Place 조회
-        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member);  // List로 Pension 조회
+        List<Object[]> places = placeRepository.findAllWithLikeStatus(placeIds.getContent(), member.getMemberId());  // List로 Place 조회
+        List<Object[]> pensions = pensionRepository.findAllWithLikeStatus(pensionIds.getContent(), member.getMemberId());  // List로 Pension 조회
 
         // PlcPenAddress에서 주소 가져오기
         List<PlcPenAddress> pensionAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds.getContent(), "020");
