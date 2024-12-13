@@ -1,17 +1,17 @@
 package com.meong9.backend.domain.meongPhoto.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoResponseDto;
+import com.meong9.backend.domain.meongPhoto.dto.MyMeongPhotoListDto;
 import com.meong9.backend.domain.meongPhoto.service.MeongPhotoService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -25,10 +25,34 @@ public class MeongPhotoController {
     /**
      * 멍생네컷 저장 컨트롤러
      */
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<?> createMeongPhoto(@CurrentMember Member member,
-                                              @RequestPart(name = "image") MultipartFile image) {
-        MeongPhotoResponseDto dto = meongPhotoService.createMeongPhoto(member, image);
+                                              @RequestPart(name = "image") MultipartFile image,
+                                              HttpServletRequest request) {
+        String serviceUrl = request.getRequestURI();
+        MeongPhotoResponseDto dto = meongPhotoService.createMeongPhoto(member, image, serviceUrl);
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 멍생네컷 전체 조회 컨트롤러
+     */
+    @GetMapping
+    public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId", required = false) Long lastPhotoId,
+                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId, size);
+        return CommonResponse.ok("success", dto);
+    }
+
+    /**
+     * 멤버의 본인 멍생네컷 조회 컨트롤러
+     */
+    @GetMapping("/mine")
+    public ResponseEntity<?> getMyMeongPhotos(@CurrentMember Member member,
+                                              @RequestParam(required = false) Long lastPhotoId,
+                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
+
+        MyMeongPhotoListDto dto = meongPhotoService.getMyMeongPhotos(member, lastPhotoId, size);
         return CommonResponse.ok("success", dto);
     }
 }

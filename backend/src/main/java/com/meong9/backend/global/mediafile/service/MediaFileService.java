@@ -205,7 +205,7 @@ public class MediaFileService {
     /**
      * 미디어 파일 저장
      */
-    public void saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
+    public MediaFile saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
         MediaFile mediaFile = MediaFile.builder()
                 .fileType(FileType.IMAGE)
                 .fileSize((int) metadata.getFileSize())
@@ -216,7 +216,7 @@ public class MediaFileService {
                 .fileKey(s3UploadResultDto.getFileKey())
                 .build();
 
-        mediaFileRepository.save(mediaFile);
+        return mediaFileRepository.save(mediaFile);
     }
 
     /**
@@ -229,6 +229,20 @@ public class MediaFileService {
         int height = bufferedImage.getHeight();
 
         return new ImageMetadataDto(width, height, image.getSize());
+    }
+
+    /**
+     * byte[] 데이터에서 이미지 메타데이터 추출
+     */
+    public ImageMetadataDto extractImageMetadata(byte[] imageData) throws IOException {
+        try (InputStream inputStream = new ByteArrayInputStream(imageData)) {
+            BufferedImage bufferedImage = ImageIO.read(inputStream);
+
+            int width = bufferedImage.getWidth();
+            int height = bufferedImage.getHeight();
+
+            return new ImageMetadataDto(width, height, imageData.length);
+        }
     }
 
     // S3에서 파일 삭제
