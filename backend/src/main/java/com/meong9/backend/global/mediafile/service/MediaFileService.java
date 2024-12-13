@@ -231,6 +231,20 @@ public class MediaFileService {
         return new ImageMetadataDto(width, height, image.getSize());
     }
 
+    /**
+     * byte[] 데이터에서 이미지 메타데이터 추출
+     */
+    public ImageMetadataDto extractImageMetadata(byte[] imageData) throws IOException {
+        try (InputStream inputStream = new ByteArrayInputStream(imageData)) {
+            BufferedImage bufferedImage = ImageIO.read(inputStream);
+
+            int width = bufferedImage.getWidth();
+            int height = bufferedImage.getHeight();
+
+            return new ImageMetadataDto(width, height, imageData.length);
+        }
+    }
+
     // S3에서 파일 삭제
     public void deleteFromS3(String fileKey) {
         if (s3Client.doesObjectExist(bucket, fileKey)) {
