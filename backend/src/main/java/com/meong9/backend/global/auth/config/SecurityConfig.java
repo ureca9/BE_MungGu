@@ -73,7 +73,7 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/pensions/{pensionId}/summary", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/places/detail/{placeId}", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/places/{placeId}/reviews", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/{placeId}/summary", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/places/{placeId}/summary", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/map/places", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/photos", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/", HttpMethod.GET.name()),
