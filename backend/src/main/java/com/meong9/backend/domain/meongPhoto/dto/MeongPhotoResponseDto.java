@@ -9,4 +9,5 @@ public class MeongPhotoResponseDto {
 
     private final String imageUrl;
     private final String imageDownloadUrl;
+    private final boolean isProcessing;
 }
