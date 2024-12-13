@@ -39,7 +39,7 @@ public class PlaceDetailService {
                 placeService.getPlaceInfoDto(placeId, memberId),
                 addressService.getAddress(placeId, "010"),
                 placeTagRepository.findNamesByPlaceId(placeId),
-                placeFileRepository.findImagesByPensionId(placeId),
+                placeFileRepository.findImagesByPlaceId(placeId),
                 reviewService.getPhotoReviewSummaryResponseDtoList(placeId, "010", pageable),
                 reviewService.getReviews("010", placeId, pageable).getContent()
         );

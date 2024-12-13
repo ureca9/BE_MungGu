@@ -2,7 +2,7 @@ package com.meong9.backend.domain.pension.service;
 
 import com.meong9.backend.domain.address.service.AddressService;
 import com.meong9.backend.domain.pension.dto.PensionDetailResponseDto;
-import com.meong9.backend.domain.pension.repository.PensionFileRepositry;
+import com.meong9.backend.domain.pension.repository.PensionFileRepository;
 import com.meong9.backend.domain.pension.repository.PensionTagRepository;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.exception.NotFoundException;
@@ -21,7 +21,7 @@ public class PensionDetailService {
     private final AddressService addressService;
     private final ReviewService reviewService;
     private final PensionService pensionService;
-    private final PensionFileRepositry pensionFileRepositry;
+    private final PensionFileRepository pensionFileRepository;
     private final PensionTagRepository pensionTagRepository;
 
     /**
@@ -42,7 +42,7 @@ public class PensionDetailService {
         return PensionDetailResponseDto.of(
                 pensionService.getPensionInfo(pensionId, memberId),
                 pensionTagRepository.findTagsByPensionId(pensionId),
-                pensionFileRepositry.findImagesByPensionId(pensionId),
+                pensionFileRepository.findImagesByPensionId(pensionId),
                 addressService.getAddress(pensionId, "020"),
                 reviewService.getPhotoReviewSummaryResponseDtoList(pensionId,"020",pageable),
                 reviewService.getReviews("020", pensionId, pageable).getContent()

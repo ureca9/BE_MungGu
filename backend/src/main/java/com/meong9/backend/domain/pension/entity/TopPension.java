@@ -1,6 +1,8 @@
 package com.meong9.backend.domain.pension.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,6 +37,8 @@ public class TopPension {
     private Integer year;
     private Integer month;
     private Integer date;
+    @DecimalMin("0.0")
+    @DecimalMax("5.0")
     private BigDecimal roomPriceAvg;
 
     @OneToMany(mappedBy = "topPension", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -41,9 +41,4 @@ public class TopFeature {
 
     @OneToMany(mappedBy = "topFeature", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PensionFeature> pensionFeatures = new ArrayList<>();
-
-    // `TagToFeatureMapping`을 기반으로 설정하는 메서드 추가
-    public void applyTag(Long tagId) {
-        TagToFeatureMapping.applyFeature(tagId, this);
-    }
 }

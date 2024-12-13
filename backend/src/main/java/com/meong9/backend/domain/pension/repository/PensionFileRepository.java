@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface PensionFileRepositry extends CrudRepository<PensionFile, Long> {
+public interface PensionFileRepository extends CrudRepository<PensionFile, Long> {
     @Query("""
     SELECT mf.fileUrl
     FROM PensionFile pf

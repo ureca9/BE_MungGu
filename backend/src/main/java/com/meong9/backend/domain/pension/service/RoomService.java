@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,6 +29,10 @@ public class RoomService {
         // RoomRepository에서 평균 객실 가격 데이터를 조회
         List<Object[]> results = roomRepository.findAveragePricesByPensionIds(pensionIds);
 
+        // results가 null이거나 비어있으면 빈 Map 반환
+        if (results == null || results.isEmpty()) {
+            return Collections.emptyMap();
+        }
         // 결과를 Stream으로 변환하여 pensionId를 Key, 평균 가격을 Value로 Map 생성
         return results.stream()
                 .collect(Collectors.toMap(
