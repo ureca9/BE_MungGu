@@ -1,4 +1,4 @@
-package com.meong9.backend.domain.place.entity.id;
+package com.meong9.backend.domain.pension.entity.id;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
@@ -9,12 +9,11 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 @Embeddable
-@Getter
+@EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
-public class PlaceFileId implements Serializable {
-
-    private Long placeId; // Place의 ID
-    private Long mediaFileId;  // MediaFile의 ID
+@Getter
+public class PensionFeatureId implements Serializable {
+    private Long topFeatureId;
+    private Long topPensionId;
 }

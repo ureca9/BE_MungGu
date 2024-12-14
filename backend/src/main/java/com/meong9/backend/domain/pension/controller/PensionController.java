@@ -1,14 +1,17 @@
 package com.meong9.backend.domain.pension.controller;
 
+import com.meong9.backend.domain.pension.dto.PensionDetailResponseDto;
+import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.pension.service.RoomAvailabilityService;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
 import com.meong9.backend.domain.pension.service.PensionDetailService;
 import com.meong9.backend.domain.pension.service.PensionService;
-import com.meong9.backend.domain.pension.service.RoomService;
+import com.meong9.backend.domain.pension.service.TopPensionService;
 import com.meong9.backend.domain.review.dto.ReviewSummaryResponseDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.dto.CommonResponse;
-import com.meong9.backend.global.entity.PLACE_PEN_TYPE_CODE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -33,13 +36,32 @@ import java.util.Map;
 public class PensionController {
 
     private final PensionDetailService pensionDetailService;
-    private final RoomService roomService; // Room 데이터를 처리하는 서비스 클래스
     private final ReviewService reviewService;
     private final PensionService pensionService;
+    private final RoomAvailabilityService roomAvailabilityService;
+    private final TopPensionService topPensionService;
 
+    /**
+     * 특정 펜션의 상세 데이터를 조회합니다.
+     *
+     * @param pensionId 펜션 ID
+     * @return 특정 펜션에 대한 상세 데이터
+     */
     @GetMapping("/pensions/detail/{pensionId}")
-    public ResponseEntity<?> getPensionDetail(@PathVariable(name = "pensionId") Long pensionId) {
-        return CommonResponse.ok("success", pensionDetailService.getPensionDetail(pensionId));
+    public ResponseEntity<?> getPensionDetail(
+            @PathVariable(name = "pensionId") Long pensionId,
+            @CurrentMember Member member) {
+
+        Long memberId = (member != null) ? member.getMemberId() : null;
+
+        PensionDetailResponseDto pensionDetail = pensionDetailService.getPensionDetail(pensionId, memberId);
+
+        if(pensionDetail != null) {
+            // View count 증가 로직 서비스 호출
+            log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+        }
+
+        return CommonResponse.ok("success", pensionDetail);
     }
 
     /**
@@ -50,15 +72,13 @@ public class PensionController {
      * @param endDate 예약 종료 날짜
      * @return 예약 가능한 방 목록
      */
-    @GetMapping("/{pensionId}/rooms") // GET 요청을 처리하는 엔드포인트
+    @GetMapping("/{pensionId}/rooms")
     public ResponseEntity<?> getAvailableRooms(
-            @PathVariable Long pensionId, // URL 경로에서 펜션 ID를 추출
+            @PathVariable Long pensionId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate, // 시작 날짜를 ISO 형식으로 요청받음
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate   // 종료 날짜를 ISO 형식으로 요청받음
     ) {
-        // 서비스에서 모든 작업을 처리하도록 위임
-        List<RoomResponseDto> rooms = roomService.findAvailableRoomsWithImages(pensionId, startDate, endDate);
-
+        List<RoomResponseDto> rooms = roomAvailabilityService.getRoomAvailableRoomsWithImages(pensionId, startDate, endDate);
         return CommonResponse.ok("success", rooms);
     }
 
@@ -67,7 +87,7 @@ public class PensionController {
      *
      * @param pensionId 클라이언트가 요청하는 펜션의 ID
      * @param page 클라이언트가 요청하는 페이지 번호 (기본값: 0)
-     * @return 페이징 처리된 리뷰 데이터와 다음 페이지 여부를 포함한 응답
+     * @return 페이징 처리된 특정 펜션의 리뷰 데이터와 다음 페이지 여부를 포함한 응답
      */
     @GetMapping("/pensions/{pensionId}/reviews")
     public ResponseEntity<?> getPensionReviews(
@@ -79,7 +99,7 @@ public class PensionController {
 
         // 리뷰 서비스에서 페이징된 리뷰 데이터 조회
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
-                PLACE_PEN_TYPE_CODE.PENSION.getCode(),
+                "020",
                 pensionId,
                 pageable
         );
@@ -91,11 +111,28 @@ public class PensionController {
         ));
     }
 
+    /**
+     * 특정 펜션에 대한 요약 정보를 조회하는 API 엔드포인트.
+     *
+     * @param pensionId 클라이언트가 요청하는 펜션의 ID
+     * @return 특정 펜션에 대한 요약 정보를 포함한 응답
+     */
     @GetMapping("/pensions/{pensionId}/summary")
     public ResponseEntity<?> getPensionSummary(
             @PathVariable Long pensionId
     ){
         PensionSummaryResponseDto pensionSummaryResponseDto = pensionService.getPensionSummaryResponseDto(pensionId);// 리뷰와 관련된 펜션 정보 요약
         return CommonResponse.ok("success", pensionSummaryResponseDto);
+    }
+
+    /**
+     * 인기 펜션 Top 9를 조회하는 엔드포인트
+     * 최근 7일간의 조회수를 기준으로 상위 9개 펜션을 반환
+     *
+     * @return 상위 9개 펜션 정보 응답
+     */
+    @GetMapping("/pensions/top")
+    public ResponseEntity<?> getTopPlacesByCategory(){
+        return CommonResponse.ok("success", topPensionService.getTop9PensionsByCategory());
     }
 }
