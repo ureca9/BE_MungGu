@@ -15,7 +15,7 @@ import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
-import com.meong9.backend.global.banword.inspector.BadWordInspector;
+import com.meong9.backend.global.banword.inspector.BanWordInspector;
 import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
@@ -27,7 +27,6 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -63,7 +62,7 @@ public class ReviewService {
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final PlaceRepository placeRepository;
     private final MemberRepository memberRepository;
-    private final BadWordInspector badWordInspector;
+    private final BanWordInspector banWordInspector;
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -128,7 +127,7 @@ public class ReviewService {
         log.info("내용: {}",reviewRequestDto.getContent());
         Review review = Review.builder()
                 .member(member)
-                .content(badWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))
+                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))
                 .nickname(member.getNickname())
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())

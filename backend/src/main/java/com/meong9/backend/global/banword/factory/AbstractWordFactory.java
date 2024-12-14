@@ -1,12 +1,12 @@
 package com.meong9.backend.global.banword.factory;
 
-import com.meong9.backend.global.banword.util.wordutil.AbstractWordUtil;
+import com.meong9.backend.global.banword.service.AbstractWordManager;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractWordFactory<T extends AbstractWordUtil> implements WordFactoryBuilder<T> {
+public abstract class AbstractWordFactory<T extends AbstractWordManager> implements WordFactoryBuilder<T> {
 
     private final T wordUtil;
     private final Set<String> distinctWordSet = new HashSet<>();

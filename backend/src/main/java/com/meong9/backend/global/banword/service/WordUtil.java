@@ -1,4 +1,4 @@
-package com.meong9.backend.global.banword.util;
+package com.meong9.backend.global.banword.service;
 
 import com.meong9.backend.global.banword.domain.Word;
 

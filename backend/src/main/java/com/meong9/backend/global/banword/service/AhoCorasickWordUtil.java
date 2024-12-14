@@ -1,13 +1,10 @@
-package com.meong9.backend.global.banword.util;
+package com.meong9.backend.global.banword.service;
 
 import com.meong9.backend.global.banword.domain.Word;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-@Component
-@Slf4j
 public class AhoCorasickWordUtil implements WordUtil {
 
     private final TrieNode root;
@@ -107,10 +104,6 @@ public class AhoCorasickWordUtil implements WordUtil {
             realIndex++;
         }
 
-        for (Word r:result) {
-            log.info("검색 결과: {}",r.word());
-        }
         return result;
     }
-
 }

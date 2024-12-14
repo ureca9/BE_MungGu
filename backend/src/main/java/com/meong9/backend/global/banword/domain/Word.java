@@ -6,4 +6,8 @@ public record Word(String word, int startIndex, int endIndex) {
         return word.startIndex <= startIndex && word.endIndex >= endIndex;
     }
 
+    @Override
+    public String toString() {
+        return String.format("word = %s, startIndex = %d, endIndex = %d", word, startIndex, endIndex);
+    }
 }
