@@ -1,6 +1,6 @@
 package com.meong9.backend.global.banword.factory;
 
-import com.meong9.backend.global.banword.service.ExceptWordManager;
+import com.meong9.backend.global.banword.manager.ExceptWordManager;
 import org.springframework.stereotype.Component;
 
 @Component

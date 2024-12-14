@@ -1,6 +1,7 @@
-package com.meong9.backend.global.banword.service;
+package com.meong9.backend.global.banword.manager;
 
 import com.meong9.backend.global.banword.domain.Word;
+import com.meong9.backend.global.banword.util.WordUtil;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 

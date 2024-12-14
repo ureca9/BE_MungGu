@@ -1,7 +1,6 @@
-package com.meong9.backend.global.banword.service;
+package com.meong9.backend.global.banword.util;
 
 import com.meong9.backend.global.banword.domain.Word;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 

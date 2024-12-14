@@ -2,8 +2,8 @@ package com.meong9.backend.global.banword.inspector;
 
 import com.meong9.backend.global.banword.domain.Word;
 import com.meong9.backend.global.banword.config.InspectorConfig;
-import com.meong9.backend.global.banword.service.ExceptWordManager;
-import com.meong9.backend.global.banword.service.BanWordManager;
+import com.meong9.backend.global.banword.manager.ExceptWordManager;
+import com.meong9.backend.global.banword.manager.BanWordManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +13,7 @@ import java.util.List;
 public class BanWordInspector {
     private final BanWordManager banWordManager;
     private final ExceptWordManager exceptWordManager;
+    private static final String REMOVE_PATTERN = "[\\p{N}\\s\\u3164\\p{L}&&[^ㄱ-ㅎ가-힣ㅏ-ㅣa-zA-Z]]";
 
     @Autowired
     public BanWordInspector(InspectorConfig config) {
@@ -37,6 +38,7 @@ public class BanWordInspector {
     }
 
     public String mask(String word, String replace) {
+        word=word.replaceAll(REMOVE_PATTERN, "");
         StringBuilder sb = new StringBuilder(word);
         List<Word> data = inspect(word);
 

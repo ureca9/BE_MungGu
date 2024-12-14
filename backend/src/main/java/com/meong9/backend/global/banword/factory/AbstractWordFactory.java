@@ -1,6 +1,6 @@
 package com.meong9.backend.global.banword.factory;
 
-import com.meong9.backend.global.banword.service.AbstractWordManager;
+import com.meong9.backend.global.banword.manager.AbstractWordManager;
 
 import java.util.HashSet;
 import java.util.List;

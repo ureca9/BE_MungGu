@@ -1,4 +1,6 @@
-package com.meong9.backend.global.banword.service;
+package com.meong9.backend.global.banword.manager;
+
+import com.meong9.backend.global.banword.util.WordUtil;
 
 public class AbstractWordManager {
     protected final WordUtil wordUtil;

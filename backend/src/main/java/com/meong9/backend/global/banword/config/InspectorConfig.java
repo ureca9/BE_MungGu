@@ -1,8 +1,8 @@
 package com.meong9.backend.global.banword.config;
 
-import com.meong9.backend.global.banword.service.ExceptWordManager;
+import com.meong9.backend.global.banword.manager.ExceptWordManager;
 import com.meong9.backend.global.banword.factory.WordFactoryBuilder;
-import com.meong9.backend.global.banword.service.BanWordManager;
+import com.meong9.backend.global.banword.manager.BanWordManager;
 import com.meong9.backend.global.banword.wordloader.WordLoader;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
