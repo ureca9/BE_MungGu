@@ -99,6 +99,10 @@ jobs:
               -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
+              -DS3_BUCKET_NAME=${{ secrets._BUCKET_NAME}} \
+              -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
+              -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
+              -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
               -Dweather.key=${{ secrets.WEATHER_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-1."
@@ -157,6 +161,10 @@ jobs:
               -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
+              -DS3_BUCKET_NAME=${{ secrets._BUCKET_NAME}} \
+              -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
+              -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
+              -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
               -Dweather.key=${{ secrets.WEATHER_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-2."
