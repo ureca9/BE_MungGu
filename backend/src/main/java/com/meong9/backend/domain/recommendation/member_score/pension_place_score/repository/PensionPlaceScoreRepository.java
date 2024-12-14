@@ -34,4 +34,7 @@ public interface PensionPlaceScoreRepository extends JpaRepository<PensionPlaceS
         
     """)
     List<Object[]> findCommonMembersBatch(List<Long> pensionIds, List<Long> placeIds);
+
+    @Query("SELECT DISTINCT p.pensionPlaceId.pensionId FROM PensionPlaceScore p")
+    List<Long> findPensionIds();
 }

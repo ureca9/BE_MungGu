@@ -34,6 +34,7 @@ public class PensionPlaceScoreService {
 
     @Transactional
     public void initializeAndUpdateScores() {
+        log.info("pension_place_score 정보 저장 시작");
         // 1. 리뷰가 있는 펜션과 시설 정보 로드
         List<Long> pensionIds = reviewRepository.findPensionReviewCount(1);
         List<Long> placeIds = placeMemberScoreRepository.findAllPlaceIds();
@@ -65,6 +66,10 @@ public class PensionPlaceScoreService {
         // 6. 점수 계산 및 저장할 리스트 생성
         List<PensionPlaceScore> scoresToSave = new ArrayList<>();
         processScores(pensionPlaceMembers, pensionScores, placeScores, pensions, places, existingScores, scoresToSave);
+
+        log.info("총 저장할 PensionPlaceScores: {}", scoresToSave.size());
+        scoresToSave.forEach(score -> log.info("저장될 항목 -> Pension ID: {}, Place ID: {}, Score: {}, Last Updated: {}",
+                score.getPensionPlaceId().getPensionId(), score.getPensionPlaceId().getPlaceId(), score.getScore(), score.getLastUpdatedAt()));
 
         // 7. 배치 저장
         pensionPlaceScoreRepository.saveAll(scoresToSave);
@@ -115,14 +120,19 @@ public class PensionPlaceScoreService {
                                         .score(score)
                                         .build()
                         );
-                        pensionPlaceScore.setScore(score);
-                        pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
-                        scoresToSave.add(pensionPlaceScore);
+
+                        // 변경된 경우에만 추가
+                        if (pensionPlaceScore.getScore() != score) {
+                            pensionPlaceScore.setScore(score);
+                            pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
+                            scoresToSave.add(pensionPlaceScore);
+                        }
                     }
                 }
             });
         });
     }
+
 
     private Map<Long, Float> convertToScoreMap(List<Object[]> results) {
         Map<Long, Float> scoreMap = new HashMap<>();
@@ -155,17 +165,28 @@ public class PensionPlaceScoreService {
                 .collect(Collectors.toMap(PensionPlaceScore::getPensionPlaceId, score -> score));
     }
 
+    // 점수 계산
     private float calculateScore(
             List<Long> commonMembers,
             Map<Long, Float> pensionScores,
             Map<Long, Float> placeScores
     ) {
-        float totalScore = 0.0f;
+        float totalScore = 0.0f; // 점수 총합 초기화
         for (Long memberId : commonMembers) {
+            // 각 멤버의 펜션 점수, 시설 점수 조회
             float pensionScore = pensionScores.getOrDefault(memberId, 0.0f);
             float placeScore = placeScores.getOrDefault(memberId, 0.0f);
+
+            // 펜션 점수와 시설 점수의 평균을 계산하여 총합에 더함
             totalScore += (pensionScore + placeScore) / 2;
         }
+
+        // 공통 멤버 수로 나눠 최종 평균 점수 계산
         return totalScore / commonMembers.size();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> getPensionIds() {
+        return pensionPlaceScoreRepository.findPensionIds();
     }
 }

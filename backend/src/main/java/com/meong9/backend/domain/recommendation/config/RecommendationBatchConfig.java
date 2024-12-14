@@ -159,10 +159,10 @@ public class RecommendationBatchConfig {
         };
     }
 
-    // 리뷰가 1개 이상 있는 펜션 조회 Reader
+    // pension_place_score에 있는 펜션 조회 Reader
     @Bean
     public IteratorItemReader<Long> pensionItemReader() {
-        List<Long> pensionIds = recommendationService.getPensionsWithReviews();
+        List<Long> pensionIds = pensionPlaceScoreService.getPensionIds();
         return new IteratorItemReader<>(pensionIds.iterator());
     }
 
