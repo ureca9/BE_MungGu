@@ -60,7 +60,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     GROUP BY r.reviewId
     ORDER BY r.createdAt DESC
 """)
-    Optional<List<PhotoReviewSummaryResponseDto>> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type);
+    Slice<PhotoReviewSummaryResponseDto> findPhotoReviewSummaries( @Param("placeId") Long placeId,@Param("type") String type, Pageable pageable);
 
     @Query("""
     SELECT r
@@ -68,7 +68,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     WHERE r.type = :type AND r.placePensionId = :placePensionId
     ORDER BY r.visitDate DESC
 """)
-    Optional<Slice<Review>> findByTypeAndPlacePensionId(
+    Slice<Review> findByTypeAndPlacePensionId(
             @Param("type") String type,
             @Param("placePensionId") Long placePensionId,
             Pageable pageable

@@ -9,15 +9,9 @@ import lombok.NoArgsConstructor;
 @Getter
 @Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class PhotoReviewSummaryResponseDto {
     private Long reviewId;
     private String representativeImageUrl;
     private Long photoReviewCount;
-
-
-    public PhotoReviewSummaryResponseDto(Long reviewId, String representativeImageUrl, Long photoReviewCount) {
-        this.reviewId = reviewId;
-        this.representativeImageUrl = representativeImageUrl;
-        this.photoReviewCount = photoReviewCount;
-    }
 }

@@ -26,10 +26,9 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
@@ -517,64 +516,15 @@ public class ReviewService {
         return !review.getReviewFiles().isEmpty() ? review.getReviewFiles().get(0).getFile().getFileUrl() : null;
     }
 
-
-    /**
-     * 특정 장소에 연결된 리뷰를 페이징하여 조회하는 메서드
-     *
-     * @param Id 조회할 장소 또는 펜션의 ID
-     * @param type    장소 유형 ("시설" 또는 "펜션")
-     * @param pageNum 조회할 페이지 번호 (0부터 시작)
-     * @param page    한 페이지당 표시할 리뷰 수
-     * @return 페이징 처리된 리뷰 리스트
-     */
-    @Transactional(readOnly = true)
-    public List<Review> getReviews(Long Id, String type, int pageNum, int page) {
-        Pageable pageable = PageRequest.of(pageNum, page);
-        List<Review> reviews = reviewRepository.findReviewsByPlaceId(Id, type, pageable);
-
-        if (reviews.isEmpty()) {
-            throw NotFoundException.entityNotFound("리뷰");
-        }
-        return reviews;
-
-    }
-
-
-    /**
-     * 리뷰를 바탕으로 ReviewSummaryResponseDto 리스트를 생성하는 메서드
-     * @param reviews 리뷰 리스트
-     * @return ReviewSummaryResponseDto 리스트
-     */
-    public List<ReviewSummaryResponseDto> getReviewSummaryResponseDtoList(List<Review> reviews) {
-        return reviews.stream()
-                .map(review -> ReviewSummaryResponseDto.builder()
-                        .reviewId(review.getReviewId())
-                        .profileImageUrl((review.getMember() != null && review.getMember().getProfileImage() != null)
-                                ? review.getMember().getProfileImage().getFileUrl()
-                                : null) // Profile 이미지가 별도로 필요하면 추가
-                        .content(review.getContent())
-                        .score(review.getScore().doubleValue())
-                        .visitDate(review.getVisitDate().toString())
-                        .nickname(review.getNickname())
-                        .file(review.getReviewFiles().stream()
-                                .map(file -> ReviewSummaryFileDto.builder()
-                                        .mediaFileId(file.getFile().getMediaFileId())
-                                        .fileType(file.getFile().getFileType().name())
-                                        .fileUrl(file.getFile().getFileUrl())
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build())
-                .collect(Collectors.toList());
-    }
-
     /**
      * 특정 장소의 사진 리뷰 요약 리스트를 조회하는 메서드
      * @param placeId
      * @param type
      * @return PhotoReviewSummaryResponseDto 리스트
      */
-    public List<PhotoReviewSummaryResponseDto> getPhotoReviewSummaries(Long placeId, String type) {
-        return reviewRepository.findPhotoReviewSummaries(placeId, type).orElseThrow(() -> NotFoundException.entityNotFound("리뷰 요약 리스트"));
+    @Transactional(readOnly = true)
+    public Slice<PhotoReviewSummaryResponseDto> getPhotoReviewSummaryResponseDtoList(Long placeId, String type, Pageable pageable) {
+        return reviewRepository.findPhotoReviewSummaries(placeId, type, pageable);
     }
 
     /**
@@ -588,8 +538,7 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public Slice<ReviewSummaryResponseDto> getReviews(String type, Long placePensionId, Pageable pageable) {
         // 1단계: 부모 엔티티 페이징
-        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable)
-                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
+        Slice<Review> reviews = reviewRepository.findByTypeAndPlacePensionId(type, placePensionId, pageable);
 
         // 리뷰 ID 목록 추출
         List<Long> reviewIds = reviews.getContent().stream()
@@ -597,8 +546,7 @@ public class ReviewService {
                 .collect(Collectors.toList());
 
         // 2단계: 연관 데이터 로드 (ReviewFile)
-        List<ReviewFile> reviewFiles = reviewFileRepository.findFilesByReviewIds(reviewIds)
-                .orElseThrow(() -> NotFoundException.entityNotFound("리뷰 파일"));
+        List<ReviewFile> reviewFiles = reviewFileRepository.findFilesByReviewIds(reviewIds);
 
         Map<Long, List<ReviewSummaryFileDto>> fileMap = reviewFiles.stream()
                 .collect(Collectors.groupingBy(
