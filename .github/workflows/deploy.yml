@@ -107,8 +107,8 @@ jobs:
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-1."
 
-            echo "Sleeping for 10 seconds to allow the application to initialize..."
-            sleep 10
+            echo "Sleeping for 30 seconds to allow the application to initialize..."
+            sleep 30
 
             echo "Checking if the application is running on EC2-1..."
             if lsof -i:8080; then
@@ -169,8 +169,8 @@ jobs:
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-2."
 
-            echo "Sleeping for 10 seconds to allow the application to initialize..."
-            sleep 10
+            echo "Sleeping for 30 seconds to allow the application to initialize..."
+            sleep 30
 
             echo "Checking if the application is running on EC2-2..."
             if lsof -i:8080; then
