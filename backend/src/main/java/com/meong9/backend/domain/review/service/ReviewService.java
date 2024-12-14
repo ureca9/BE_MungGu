@@ -15,6 +15,7 @@ import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
+import com.meong9.backend.global.banword.inspector.BadWordInspector;
 import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
@@ -62,7 +63,7 @@ public class ReviewService {
     private final PlcPenAddressRepository plcPenAddressRepository;
     private final PlaceRepository placeRepository;
     private final MemberRepository memberRepository;
-
+    private final BadWordInspector badWordInspector;
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -124,9 +125,10 @@ public class ReviewService {
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, InterruptedException, TimeoutException {
         List<MediaFile> mediaFiles = new ArrayList<>();
+        log.info("내용: {}",reviewRequestDto.getContent());
         Review review = Review.builder()
                 .member(member)
-                .content(reviewRequestDto.getContent())
+                .content(badWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))
                 .nickname(member.getNickname())
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())
