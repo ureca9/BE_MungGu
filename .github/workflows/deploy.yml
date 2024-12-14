@@ -103,7 +103,7 @@ jobs:
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
-              -Dweather.key=${{ secrets.WEATHER_KEY }} \
+              -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-1."
 
@@ -165,7 +165,7 @@ jobs:
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
-              -Dweather.key=${{ secrets.WEATHER_KEY }} \
+              -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-2."
 
