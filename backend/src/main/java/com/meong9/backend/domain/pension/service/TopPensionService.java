@@ -13,6 +13,7 @@ import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.topFeature.repository.TopFeatureRepository;
 import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -22,12 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TopPensionService {
@@ -235,7 +234,15 @@ public class TopPensionService {
      */
     private Map<Long, Pension> getPensionMapFromDatabase(Set<ZSetOperations.TypedTuple<String>> topViewPensions) {
         List<Long> pensionIds = topViewPensions.stream()
-                .map(tuple -> Long.valueOf(tuple.getValue()))
+                .map(tuple -> {
+                    try {
+                        return Long.valueOf(Objects.requireNonNull(tuple.getValue(), "pensionId cannot be Null"));
+                    } catch (NumberFormatException e) {
+                        log.warn("유효하지 않은 pensionId입니다.: {}", tuple.getValue());
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         List<Pension> pensions = pensionRepository.findByPensionIds(pensionIds);
         return pensions.stream().collect(Collectors.toMap(Pension::getPensionId, pension -> pension));

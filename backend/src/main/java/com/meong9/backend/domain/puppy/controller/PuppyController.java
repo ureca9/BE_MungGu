@@ -1,19 +1,16 @@
 package com.meong9.backend.domain.puppy.controller;
 
-import com.meong9.backend.domain.member.service.MemberService;
 import com.meong9.backend.domain.puppy.dto.PuppyProfileResponseDto;
 import com.meong9.backend.domain.puppy.dto.PuppyRequestDto;
 import com.meong9.backend.domain.puppy.dto.PuppyResponseDto;
-import com.meong9.backend.domain.puppy.entity.Breed;
 import com.meong9.backend.domain.puppy.service.BreedService;
 import com.meong9.backend.domain.puppy.service.PuppyService;
-import com.meong9.backend.global.auth.entity.MemberDetails;
+import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
 import com.meong9.backend.domain.member.entity.Member;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,19 +29,9 @@ public class PuppyController {
     public ResponseEntity<?> createPuppy(
             @RequestPart("data") PuppyRequestDto puppyRequestDto,
             @RequestPart(value = "image", required = false) MultipartFile image,
-            @AuthenticationPrincipal MemberDetails memberDetails) throws IOException {
-        log.debug("Received data: {}", puppyRequestDto);
-        if (image != null) {
-            log.debug("Received image: {}", image.getOriginalFilename());
-        } else {
-            log.debug("No image received");
-        }
-
-        // 현재 사용자 정보(Member) 가져오기
-        Member currentMember = memberDetails.member();
-
+            @CurrentMember Member member) throws IOException {
         // PuppyService를 통해 강아지 프로필 생성
-        PuppyResponseDto responseDto = puppyService.createPuppy(puppyRequestDto, image, currentMember);
+        PuppyResponseDto responseDto = puppyService.createPuppy(puppyRequestDto, image, member);
 
         // CommonResponse로 응답 반환
         return CommonResponse.created("success", responseDto);

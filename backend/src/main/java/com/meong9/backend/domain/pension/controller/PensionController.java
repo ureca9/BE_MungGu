@@ -56,8 +56,10 @@ public class PensionController {
 
         PensionDetailResponseDto pensionDetail = pensionDetailService.getPensionDetail(pensionId, memberId);
 
-        // View count 증가 로직 서비스 호출
-        log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+        if(pensionDetail != null) {
+            // View count 증가 로직 서비스 호출
+            log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+        }
 
         return CommonResponse.ok("success", pensionDetail);
     }
