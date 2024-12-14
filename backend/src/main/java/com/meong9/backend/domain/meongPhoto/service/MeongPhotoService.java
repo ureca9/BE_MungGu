@@ -4,7 +4,6 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.meongPhoto.dto.*;
 import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
 import com.meong9.backend.domain.meongPhoto.repository.MeongPhotoRepository;
-import com.meong9.backend.global.exception.InternalServerError;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
@@ -51,11 +50,11 @@ public class MeongPhotoService {
             MeongPhoto meongPhoto = MeongPhoto.createMeongPhoto(member, savedMeongPhoto);
             meongPhotoRepository.save(meongPhoto);
 
-            return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl);
+            return new MeongPhotoResponseDto(s3UploadResultDto.getS3Url(), downloadImageUrl, false);
         } catch (IOException e) {
             log.error("멍생네컷 저장 중 오류 발생: {}", e.getMessage(), e);
             tempFileService.saveTemporaryFile(serviceUrl, file, member.getMemberId(), "MEMBER");
-            throw InternalServerError.photoProcessingError();
+            return new MeongPhotoResponseDto(null, null, true);
         }
     }
 
