@@ -95,7 +95,7 @@ public class PensionController {
             @RequestParam(defaultValue = "0") int page // 기본 페이지 번호는 0으로 설정
     ) {
         // 페이지 요청 객체 생성 (현재 페이지와 페이지 크기)
-        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
+        Pageable pageable = PageRequest.of(page, 5); // 페이지 크기를 5으로 고정
 
         // 리뷰 서비스에서 페이징된 리뷰 데이터 조회
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
