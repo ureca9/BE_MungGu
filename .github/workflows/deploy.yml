@@ -83,7 +83,7 @@ jobs:
             if lsof -i:8080; then
               PID=$(lsof -t -i:8080)
               echo "Found process on port 8080 with PID: $PID. Stopping it..."
-              kill -15 $PID
+              kill -9 $PID
               sleep 5
               echo "Application stopped successfully."
             else
@@ -145,7 +145,7 @@ jobs:
             if lsof -i:8080; then
               PID=$(lsof -t -i:8080)
               echo "Found process on port 8080 with PID: $PID. Stopping it..."
-              kill -15 $PID
+              kill -9 $PID
               sleep 5
               echo "Application stopped successfully."
             else
