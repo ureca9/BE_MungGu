@@ -50,7 +50,7 @@ public class ReviewSummaryResponseDto {
                 .content(review.getContent())
                 .score(review.getScore() != null
                         ? new BigDecimal(Float.toString(review.getScore()))
-                        .setScale(2, RoundingMode.HALF_UP)
+                        .setScale(1, RoundingMode.HALF_UP)
                         .doubleValue() // Double 타입으로 변환
                         : null)
                 .visitDate(review.getVisitDate() != null ? review.getVisitDate().toString() : null)
