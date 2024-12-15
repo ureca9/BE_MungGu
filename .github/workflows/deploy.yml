@@ -1,12 +1,10 @@
 name: Build and Deploy to EC2 with Predefined Environment Variables
 
 on:
-  # main 브랜치로 코드가 푸시될 때 실행
   push:
     branches:
       - main
       - dev
-  # main 브랜치로 PR이 병합될 때 (pull request가 closed 될 때) 실행
   pull_request:
     branches:
       - main
@@ -44,15 +42,13 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           WEATHER_KEY: ${{ secrets.WEATHER_KEY }}
         run: |
-          echo "DB_URL=${{ secrets.DB_URL }}"
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}"
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
-          echo "WEATHER_KEY=${{ secrets.WEATHER_KEY }}"
+          echo "Building the project..."
           ./gradlew clean build -x test \
             -DdbUrl=${{ secrets.DB_URL }} \
             -DdbUsername=${{ secrets.DB_USERNAME }} \
             -DdbPassword=${{ secrets.DB_PASSWORD }} \
             -Dweather.key=${{ secrets.WEATHER_KEY }}
+          echo "Build completed successfully."
 
       # 5. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
       - name: Configure AWS credentials
@@ -66,71 +62,127 @@ jobs:
         run: |
           echo "Uploading JAR file to S3..."
           aws s3 cp backend/build/libs/backend-0.0.1-SNAPSHOT.jar s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar
+          echo "JAR file uploaded successfully."
 
-      # 6. EC2에서 JAR 다운로드
-      - name: Download JAR from S3
+      # 6. EC2 배포 및 실행
+      - name: Deploy and Start Application on EC2-1
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_PROD }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Creating deployments directory..."
+            echo "Deploying application on EC2-1..."
             mkdir -p /home/ubuntu/deployments
-
+            echo "Directory created successfully."
             echo "Downloading JAR file from S3..."
             aws s3 cp s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar
+            echo "JAR file downloaded successfully on EC2-1."
 
-            echo "Verifying JAR file..."
-            if [ -f /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar ]; then
-              echo "JAR file successfully downloaded!"
+            echo "Checking for existing application on EC2-1..."
+            if lsof -i:8080; then
+              PID=$(lsof -t -i:8080)
+              echo "Found process on port 8080 with PID: $PID. Stopping it..."
+              kill -15 $PID
+              sleep 5
+              echo "Application stopped successfully."
             else
-              echo "JAR file download failed!"
+              echo "No application running on port 8080."
+            fi
+
+            echo "Starting new application on EC2-1..."
+            nohup java \
+              -Dspring.profiles.active=aws \
+              -Dspring.datasource.url=${{ secrets.DB_URL }} \
+              -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
+              -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
+              -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -DAWS_REGION=${{ secrets.AWS_REGION }} \
+              -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
+              -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
+              -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
+              -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
+              -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+            echo "Application started successfully on EC2-1."
+
+            echo "Sleeping for 30 seconds to allow the application to initialize..."
+            sleep 30
+
+            echo "Checking if the application is running on EC2-1..."
+            if lsof -i:8080; then
+              echo "Application is running on port 8080."
+            else
+              echo "Application failed to start on EC2-1. Check logs for details."
               exit 1
             fi
 
-      # 7. EC2에서 애플리케이션 실행
-      - name: Start Application on EC2
+            echo "Checking the log file..."
+            if [ -f /home/ubuntu/deployments/app.log ]; then
+              echo "Log file exists. Displaying the last 10 lines:"
+              tail -n 10 /home/ubuntu/deployments/app.log
+            else
+              echo "Log file not found. Application might have failed to start."
+              exit 1
+            fi
+
+      - name: Deploy and Start Application on EC2-2
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST_PROD }}
+          host: ${{ secrets.HOST_PROD_NEW }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            echo "Stopping existing application (if any)..."
+            echo "Deploying application on EC2-2..."
+            mkdir -p /home/ubuntu/deployments
+            echo "Directory created successfully."
+            echo "Downloading JAR file from S3..."
+            aws s3 cp s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar
+            echo "JAR file downloaded successfully on EC2-2."
+
+            echo "Checking for existing application on EC2-2..."
             if lsof -i:8080; then
               PID=$(lsof -t -i:8080)
+              echo "Found process on port 8080 with PID: $PID. Stopping it..."
               kill -15 $PID
               sleep 5
+              echo "Application stopped successfully."
             else
-              echo "No process found using port 8080."
+              echo "No application running on port 8080."
             fi
-            
-            echo "Starting new application..."
+
+            echo "Starting new application on EC2-2..."
             nohup java \
               -Dspring.profiles.active=aws \
-              -Dspring.datasource.url=${DB_URL} \
-              -Dspring.datasource.username=${DB_USERNAME} \
-              -Dspring.datasource.password=${DB_PASSWORD} \
-              -DAWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
-              -DAWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
-              -DAWS_REGION=${AWS_REGION} \
-              -DS3_BUCKET_NAME=${S3_BUCKET_NAME} \
-              -DKAKAO_REST_API_KEY=${KAKAO_REST_API_KEY} \
-              -DKAKAO_CLIENT_SECRET=${KAKAO_CLIENT_SECRET} \
-              -DJWT_SECRET=${JWT_SECRET} \
-              -Dweather.key=${WEATHER_KEY} \
+              -Dspring.datasource.url=${{ secrets.DB_URL }} \
+              -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
+              -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
+              -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              -DAWS_REGION=${{ secrets.AWS_REGION }} \
+              -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
+              -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
+              -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
+              -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
-      
-            echo "Sleeping for 10 seconds to allow the application to start..."
-            sleep 10
-      
-            echo "Checking if the application is running..."
-            ps -ef | grep java
-      
-            echo "Checking if the log file exists..."
+            echo "Application started successfully on EC2-2."
+
+            echo "Sleeping for 30 seconds to allow the application to initialize..."
+            sleep 30
+
+            echo "Checking if the application is running on EC2-2..."
+            if lsof -i:8080; then
+              echo "Application is running on port 8080."
+            else
+              echo "Application failed to start on EC2-2. Check logs for details."
+              exit 1
+            fi
+
+            echo "Checking the log file..."
             if [ -f /home/ubuntu/deployments/app.log ]; then
-              echo "Log file found. Displaying the last 10 lines:"
+              echo "Log file exists. Displaying the last 10 lines:"
               tail -n 10 /home/ubuntu/deployments/app.log
             else
               echo "Log file not found. Application might have failed to start."
