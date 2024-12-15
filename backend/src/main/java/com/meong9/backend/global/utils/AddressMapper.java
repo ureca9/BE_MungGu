@@ -37,6 +37,28 @@ public class AddressMapper {
         }
     }
 
+    public static String formatAddress(String province, String cityDistrict, String subDistrict) {
+
+        // Province가 4글자일 때 1번째, 3번째 추출 -> 충청남도 -> 충남
+        if (province.length() == 4) {
+            province = "" + province.charAt(0) + province.charAt(2);
+        } else {
+            // 그 외의 경우 앞 두 글자만 추출
+            province = province.substring(0, Math.min(2, province.length()));
+        }
+
+        if(cityDistrict == null || cityDistrict.isBlank()) {
+            if(subDistrict == null || subDistrict.isBlank()) {
+                return province;
+            }
+            subDistrict = subDistrict.substring(0, Math.min(2, subDistrict.length()));
+            return province + " " + subDistrict;
+        } else {
+            cityDistrict = cityDistrict.substring(0, Math.min(2, cityDistrict.length()));
+            return province + " " + cityDistrict;
+        }
+    }
+
     // 주소 정보 담는 Map
     public static Map<Long, String> mapAddressesByPlcPenId(List<PlcPenAddress> addresses) {
         Map<Long, String> addressMap = new HashMap<>();

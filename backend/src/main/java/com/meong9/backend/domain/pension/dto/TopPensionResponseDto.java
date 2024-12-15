@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.pension.dto;
 
+import com.meong9.backend.global.utils.AddressMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +18,7 @@ public class TopPensionResponseDto {
     private final String cityDistrict;
     private final String subDistrict;
     private final Long viewCount;
+    private final String address;
 
     @Setter
     private String pensionImageUrl;
@@ -30,5 +32,6 @@ public class TopPensionResponseDto {
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
         this.viewCount = viewCount;
+        this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
     }
 }

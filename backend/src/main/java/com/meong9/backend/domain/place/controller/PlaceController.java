@@ -56,7 +56,7 @@ public class PlaceController {
             @PathVariable Long placeId,
             @RequestParam(defaultValue = "0") int page // 클라이언트가 요청하는 페이지 번호
     ) {
-        Pageable pageable = PageRequest.of(page, 10); // 페이지 크기를 10으로 고정
+        Pageable pageable = PageRequest.of(page, 5); // 페이지 크기를 5으로 고정
         Slice<ReviewSummaryResponseDto> reviews = reviewService.getReviews(
                 "010",
                 placeId,

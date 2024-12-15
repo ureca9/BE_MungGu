@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.place.dto;
 
+import com.meong9.backend.global.utils.AddressMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,11 @@ public class TopPlaceResponseDto {
     private final String province;
     private final String cityDistrict;
     private final String subDistrict;
+    private final Long viewCount;
+    private final String address;
+
+    @Setter
+    private String placeImageUrl;
 
     public TopPlaceResponseDto(Long placeId, String placeName, Integer reviewCount, BigDecimal reviewAvg, String province, String cityDistrict, String subDistrict, Long viewCount) {
         this.placeId = placeId;
@@ -26,11 +32,10 @@ public class TopPlaceResponseDto {
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
         this.viewCount = viewCount;
+        this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
     }
 
-    private final Long viewCount;
 
-    @Setter
-    private String placeImageUrl;
+
 
 }
