@@ -89,9 +89,9 @@ public class MemberScoreService {
         int newScore = calculateWeightFromRating(newRating);
 
         if ("010".equals(type)) {
-            updatePlaceScore(memberId, targetId, newScore - oldScore);
+            updatePlaceScore(memberId, targetId, newScore);
         } else if ("020".equals(type)) {
-            updatePensionScore(memberId, targetId, newScore - oldScore);
+            updatePensionScore(memberId, targetId, newScore);
         }
     }
 
@@ -111,9 +111,9 @@ public class MemberScoreService {
         int reviewScore = calculateWeightFromRating(rating);
 
         if ("010".equals(type)) {
-            updatePlaceScore(memberId, targetId, -reviewScore);
+            deletePlaceScore(memberId, targetId);
         } else if ("020".equals(type)) {
-            updatePensionScore(memberId, targetId, -reviewScore);
+            deletePensionScore(memberId, targetId);
         }
     }
 
@@ -152,7 +152,7 @@ public class MemberScoreService {
                         .build());
 
         // 점수 업데이트
-        memberScore.setScore(memberScore.getScore() + scoreDelta);
+        memberScore.setScore(scoreDelta);
 
         // 점수 저장
         placeMemberScoreRepository.save(memberScore);
@@ -176,11 +176,44 @@ public class MemberScoreService {
                         .build());
 
         // 점수 업데이트
-        memberScore.setScore(memberScore.getScore() + scoreDelta);
+        memberScore.setScore(scoreDelta);
 
         // 점수 저장
         pensionMemberScoreRepository.save(memberScore);
     }
+
+    // 점수 삭제 - 시설
+    private void deletePlaceScore(Long memberId, Long placeId) {
+        PlaceMemberId id = PlaceMemberId.builder()
+                .memberId(memberId)
+                .placeId(placeId)
+                .build();
+
+        // 데이터 존재 여부 확인 후 삭제
+        if (placeMemberScoreRepository.existsById(id)) {
+            placeMemberScoreRepository.deleteById(id);
+            log.info("PlaceMemberScore 삭제 완료 - MemberId={}, PlaceId={}", memberId, placeId);
+        } else {
+            log.warn("PlaceMemberScore를 찾을 수 없음 - MemberId={}, PlaceId={}", memberId, placeId);
+        }
+    }
+
+    // 점수 삭제 - 펜션
+    private void deletePensionScore(Long memberId, Long pensionId) {
+        PensionMemberId id = PensionMemberId.builder()
+                .memberId(memberId)
+                .pensionId(pensionId)
+                .build();
+
+        // 데이터 존재 여부 확인 후 삭제
+        if (pensionMemberScoreRepository.existsById(id)) {
+            pensionMemberScoreRepository.deleteById(id);
+            log.info("PensionMemberScore 삭제 완료 - MemberId={}, PensionId={}", memberId, pensionId);
+        } else {
+            log.warn("PensionMemberScore를 찾을 수 없음 - MemberId={}, PensionId={}", memberId, pensionId);
+        }
+    }
+
 
 
 }

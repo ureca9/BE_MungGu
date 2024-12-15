@@ -49,6 +49,7 @@ public class PensionPlaceScoreService {
                 .distinct()
                 .toList();
 
+
         Map<Long, Float> pensionScores = convertToScoreMap(
                 pensionMemberScoreRepository.findScoresBatch(allMemberIds, pensionIds)
         );
@@ -189,4 +190,6 @@ public class PensionPlaceScoreService {
     public List<Long> getPensionIds() {
         return pensionPlaceScoreRepository.findPensionIds();
     }
+
+
 }
