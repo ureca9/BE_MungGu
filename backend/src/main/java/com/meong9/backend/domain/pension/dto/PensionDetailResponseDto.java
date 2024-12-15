@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.domain.Slice;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 
@@ -54,7 +56,9 @@ public class PensionDetailResponseDto {
                 .pensionId(pensionInfo.getPensionId())
                 .pensionName(pensionInfo.getPensionName())
                 .reviewCount(pensionInfo.getReviewCount())
-                .reviewAvg(pensionInfo.getReviewAvg())
+                .reviewAvg(pensionInfo.getReviewAvg()!= null
+                        ? BigDecimal.valueOf(pensionInfo.getReviewAvg()).setScale(1, RoundingMode.HALF_UP).doubleValue()
+                        : null)
                 .address(address)
                 .tags(tags)
                 .startTime(pensionInfo.getStartTime())

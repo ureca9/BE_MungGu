@@ -5,6 +5,8 @@ import com.meong9.backend.domain.review.entity.Review;
 import lombok.*;
 import org.springframework.data.domain.Slice;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,7 +48,11 @@ public class ReviewSummaryResponseDto {
                         ? member.getProfileImage().getFileUrl()
                         : null)
                 .content(review.getContent())
-                .score(review.getScore() != null ? review.getScore().doubleValue() : null)
+                .score(review.getScore() != null
+                        ? new BigDecimal(Float.toString(review.getScore()))
+                        .setScale(2, RoundingMode.HALF_UP)
+                        .doubleValue() // Double 타입으로 변환
+                        : null)
                 .visitDate(review.getVisitDate() != null ? review.getVisitDate().toString() : null)
                 .nickname(member != null ? member.getNickname() : null)
                 .file(files)
