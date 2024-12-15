@@ -71,4 +71,29 @@ public class AddressMapper {
         }
         return addressMap;
     }
+
+    public static Map<Long, String> mapAddressesProvinceByPlcPenId(List<PlcPenAddress> addresses) {
+        Map<Long, String> addressMap = new HashMap<>();
+
+        // 주소 매핑 로직
+        for (PlcPenAddress address : addresses) {
+            Long id = address.getPlcPenId(); // 장소 ID
+            String province = address.getAddress() != null ? address.getAddress().getProvince() : null;
+
+            if (province != null) {
+                // REGION_MAPPING에서 키를 찾음
+                String regionKey = RegionMapper.getRegionMapping().entrySet().stream()
+                        .filter(entry -> entry.getValue().stream().anyMatch(province::startsWith)) // 단어로 시작하는 경우 찾기
+                        .map(Map.Entry::getKey) // 해당 키 가져오기
+                        .findFirst() // 첫 번째 결과만 사용
+                        .orElse(province); // 매칭되지 않을 경우 province
+                addressMap.put(id, regionKey); // 매핑된 키로 저장
+            } else {
+                addressMap.put(id, "기타"); // Province가 null인 경우
+            }
+        }
+
+        return addressMap;
+    }
+
 }

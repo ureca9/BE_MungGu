@@ -4,13 +4,13 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
+import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.List;
 
@@ -94,4 +94,14 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     @Query("SELECT p FROM Place p WHERE p.placeId IN :ids")
     List<Place> findAllByIdIn(@Param("ids") List<Long> ids);
+
+    @Query("SELECT p.placeId FROM Place p")
+    List<Long> findAllPlaceIds();
+
+    @Query("""
+        SELECT p.placeId AS id, p.latitude AS latitude, p.longitude AS longitude 
+        FROM Place p 
+        WHERE p.placeId IN :ids
+    """)
+    List<PlcPenProjection> findPlaceProjectionById(@Param("ids") List<Long> ids);
 }
