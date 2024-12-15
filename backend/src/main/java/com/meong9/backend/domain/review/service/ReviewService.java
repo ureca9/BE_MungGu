@@ -121,7 +121,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, InterruptedException, TimeoutException {
+    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
         List<MediaFile> mediaFiles = new ArrayList<>();
         Review review = Review.builder()
                 .member(member)
@@ -130,6 +130,7 @@ public class ReviewService {
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())
                 .placePensionId(reviewRequestDto.getPlcPenId())
+                .visitDate(reviewRequestDto.getVisitDate())
                 .reviewFiles(null)
                 .build();
 
@@ -139,7 +140,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
+    public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
         // 기존 리뷰 조회
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> NotFoundException.entityNotFound("리뷰"));
