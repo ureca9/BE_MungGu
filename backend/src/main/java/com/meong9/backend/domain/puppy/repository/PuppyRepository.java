@@ -27,6 +27,6 @@ public interface PuppyRepository extends JpaRepository<Puppy, Long> {
             "WHERE p.puppyId = :puppyId")
     Optional<PuppyProfileResponseDto> findPuppyProfileById(@Param("puppyId") Long puppyId);
 
-    @Query("SELECT p FROM Puppy p JOIN FETCH p.profileImage WHERE p.member.memberId = :memberId ORDER BY p.puppyId")
+    @Query("SELECT p FROM Puppy p LEFT JOIN FETCH p.profileImage WHERE p.member.memberId = :memberId ORDER BY p.puppyId")
     List<Puppy> findByMemberIdWithPuppyProfileImage(Long memberId);
 }
