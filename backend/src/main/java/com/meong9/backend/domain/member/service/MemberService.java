@@ -11,19 +11,18 @@ import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
 import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.domain.puppy.repository.PuppyRepository;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
-import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.entity.Region;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.repository.RegionRepository;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
@@ -133,8 +132,8 @@ public class MemberService {
      * 사용자 정보를 등록하는 서비스 메서드
      */
     @Transactional
-    public void insertMemberInfo(MultipartFile profileImage,MemberInfoDto dto, Member member) throws IOException {
-        updateMember(profileImage, dto, member);
+    public void insertMemberInfo(String fileKey,MemberInfoDto dto, Member member) throws IOException {
+        updateMember(fileKey, dto, member);
 
         memberRepository.save(member);
     }
@@ -196,8 +195,8 @@ public class MemberService {
      * 마이페이지 수정 메서드
      */
     @Transactional
-    public UpdateMyPageResponseDto updateMyPage(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
-        updateMember(profileImage, dto, member);
+    public UpdateMyPageResponseDto updateMyPage(String fileKey, MemberInfoDto dto, Member member) throws IOException {
+        updateMember(fileKey, dto, member);
 
         Member savedMember = memberRepository.save(member);
         return UpdateMyPageResponseDto.builder()
@@ -208,14 +207,11 @@ public class MemberService {
                 .build();
     }
 
-    private void updateMember(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
+    private void updateMember(String fileKey, MemberInfoDto dto, Member member) throws IOException {
         member.setName(dto.getName().trim());
         member.setPhone(dto.getPhone().trim());
         member.setNickname(dto.getNickname().trim());
-
-        if (profileImage != null) {
-            mediaFileService.uploadProfileImage(profileImage, member.getMemberId(),"Mprofile/","_profile.jpg");
-        }
+        member.setProfileImage(mediaFileService.registerFileKey(fileKey));
     }
 
     /**
