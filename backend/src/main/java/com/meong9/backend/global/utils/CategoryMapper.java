@@ -1,11 +1,11 @@
 package com.meong9.backend.global.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class CategoryMapper {
 
+    // 기본 카테고리 맵
     private static final Map<String, String> categoryMap = Map.of(
             "1", "공원",
             "2", "관광지",
@@ -15,16 +15,21 @@ public class CategoryMapper {
             "6", "마당"
     );
 
+    // 역방향 맵 (카테고리 이름 -> 카테고리 ID)
+    private static final Map<String, String> reverseMap = categoryMap.entrySet().stream()
+            .collect(Collectors.toMap(
+                    Map.Entry::getValue,  // 카테고리 이름을 키로 사용
+                    Map.Entry::getKey,    // 카테고리 ID를 값으로 사용
+                    (existing, replacement) -> existing, // 중복 처리 (기존 값 유지)
+                    HashMap::new          // HashMap 사용
+            ));
+
     public static String getCategoryName(String categoryId) {
         return categoryMap.getOrDefault(categoryId, "알 수 없음");
     }
 
     public static String getCategoryId(String categoryName) {
-        return categoryMap.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(categoryName))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse("-1");
+        return reverseMap.getOrDefault(categoryName, "-1");
     }
 
     /**
@@ -52,6 +57,6 @@ public class CategoryMapper {
      * 주어진 카테고리 이름이 유효한지 확인
      */
     public static boolean isValidCategoryName(String categoryName) {
-        return categoryMap.containsValue(categoryName);
+        return reverseMap.containsKey(categoryName);
     }
 }

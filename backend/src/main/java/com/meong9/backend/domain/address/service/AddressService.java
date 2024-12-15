@@ -40,7 +40,7 @@ public class AddressService {
     @Transactional(readOnly = true)
     public Map<Long, Address> getAddressesForPensionsOrPlaces(List<Long> pensionIds, String type) {
         // PlcPenAddressRepository를 통해 PlcPenAddress 리스트 조회
-        List<PlcPenAddress> plcPenAddresses = plcPenAddressRepository.findByPlcPenIdsAndType(pensionIds, type);
+        List<PlcPenAddress> plcPenAddresses = plcPenAddressRepository.findAddressesByIdsAndType(pensionIds, type);
 
         // PlcPenAddress 리스트를 Stream으로 변환하여 pensionId를 Key, Address를 Value로 Map 생성
         return plcPenAddresses.stream()

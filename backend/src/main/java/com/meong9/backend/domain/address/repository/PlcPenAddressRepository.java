@@ -64,15 +64,4 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
         @Param("ids") List<Long> ids,
         @Param("type") String type
     );
-
-    /**
-     * 특정 pensionId 리스트와 유형(type)에 대해 PlcPenAddress 데이터를 조회합니다.
-     *
-     * @param pensionIds 조회할 Pension ID 리스트
-     * @param type 조회할 Address 유형
-     * @return PlcPenAddress 리스트
-     */
-    @Query("SELECT ppa FROM PlcPenAddress ppa WHERE ppa.plcPenId IN :pensionIds AND ppa.type = :type")
-    List<PlcPenAddress> findByPlcPenIdsAndType(@Param("pensionIds") List<Long> pensionIds, @Param("type") String type);
-
 }

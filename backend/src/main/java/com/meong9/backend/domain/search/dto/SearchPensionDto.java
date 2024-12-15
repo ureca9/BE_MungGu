@@ -26,4 +26,5 @@ public class SearchPensionDto {
     private String endTime;
     @Setter
     private List<String> images;
+    private Boolean likeStatus;
 }

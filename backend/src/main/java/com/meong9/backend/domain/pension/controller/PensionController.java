@@ -2,7 +2,7 @@ package com.meong9.backend.domain.pension.controller;
 
 import com.meong9.backend.domain.pension.dto.PensionDetailResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
-import com.meong9.backend.domain.pension.repository.RoomAvailabilityRepository;
+import com.meong9.backend.domain.pension.service.RoomAvailabilityService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.dto.RoomResponseDto;
@@ -38,7 +38,7 @@ public class PensionController {
     private final PensionDetailService pensionDetailService;
     private final ReviewService reviewService;
     private final PensionService pensionService;
-    private final RoomAvailabilityRepository roomAvailabilityRepository;
+    private final RoomAvailabilityService roomAvailabilityService;
     private final TopPensionService topPensionService;
 
     /**
@@ -56,8 +56,10 @@ public class PensionController {
 
         PensionDetailResponseDto pensionDetail = pensionDetailService.getPensionDetail(pensionId, memberId);
 
-        // View count 증가 로직 서비스 호출
-        log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+        if(pensionDetail != null) {
+            // View count 증가 로직 서비스 호출
+            log.info("{}: {}", pensionId, topPensionService.incrementPensionViewCount(pensionId));
+        }
 
         return CommonResponse.ok("success", pensionDetail);
     }
@@ -70,15 +72,13 @@ public class PensionController {
      * @param endDate 예약 종료 날짜
      * @return 예약 가능한 방 목록
      */
-    @GetMapping("/{pensionId}/rooms") // GET 요청을 처리하는 엔드포인트
+    @GetMapping("/{pensionId}/rooms")
     public ResponseEntity<?> getAvailableRooms(
-            @PathVariable Long pensionId, // URL 경로에서 펜션 ID를 추출
+            @PathVariable Long pensionId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate, // 시작 날짜를 ISO 형식으로 요청받음
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate   // 종료 날짜를 ISO 형식으로 요청받음
     ) {
-        // 서비스에서 모든 작업을 처리하도록 위임
-        List<RoomResponseDto> rooms = roomAvailabilityRepository.findAvailableRoomsWithImages(pensionId, startDate, endDate);
-
+        List<RoomResponseDto> rooms = roomAvailabilityService.getRoomAvailableRoomsWithImages(pensionId, startDate, endDate);
         return CommonResponse.ok("success", rooms);
     }
 

@@ -15,6 +15,6 @@ public interface PlaceFileRepository extends JpaRepository<PlaceFile, PlaceFileI
     JOIN pf.mediaFile mf
     WHERE pf.place.placeId = :placeId
 """)
-    List<String> findImagesByPensionId(@Param("placeId") Long placeId);
+    List<String> findImagesByPlaceId(@Param("placeId") Long placeId);
 
 }

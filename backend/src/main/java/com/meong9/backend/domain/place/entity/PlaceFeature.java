@@ -3,13 +3,16 @@ package com.meong9.backend.domain.place.entity;
 import com.meong9.backend.domain.place.entity.id.PlaceFeatureId;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "place_feature")
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Builder
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = {"topPlace", "topFeature"})
 public class PlaceFeature {
     @EmbeddedId
     private PlaceFeatureId id;

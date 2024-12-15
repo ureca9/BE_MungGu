@@ -83,7 +83,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
      * @param placeIds 조회할 placeId 목록
      * @return 조회된 Place 리스트
      */
-    @Query("SELECT p FROM Place p WHERE p.placeId IN :placeIds")
+    @Query("SELECT p FROM Place p LEFT JOIN FETCH p.placeTags WHERE p.placeId IN :placeIds")
     List<Place> findByPlaceIds(@Param("placeIds") List<Long> placeIds);
 
     @Query("SELECT p.name FROM Place p WHERE p.placeId = :placeId")

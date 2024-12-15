@@ -44,10 +44,10 @@ public class PlaceController {
         Long memberId = (member != null) ? member.getMemberId() : null;
 
         PlaceDetailResponseDto placeDetail = placeDetailService.getPlaceDetail(placeId, memberId);
-
-        // View count 증가 로직 서비스 호출
-        log.info("{}: {}", placeDetail.getCategory() + placeId, topPlaceService.incrementCategoryViewCount(placeDetail.getCategory(), placeId));
-
+        if(placeDetail != null){
+            // View count 증가 로직 서비스 호출
+            log.info("{}: {}", placeDetail.getCategory() + placeId, topPlaceService.incrementCategoryViewCount(placeDetail.getCategory(), placeId));
+        }
         return CommonResponse.ok("success", placeDetail);
     }
 

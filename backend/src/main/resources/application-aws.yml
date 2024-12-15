@@ -8,6 +8,11 @@ spring:
     redis:
       host: uplus-elasticcache.fhxyu0.ng.0001.apn2.cache.amazonaws.com
       port: 6379
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 1000MB #1GB
+      max-request-size: 1000MB # 1GB
 
   jpa:
     hibernate:
@@ -32,7 +37,7 @@ s3:
 
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
-  redirect-uri: http://localhost:5173/login
+  redirect-uri: https://mungtivity.vercel.app/login
   client-secret: ${KAKAO_CLIENT_SECRET}
 
 jwt:

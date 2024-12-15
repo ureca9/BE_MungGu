@@ -24,10 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -254,7 +251,15 @@ public class TopPlaceService {
     private Map<Long, Place> getPlaceMapFromDatabase(Set<ZSetOperations.TypedTuple<String>> topViewPlaces) {
         // Redis에서 가져온 placeId를 Long 타입으로 변환
         List<Long> placeIds = topViewPlaces.stream()
-                .map(tuple -> Long.valueOf(tuple.getValue()))
+                .map(tuple -> {
+                    try {
+                        return Long.valueOf(Objects.requireNonNull(tuple.getValue(), "placeId cannot be null"));
+                    } catch (NumberFormatException e) {
+                        log.warn("유효하지 않은 placeId입니다: {}", tuple.getValue());
+                        return null; // 또는 예외 처리 로직 추가
+                    }
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         // Place 데이터를 데이터베이스에서 조회
@@ -307,7 +312,17 @@ public class TopPlaceService {
         String placeIdStr = String.valueOf(placeId); // placeId를 String으로 변환
 
         // Sorted Set에 조회수 증가
-        return redisTemplate.opsForZSet().incrementScore(sortedSetKey, placeIdStr, 1); // 증가된 조회수 반환
+        Double incrementedScore = redisTemplate.opsForZSet().incrementScore(sortedSetKey, placeIdStr, 1);
+
+        // null 처리
+        if (incrementedScore == null) {
+            log.warn("Failed to increment score for placeId: {}", placeId);
+            // 기본값을 반환하거나, 추가 처리를 수행
+            return 0.0;
+        }
+
+        // Sorted Set에 조회수 증가
+        return incrementedScore;
     }
 
     /**

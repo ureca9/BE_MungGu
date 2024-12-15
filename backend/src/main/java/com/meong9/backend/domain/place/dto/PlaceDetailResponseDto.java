@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.domain.Slice;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 
@@ -60,7 +62,9 @@ public class PlaceDetailResponseDto {
                 .placeName(placeInfoDto.getPlaceName()) // 장소 이름
                 .category(placeInfoDto.getCategory()) // 카테고리
                 .reviewCount(placeInfoDto.getReviewCount()) // 리뷰 수
-                .reviewAvg(placeInfoDto.getReviewAvg()) // 리뷰 평균
+                .reviewAvg(placeInfoDto.getReviewAvg()!= null
+                        ? BigDecimal.valueOf(placeInfoDto.getReviewAvg()).setScale(1, RoundingMode.HALF_UP).doubleValue()
+                        : null) // 리뷰 평균
                 .address(address) // 주소
                 .tags(tags) // 태그 리스트
                 .businessHour(placeInfoDto.getBusinessHour()) // 영업 시간

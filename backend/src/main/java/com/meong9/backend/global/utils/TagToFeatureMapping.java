@@ -1,12 +1,14 @@
 package com.meong9.backend.global.utils;
 
 import com.meong9.backend.global.topFeature.entity.TopFeature;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@Slf4j
 public enum TagToFeatureMapping {
     PARKING(1L, "주차 가능", topFeature -> topFeature.setParking(true)),
     PET_ONLY_AREA(2L, "반려동물 전용 구역", topFeature -> topFeature.setPetOnlyArea(true)),
@@ -36,9 +38,22 @@ public enum TagToFeatureMapping {
     }
 
     public static void applyFeature(Long tagId, TopFeature topFeature) {
-        TagToFeatureMapping mapping = mappingMap.get(tagId); // O(1) 검색
-        if (mapping != null) {
+        if (tagId == null || topFeature == null) {
+            throw new IllegalArgumentException("태그 ID와 TopFeature 객체는 null일 수 없습니다.");
+        }
+
+        TagToFeatureMapping mapping = mappingMap.get(tagId);
+        if (mapping == null) {
+            log.warn("알 수 없는 태그 ID: {}", tagId);
+            return;
+        }
+
+        try {
             mapping.featureSetter.accept(topFeature);
+            log.debug("피처 적용 완료: tagId={}, feature={}", tagId, mapping.tagName);
+        } catch (Exception e) {
+            log.error("피처 적용 실패: tagId={}, feature={}", tagId, mapping.tagName, e);
+            throw new RuntimeException("피처 적용 중 오류 발생", e);
         }
     }
 }

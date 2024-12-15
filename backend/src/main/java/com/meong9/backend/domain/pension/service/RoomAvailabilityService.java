@@ -1,5 +1,8 @@
 package com.meong9.backend.domain.pension.service;
 
+import com.meong9.backend.domain.pension.dto.RoomResponseDto;
+import com.meong9.backend.domain.pension.repository.PensionRepository;
+import com.meong9.backend.domain.pension.repository.RoomAvailabilityRepository;
 import com.meong9.backend.domain.pension.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +22,8 @@ public class RoomAvailabilityService {
     private final JdbcTemplate jdbcTemplate;
 
     private final RoomRepository roomRepository;
+
+    private final RoomAvailabilityRepository roomAvailabilityRepository;
 
     /**
      * Room의 RoomAvailability를 days만큼 추가합니다.
@@ -42,4 +48,12 @@ public class RoomAvailabilityService {
         }
     }
 
+    public List<RoomResponseDto> getRoomAvailableRoomsWithImages(Long pensionId, LocalDate startDate, LocalDate endDate) {
+        if (startDate.isBefore(LocalDate.now()) || endDate.isBefore(startDate) || ChronoUnit.DAYS.between(startDate, endDate) > 30) {
+            // 시작일은 현재 날짜보다 이전일 수 없다, 종료일은 시작일보다 이전일 수 없다, 예약 기간은 30일을 초과할 수 없다.
+            return new ArrayList<>();
+        }else{
+            return roomAvailabilityRepository.findAvailableRoomsWithImages(pensionId, startDate, endDate);
+        }
+    }
 }

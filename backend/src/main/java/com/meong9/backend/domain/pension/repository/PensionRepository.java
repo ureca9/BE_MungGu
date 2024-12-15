@@ -92,11 +92,11 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     @Query("SELECT p.name FROM Pension p WHERE p.pensionId = :pensionId")
     String findNameByPensionId(@Param("pensionId") Long pensionId); // 이름만 조회
     /**
-     * pensionId 목록으로 펜션 정보를 조회합니다.
+     * pensionId 목록으로 펜션 정보를 조회합니다.(TopPension 생성을 위해, tags만을 필요로 함)
      *
      * @param pensionIds 조회할 pensionId 목록
      * @return 조회된 Place 리스트
      */
-    @Query("SELECT p FROM Pension p WHERE p.pensionId IN :pensionIds")
+    @Query("SELECT p FROM Pension p LEFT JOIN FETCH p.pensionTags WHERE p.pensionId IN :pensionIds")
     List<Pension> findByPensionIds(@Param("pensionIds") List<Long> pensionIds);
 }
