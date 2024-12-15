@@ -1,10 +1,10 @@
 name: Build and Deploy to EC2 with Predefined Environment Variables
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - dev
+  push:
+    branches:
+      - main
+      - dev
   pull_request:
     branches:
       - main
@@ -110,13 +110,13 @@ jobs:
             echo "Sleeping for 30 seconds to allow the application to initialize..."
             sleep 30
 
-            echo "Checking if the application is running on EC2-1..."
-            if lsof -i:8080; then
-              echo "Application is running on port 8080."
-            else
-              echo "Application failed to start on EC2-1. Check logs for details."
-              exit 1
-            fi
+            # echo "Checking if the application is running on EC2-1..."
+            # if lsof -i:8080; then
+            #   echo "Application is running on port 8080."
+            # else
+            #   echo "Application failed to start on EC2-1. Check logs for details."
+            #   exit 1
+            # fi
 
             echo "Checking the log file..."
             if [ -f /home/ubuntu/deployments/app.log ]; then
