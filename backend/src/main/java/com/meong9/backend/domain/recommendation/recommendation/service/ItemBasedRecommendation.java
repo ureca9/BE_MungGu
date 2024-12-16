@@ -24,7 +24,7 @@ public class ItemBasedRecommendation {
     @Qualifier("placeDataModel")
     private final DataModel placeDataModel;
 
-    public ItemBasedRecommendation(DataModel placeDataModel) {
+    public ItemBasedRecommendation(@Qualifier("placeDataModel") DataModel placeDataModel) {
         this.placeDataModel = placeDataModel;
     }
 
