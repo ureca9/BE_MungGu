@@ -11,7 +11,9 @@ import com.meong9.backend.domain.recommendation.member_score.place_member_score.
 import com.meong9.backend.domain.recommendation.member_score.place_member_score.repository.PlaceMemberScoreRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -49,47 +51,69 @@ public class MemberScoreService {
 //        updateScore(memberId, placeId, -3); // 좋아요 점수 제거
 //    }
 
-    // 리뷰 등록 시 점수 추가
-    @Transactional
+    // 리뷰 등록 비동기 처리
+    @Async
     public void addReview(Long memberId, Long targetId, float rating, String type) {
+        log.info("비동기로 리뷰를 통한 member 점수 등록 처리 시작: MemberId={}, TargetId={}", memberId, targetId);
+        try {
+            addReviewTransactional(memberId, targetId, rating, type);
+        } catch (Exception e) {
+            log.error("리뷰 등록 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void addReviewTransactional(Long memberId, Long targetId, float rating, String type) {
         int reviewScore = calculateWeightFromRating(rating);
-        if(type.equals("010")){
-            // 시설
+        if ("010".equals(type)) {
             updatePlaceScore(memberId, targetId, reviewScore);
-        } else if(type.equals("020")){
-            // 펜션
+        } else if ("020".equals(type)) {
             updatePensionScore(memberId, targetId, reviewScore);
         }
     }
 
-
-    // 리뷰 수정 시 점수 변경
-    @Transactional
+    // 리뷰 수정 비동기 처리
+    @Async
     public void updateReview(Long memberId, Long targetId, float oldRating, float newRating, String type) {
+        log.info("비동기로 리뷰를 통한 member 점수 수정 처리 시작: MemberId={}, TargetId={}", memberId, targetId);
+        try {
+            updateReviewTransactional(memberId, targetId, oldRating, newRating, type);
+        } catch (Exception e) {
+            log.error("리뷰 수정 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateReviewTransactional(Long memberId, Long targetId, float oldRating, float newRating, String type) {
         int oldScore = calculateWeightFromRating(oldRating);
         int newScore = calculateWeightFromRating(newRating);
 
-        if(type.equals("010")){
-            // 시설
-            updatePlaceScore(memberId, targetId, newScore - oldScore);
-        } else if(type.equals("020")){
-            // 펜션
-            updatePensionScore(memberId, targetId, newScore - oldScore);
+        if ("010".equals(type)) {
+            updatePlaceScore(memberId, targetId, newScore);
+        } else if ("020".equals(type)) {
+            updatePensionScore(memberId, targetId, newScore);
         }
-
     }
 
-    // 리뷰 삭제 시 점수 차감
-    @Transactional
+    // 리뷰 삭제 비동기 처리
+    @Async
     public void deleteReview(Long memberId, Long targetId, float rating, String type) {
+        log.info("비동기로 리뷰를 통한 member 점수 삭제 처리 시작: MemberId={}, TargetId={}", memberId, targetId);
+        try {
+            deleteReviewTransactional(memberId, targetId, rating, type);
+        } catch (Exception e) {
+            log.error("리뷰 삭제 처리 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteReviewTransactional(Long memberId, Long targetId, float rating, String type) {
         int reviewScore = calculateWeightFromRating(rating);
 
-        if(type.equals("010")){
-            // 시설
-            updatePlaceScore(memberId, targetId, -reviewScore);
-        } else if(type.equals("020")){
-            // 펜션
-            updatePensionScore(memberId, targetId, -reviewScore);
+        if ("010".equals(type)) {
+            deletePlaceScore(memberId, targetId);
+        } else if ("020".equals(type)) {
+            deletePensionScore(memberId, targetId);
         }
     }
 
@@ -128,7 +152,7 @@ public class MemberScoreService {
                         .build());
 
         // 점수 업데이트
-        memberScore.setScore(memberScore.getScore() + scoreDelta);
+        memberScore.setScore(scoreDelta);
 
         // 점수 저장
         placeMemberScoreRepository.save(memberScore);
@@ -152,11 +176,44 @@ public class MemberScoreService {
                         .build());
 
         // 점수 업데이트
-        memberScore.setScore(memberScore.getScore() + scoreDelta);
+        memberScore.setScore(scoreDelta);
 
         // 점수 저장
         pensionMemberScoreRepository.save(memberScore);
     }
+
+    // 점수 삭제 - 시설
+    private void deletePlaceScore(Long memberId, Long placeId) {
+        PlaceMemberId id = PlaceMemberId.builder()
+                .memberId(memberId)
+                .placeId(placeId)
+                .build();
+
+        // 데이터 존재 여부 확인 후 삭제
+        if (placeMemberScoreRepository.existsById(id)) {
+            placeMemberScoreRepository.deleteById(id);
+            log.info("PlaceMemberScore 삭제 완료 - MemberId={}, PlaceId={}", memberId, placeId);
+        } else {
+            log.warn("PlaceMemberScore를 찾을 수 없음 - MemberId={}, PlaceId={}", memberId, placeId);
+        }
+    }
+
+    // 점수 삭제 - 펜션
+    private void deletePensionScore(Long memberId, Long pensionId) {
+        PensionMemberId id = PensionMemberId.builder()
+                .memberId(memberId)
+                .pensionId(pensionId)
+                .build();
+
+        // 데이터 존재 여부 확인 후 삭제
+        if (pensionMemberScoreRepository.existsById(id)) {
+            pensionMemberScoreRepository.deleteById(id);
+            log.info("PensionMemberScore 삭제 완료 - MemberId={}, PensionId={}", memberId, pensionId);
+        } else {
+            log.warn("PensionMemberScore를 찾을 수 없음 - MemberId={}, PensionId={}", memberId, pensionId);
+        }
+    }
+
 
 
 }

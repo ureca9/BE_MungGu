@@ -3,6 +3,7 @@ package com.meong9.backend.global.utils;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RegionMapper {
@@ -11,6 +12,7 @@ public class RegionMapper {
     private static final Map<String, String> REGION_NAME_MAP = new HashMap<>();
     private static final Map<String, String[]> WEATHER_REGION_XY_MAP = new HashMap<>();
 
+    private static final Map<String, List<String>> REGION_MAPPING = new HashMap<>();
 
     static {
         WEATHER_REGION_CODE_MAP.put("서울", "11B00000");
@@ -39,6 +41,15 @@ public class RegionMapper {
         WEATHER_REGION_XY_MAP.put("전라", new String[]{"60", "74"});
         WEATHER_REGION_XY_MAP.put("경상", new String[]{"89", "90"});
         WEATHER_REGION_XY_MAP.put("제주", new String[]{"53", "38"});
+
+        REGION_MAPPING.put("충청", List.of("충청", "대전", "세종"));
+        REGION_MAPPING.put("전라", List.of("전라", "광주", "전북"));
+        REGION_MAPPING.put("경상", List.of("경상", "울산", "부산", "대구"));
+        REGION_MAPPING.put("서울", List.of("서울"));
+        REGION_MAPPING.put("강원", List.of("강원"));
+        REGION_MAPPING.put("인천", List.of("인천"));
+        REGION_MAPPING.put("경기", List.of("경기"));
+        REGION_MAPPING.put("제주", List.of("제주"));
     }
 
     public static String getWeatherRegion(String regionName) {
@@ -54,6 +65,11 @@ public class RegionMapper {
     }
 
     public static Map<String, String> getWeatherRegionAll(){
-        return Collections.unmodifiableMap(WEATHER_REGION_CODE_MAP);
+        return Collections.unmodifiableMap(WEATHER_REGION_CODE_MAP); // 읽기 전용
     }
+
+    public static Map<String, List<String>> getRegionMapping() {
+        return Collections.unmodifiableMap(REGION_MAPPING); // 읽기 전용
+    }
+
 }
