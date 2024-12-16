@@ -60,10 +60,6 @@ public class RecommendationBatchConfig {
     private final PensionRepository pensionRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
 
-    @Bean
-    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
-        return new JdbcTemplate(dataSource);
-    }
 
     @Bean
     public Job recommendationJob() {
@@ -194,7 +190,7 @@ public class RecommendationBatchConfig {
                     ExecutionContext executionContext = StepSynchronizationManager.getContext().getStepExecution().getExecutionContext();
                     if (!executionContext.containsKey("pensionIds")) {
                         executionContext.put("pensionIds", pensionIds);
-                        log.info("Saved pensionIds to ExecutionContext: {}", pensionIds);
+//                        log.info("Saved pensionIds to ExecutionContext: {}", pensionIds);
                     }
                 }
                 log.info("Reader fetched memberId: {}", memberId);
@@ -250,11 +246,11 @@ public class RecommendationBatchConfig {
             ExecutionContext executionContext = StepSynchronizationManager.getContext().getStepExecution().getExecutionContext();
             List<Long> pensionIds = (List<Long>) executionContext.get("pensionIds");
 
-            log.info("Processor fetched pensionIds from ExecutionContext: {}", pensionIds);
+//            log.info("Processor fetched pensionIds from ExecutionContext: {}", pensionIds);
 
             // 협업 필터링 결과 가져오기
             List<RecommendedItem> recommendations = recommendationService.recommend(userId, pensionIds, "Pension", null, null);
-            log.info("Processor generated recommendations for userId {}: {}", userId, recommendations);
+//            log.info("Processor generated recommendations for userId {}: {}", userId, recommendations);
 
             // 추천 결과를 PensionRecommendation 형태로 변환
             List<PensionRecommendation> pensionRecommendations = new ArrayList<>();
@@ -276,28 +272,27 @@ public class RecommendationBatchConfig {
     public ItemProcessor<Map<String, Object>, List<PlaceRecommendation>> itemBasedRecommendationProcessor() {
         return data -> {
             // Reader에서 전달된 데이터 분리
-            List<Long> pensionIds = (List<Long>) data.get("pensionIds");
             Map<String, List<PlcPenProjection>> placeIdsByProvince = (Map<String, List<PlcPenProjection>>) data.get("placeIdsByProvince");
             List<PlcPenProjection> pensionProjection = (List<PlcPenProjection>) data.get("pensionProjection");
             List<Long> allPlaceIds = (List<Long>) data.get("allPlaceIds");
 
-            log.info("Processing pensionIds: {}", pensionIds);
-            log.info("Processing allPlaceIds: {}", allPlaceIds);
+//            log.info("Processing pensionIds: {}", pensionIds);
+//            log.info("Processing allPlaceIds: {}", allPlaceIds);
 
-            // Place IDs by Province 로그 출력
-            placeIdsByProvince.forEach((province, projections) ->
-                    log.info("Province: {}, Projections: {}",
-                            province,
-                            projections.stream()
-                                    .map(PlcPenProjection::toCustomString)
-                                    .collect(Collectors.joining(", "))
-                    )
-            );
+//            // Place IDs by Province 로그 출력
+//            placeIdsByProvince.forEach((province, projections) ->
+//                    log.info("Province: {}, Projections: {}",
+//                            province,
+//                            projections.stream()
+//                                    .map(PlcPenProjection::toCustomString)
+//                                    .collect(Collectors.joining(", "))
+//                    )
+//            );
 
             // Pension Projection 로그 출력
-            pensionProjection.forEach(projection ->
-                    log.info("PensionProjection: {}", projection.toCustomString())
-            );
+//            pensionProjection.forEach(projection ->
+//                    log.info("PensionProjection: {}", projection.toCustomString())
+//            );
 
             List<PlaceRecommendation> recommendations = new ArrayList<>();
 
@@ -305,14 +300,14 @@ public class RecommendationBatchConfig {
             for (PlcPenProjection projection : pensionProjection) {
                 Long pensionId = projection.getId();
 
-                log.info("Processing pensionId: {}", pensionId);
-
-                // 추천 호출 전 로그 출력
-                log.debug("Calling itemRecommend with parameters - allPlaceIds: {}, pensionId: {}, projection: {}",
-                        allPlaceIds,
-                        pensionId,
-                        projection.toCustomString()
-                );
+//                log.info("Processing pensionId: {}", pensionId);
+//
+//                // 추천 호출 전 로그 출력
+//                log.debug("Calling itemRecommend with parameters - allPlaceIds: {}, pensionId: {}, projection: {}",
+//                        allPlaceIds,
+//                        pensionId,
+//                        projection.toCustomString()
+//                );
 
                 List<RecommendedItem> results = recommendationService.itemRecommend(
                         allPlaceIds,
@@ -328,9 +323,9 @@ public class RecommendationBatchConfig {
                 }
 
                 // 추천 결과 로그
-                results.forEach(item ->
-                        log.info("Recommended Item - ID: {}, Score: {}", item.getItemID(), item.getValue())
-                );
+//                results.forEach(item ->
+//                        log.info("Recommended Item - ID: {}, Score: {}", item.getItemID(), item.getValue())
+//                );
 
                 // PlaceRecommendation 생성
                 for (RecommendedItem item : results) {

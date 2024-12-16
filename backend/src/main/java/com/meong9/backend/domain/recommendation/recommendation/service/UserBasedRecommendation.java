@@ -43,7 +43,7 @@ public class UserBasedRecommendation {
         }
 
         if (!userExists) {
-            log.warn("DataModel에 사용자 {}가 없습니다. 추천을 건너뜁니다.", userId);
+            log.warn("DataModel에 사용자 {}가 없습니다. 협업 필터링 추천을 건너뜁니다.", userId);
             return List.of();
         }
 
@@ -61,16 +61,16 @@ public class UserBasedRecommendation {
 
         // 가장 가까운 사용자 이웃 선택 (num 명)
         UserNeighborhood neighborhood = new NearestNUserNeighborhood(numRecommendations, similarity, dataModel);
-        long[] neighbors = neighborhood.getUserNeighborhood(userId);
+//        long[] neighbors = neighborhood.getUserNeighborhood(userId);
 //        log.info("사용자 {}의 이웃: {}", userId, neighbors);
 
         GenericUserBasedRecommender recommender = new GenericUserBasedRecommender(dataModel, neighborhood, similarity);
 //        log.info("추천: " + recommender);
 
         // 사용자 추천
-        List<RecommendedItem> recommendations = recommender.recommend(userId, numRecommendations-8);
-        log.info("추천 결과 디버그 정보:");
-        recommendations.forEach(item -> log.info("추천 아이템 ID: {}, 점수: {}", item.getItemID(), item.getValue()));
+        List<RecommendedItem> recommendations = recommender.recommend(userId, numRecommendations);
+//        log.info("추천 결과 디버그 정보:");
+//        recommendations.forEach(item -> log.info("추천 아이템 ID: {}, 점수: {}", item.getItemID(), item.getValue()));
 
 
         // 추천 결과 로그 출력
@@ -87,7 +87,7 @@ public class UserBasedRecommendation {
     // 사용자 기반 펜션 추천 (User-Based)
     @Transactional(readOnly = true)
     public Map<Long, Double> processUserRecommendations(Long userId) {
-        log.info("Processing recommendations for userId: {}", userId); // 로그 추가
+//        log.info("Processing recommendations for userId: {}", userId); // 로그 추가
         try {
             if (pensionDataModel instanceof ReloadFromJDBCDataModel) {
                 ReloadFromJDBCDataModel model = (ReloadFromJDBCDataModel) pensionDataModel;
@@ -96,7 +96,7 @@ public class UserBasedRecommendation {
                 log.info("DataModel 새로고침.");
             }
             // 협업 필터링 추천
-            List<RecommendedItem> recommendedItems = recommend(pensionDataModel, userId, 10);
+            List<RecommendedItem> recommendedItems = recommend(pensionDataModel, userId, 5);
 
             // 점수를 Map 형태로 변환
             Map<Long, Double> scores = recommendedItems.stream()

@@ -64,12 +64,12 @@ public class ItemBasedRecommendation {
         // 추천 생성
         List<RecommendedItem> recommendations = recommender.recommend(pensionId, numRecommendations);
 
-        log.info("item base 추천 pensionId: {}", pensionId);
-        recommendations.forEach(item -> log.info("추천된 place ID: {}, score: {}", item.getItemID(), item.getValue()));
+//        log.info("item base 추천 pensionId: {}", pensionId);
+//        recommendations.forEach(item -> log.info("추천된 place ID: {}, score: {}", item.getItemID(), item.getValue()));
 
-        if (recommendations.isEmpty()) {
-            log.info("추천 결과가 없습니다. (pensionId: {})", pensionId);
-        }
+//        if (recommendations.isEmpty()) {
+//            log.warn("추천 결과가 없습니다. (pensionId: {})", pensionId);
+//        }
 
         return recommendations;
     }

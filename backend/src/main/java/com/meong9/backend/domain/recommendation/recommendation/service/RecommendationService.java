@@ -188,7 +188,7 @@ public class RecommendationService {
      * @return
      */
     public List<RecommendedItem> recommend(Long targetId, List<Long> allItems, String type, Map<String, List<PlcPenProjection>> placeIdsByProvince, PlcPenProjection pensionInfo) {
-        log.info("추천 계산 시작 (targetId: {}, type: {})", targetId, type);
+//        log.info("추천 계산 시작 (targetId: {}, type: {})", targetId, type);
 
         // 1. 점수 계산
         Map<Long, Double> combinedScores = calculateScores(targetId, allItems, type, placeIdsByProvince, pensionInfo);
@@ -218,19 +218,19 @@ public class RecommendationService {
         if(type.equals("Pension")){
             // 협업 필터링 점수 계산
             collaborativeScores = userBasedRecommendation.processUserRecommendations(targetId);
-            log.info("user base 협업 필터링 점수: {}", collaborativeScores);
+//            log.info("user base 협업 필터링 점수: {}", collaborativeScores);
 
             // 콘텐츠 기반 점수 계산
             contentScores = contentBasedRecommendation.calculateContentScores(targetId, allItems, type);
-            log.info("user base 콘텐츠 기반 점수: {}", contentScores);
+//            log.info("user base 콘텐츠 기반 점수: {}", contentScores);
         } else if(type.equals("Place")){
             // 협업 필터링 점수 계산
             collaborativeScores = itemBasedRecommendation.recommendFacilitiesForPension(targetId);
-            log.info("item base 협업 필터링 점수: {}", collaborativeScores);
+//            log.info("item base 협업 필터링 점수: {}", collaborativeScores);
 
             // 콘텐츠 기반 점수 계산
             contentScores = contentBasedRecommendation.calculateContentScoresByDistance(placeIdsByProvince, pensionInfo);
-            log.info("item base 콘텐츠 기반 점수: {}", contentScores);
+//            log.info("item base 콘텐츠 기반 점수: {}", contentScores);
         }
 
         // 점수 결합
@@ -259,7 +259,7 @@ public class RecommendationService {
             recommendations.add(new GenericRecommendedItem(itemId, convertedScore));
         }
 
-        log.info("최종 추천 리스트 (Top {}): {}", limit, recommendations);
+//        log.info("최종 추천 리스트 (Top {}): {}", limit, recommendations);
         return recommendations;
     }
 

@@ -29,10 +29,10 @@ public class ContentBasedRecommendation {
         // 선호 지역 및 카테고리 가져오기
 //        log.info("사용자 ID: {}의 콘텐츠 기반 점수 계산 시작", userId);
         List<Long> favoriteRegions = favoriteRegionRepository.findRegionIdsByMemberId(userId);
-        log.info("사용자 ID {}의 선호 지역: {}", userId, favoriteRegions);
+//        log.info("사용자 ID {}의 선호 지역: {}", userId, favoriteRegions);
 
         List<Long> favoriteCategories = plcFavCategoryRepository.findCategoryIdsByMemberId(userId);
-        log.info("사용자 ID {}의 선호 카테고리: {}", userId, favoriteCategories);
+//        log.info("사용자 ID {}의 선호 카테고리: {}", userId, favoriteCategories);
 
         // 선호 지역에 속한 펜션 ID 가져오기
         List<Long> regionMatchedPensions = plcPenAddressRepository.findPensionIdsByRegionIds(favoriteRegions);
@@ -45,20 +45,10 @@ public class ContentBasedRecommendation {
 
             // 지역 선호도를 기반으로 점수 부여
             if (regionMatchedPensions.contains(pensionId)) {
-                log.debug("펜션 ID {}가 선호 지역에 해당합니다.", pensionId);
+//                log.debug("펜션 ID {}가 선호 지역에 해당합니다.", pensionId);
                 score += 1.0;
             } else {
-                log.debug("펜션 ID {}가 선호 지역에 해당하지 않습니다.", pensionId);
-            }
-
-            // 카테고리 선호도를 기반으로 점수 부여 (Place 유형에만 적용)
-            if ("Place".equals(type)) {
-                if (categoryMatches(pensionId, favoriteCategories)) {
-                    log.debug("Place ID {}가 선호 카테고리에 해당합니다.", pensionId);
-                    score += 1.0;
-                } else {
-                    log.debug("Place ID {}가 선호 카테고리에 해당하지 않습니다.", pensionId);
-                }
+//                log.debug("펜션 ID {}가 선호 지역에 해당하지 않습니다.", pensionId);
             }
 
             // -1 ~ 1로 정규화
@@ -68,19 +58,8 @@ public class ContentBasedRecommendation {
             contentScores.put(pensionId, score);
         }
 
-        log.info("사용자 ID {}의 최종 콘텐츠 기반 점수: {}", userId, contentScores);
+//        log.info("사용자 ID {}의 최종 콘텐츠 기반 점수: {}", userId, contentScores);
         return contentScores;
-    }
-
-    private boolean categoryMatches(Long placeId, List<Long> favoriteCategories) {
-        // 해당 시설의 카테고리가 사용자의 선호 카테고리와 일치하는지 확인
-        List<Long> placeCategories = placeRepository.findCategoryIdsByPensionId(placeId);
-        log.debug("시설 ID {}의 카테고리: {}", placeId, placeCategories);
-
-        boolean matches = favoriteCategories.stream().anyMatch(placeCategories::contains);
-        log.debug("시설 ID {}가 선호 카테고리에 해당하는지: {}", placeId, matches);
-
-        return matches;
     }
 
     public Map<Long, Double> calculateContentScoresByDistance(Map<String, List<PlcPenProjection>> placeInfos, PlcPenProjection pensionInfo) {
@@ -103,7 +82,7 @@ public class ContentBasedRecommendation {
 
         // 위도 또는 경도가 null일 경우 랜덤 점수 부여
         if (targetLatitude == null || targetLongitude == null) {
-            log.warn("펜션 위도, 경도 값이 null입니다. : {}", targetProvince);
+            log.warn("펜션 위도, 경도 값이 null입니다. ID : {}", pensionInfo.getId());
 
             // 고정 점수
             double fixedScore = 0.000001;
