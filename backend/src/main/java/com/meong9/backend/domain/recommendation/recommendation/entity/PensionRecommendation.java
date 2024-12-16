@@ -32,7 +32,7 @@ public class PensionRecommendation {
     private Pension pension;
 
     @Builder
-    public PensionRecommendation(PensionMemberId pensionMemberId, float score, LocalDateTime lastUpdatedAt) {
+    public PensionRecommendation(PensionMemberId pensionMemberId, Float score, LocalDateTime lastUpdatedAt) {
         this.pensionMemberId = pensionMemberId;
         this.score = score;
         this.lastUpdatedAt = lastUpdatedAt;
