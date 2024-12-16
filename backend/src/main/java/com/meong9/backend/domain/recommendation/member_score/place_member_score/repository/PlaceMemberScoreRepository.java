@@ -1,6 +1,5 @@
 package com.meong9.backend.domain.recommendation.member_score.place_member_score.repository;
 
-import com.meong9.backend.domain.recommendation.member_score.dto.MemberScoreDto;
 import com.meong9.backend.domain.recommendation.member_score.place_member_score.entity.PlaceMemberScore;
 import com.meong9.backend.domain.recommendation.id_class.PlaceMemberId;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,6 +30,6 @@ public interface PlaceMemberScoreRepository extends JpaRepository<PlaceMemberSco
         WHERE pms.member.memberId IN :memberIds AND pms.place.placeId IN :placeIds
         GROUP BY pms.member.memberId
     """)
-    List<MemberScoreDto> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("placeIds") List<Long> placeIds);
+    List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("placeIds") List<Long> placeIds);
 
 }
