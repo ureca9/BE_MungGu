@@ -26,7 +26,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     private final DSLContext dsl;
 
     @Override
-    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String typeCode, Long memberId) {
+    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, String typeCode, Long memberId) {
 
         List<SearchPlaceDto> places = dsl.select(
                         PLACE.PLACE_ID, // placeId
@@ -199,9 +199,9 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(PLACE.PLACE_ID.in(firstFilteredPlaceIds))
                 .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
                 .and(getWeightCondition(sizeCode))
-                .orderBy(PLACE.REVIEW_COUNT.desc())
+                .orderBy(PLACE.REVIEW_COUNT.desc(), PLACE.PLACE_ID.asc())
                 .limit(pageable.getPageSize() + 1)
-                .offset((int) pageable.getOffset())
+                .offset(pageable.getOffset())
                 .fetchInto(Long.class);
 
         boolean hasNext = results.size() > pageable.getPageSize();
