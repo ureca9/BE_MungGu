@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.recommendation.member_score.pension_member_score.repository;
 
+import com.meong9.backend.domain.recommendation.member_score.dto.MemberScoreDto;
 import com.meong9.backend.domain.recommendation.member_score.pension_member_score.entity.PensionMemberScore;
 import com.meong9.backend.domain.recommendation.id_class.PensionMemberId;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +25,6 @@ public interface PensionMemberScoreRepository extends JpaRepository<PensionMembe
         WHERE pms.member.memberId IN :memberIds AND pms.pension.pensionId IN :pensionIds
         GROUP BY pms.member.memberId
     """)
-    List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("pensionIds") List<Long> pensionIds);
+    List<MemberScoreDto> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("pensionIds") List<Long> pensionIds);
 
 }

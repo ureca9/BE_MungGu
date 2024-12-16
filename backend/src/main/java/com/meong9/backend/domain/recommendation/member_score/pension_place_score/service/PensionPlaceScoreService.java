@@ -5,6 +5,7 @@ import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
 import com.meong9.backend.domain.recommendation.id_class.PensionPlaceId;
+import com.meong9.backend.domain.recommendation.member_score.dto.MemberScoreDto;
 import com.meong9.backend.domain.recommendation.member_score.pension_member_score.repository.PensionMemberScoreRepository;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.entity.PensionPlaceScore;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.repository.PensionPlaceScoreRepository;
@@ -171,11 +172,11 @@ public class PensionPlaceScoreService {
     }
 
 
-    private Map<Long, Float> convertToScoreMap(List<Object[]> results) {
+    private Map<Long, Float> convertToScoreMap(List<MemberScoreDto> results) {
         Map<Long, Float> scoreMap = new HashMap<>();
-        for (Object[] result : results) {
-            Long memberId = (Long) result[0];
-            Float score = ((Number) result[1]).floatValue();
+        for (MemberScoreDto result : results) {
+            Long memberId = result.getMemberId();
+            Float score = result.getAverageScore().floatValue();
             scoreMap.put(memberId, score);
         }
         return scoreMap;
