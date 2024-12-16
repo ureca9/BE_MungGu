@@ -37,7 +37,9 @@ public class SearchService {
                         .puppyId(puppy.getPuppyId())
                         .puppyWeight(puppy.getWeight())
                         .puppyName(puppy.getName())
-                        .puppyImageUrl(puppy.getProfileImage().getFileUrl())
+                        .puppyImageUrl(
+                                puppy.getProfileImage() != null ? puppy.getProfileImage().getFileUrl() : null
+                        )
                         .build())
                 .toList();
         return new PuppiesForSearchDto(member.getMemberId(), puppiesWithWeightDto);
