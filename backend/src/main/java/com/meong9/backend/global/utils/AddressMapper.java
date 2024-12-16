@@ -8,6 +8,9 @@ import java.util.Map;
 
 public class AddressMapper {
 
+    // 지역 - province 캐시
+    private static final Map<String, String> provinceToRegionCache = new HashMap<>();
+
     public static String formatAddress(PlcPenAddress plcPenAddress) {
         if (plcPenAddress == null || plcPenAddress.getAddress() == null) {
             return null;
@@ -74,25 +77,26 @@ public class AddressMapper {
 
     public static Map<Long, String> mapAddressesProvinceByPlcPenId(List<PlcPenAddress> addresses) {
         Map<Long, String> addressMap = new HashMap<>();
+        Map<String, List<String>> regionMapping = RegionMapper.getRegionMapping();
 
-        // 주소 매핑 로직
         for (PlcPenAddress address : addresses) {
-            Long id = address.getPlcPenId(); // 장소 ID
+            Long id = address.getPlcPenId();
             String province = address.getAddress() != null ? address.getAddress().getProvince() : null;
 
             if (province != null) {
-                // REGION_MAPPING에서 키를 찾음
-                String regionKey = RegionMapper.getRegionMapping().entrySet().stream()
-                        .filter(entry -> entry.getValue().stream().anyMatch(province::startsWith)) // 단어로 시작하는 경우 찾기
-                        .map(Map.Entry::getKey) // 해당 키 가져오기
-                        .findFirst() // 첫 번째 결과만 사용
-                        .orElse(province); // 매칭되지 않을 경우 province
-                addressMap.put(id, regionKey); // 매핑된 키로 저장
+                // 캐시된 결과가 있는지 확인
+                String regionKey = provinceToRegionCache.computeIfAbsent(province, p ->
+                        regionMapping.entrySet().stream()
+                                .filter(entry -> entry.getValue().stream().anyMatch(p::startsWith))
+                                .map(Map.Entry::getKey)
+                                .findFirst()
+                                .orElse(p)
+                );
+                addressMap.put(id, regionKey);
             } else {
-                addressMap.put(id, "기타"); // Province가 null인 경우
+                addressMap.put(id, "기타");
             }
         }
-
         return addressMap;
     }
 
