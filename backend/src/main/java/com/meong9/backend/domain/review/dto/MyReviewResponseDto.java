@@ -1,41 +1,36 @@
 package com.meong9.backend.domain.review.dto;
 
 import com.meong9.backend.domain.review.entity.Review;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
 @Getter
-@Builder
 public class MyReviewResponseDto {
-    private Long reviewId;
+    private final Long reviewId;
+    private final String content;
+    private final Float score;
+    private final LocalDate visitDate;
+    private final String type;
+    private final Long plcPenId;
+    private final String nickname;
+    private final FileResponseDto file;
+    @Setter
     private String plcPenName;
-    private String content;
-    private Float score;
-    private LocalDate visitDate;
-    private String type;
-    private Long plcPenId;
-    private String nickname;
-    private Integer likeCount;
-    private List<FileResponseDto> file;
 
-    public static MyReviewResponseDto from(Review review,String plcPenName) {
-
-        return MyReviewResponseDto.builder()
-                .reviewId(review.getReviewId())
-                .plcPenName(plcPenName)
-                .content(review.getContent())
-                .score(review.getScore())
-                .visitDate(review.getVisitDate())
-                .type(review.getType())
-                .plcPenId(review.getPlacePensionId())
-                .nickname(review.getNickname())
-                .file(review.getReviewFiles().stream()
-                        .map(FileResponseDto::from)
-                        .toList())
-                .build();
+    public MyReviewResponseDto(Long reviewId, String content, Float score, LocalDate visitDate, String type, Long plcPenId, String nickname, FileResponseDto file) {
+        this.reviewId = reviewId;
+        this.content = content;
+        this.score = score;
+        this.visitDate = visitDate;
+        this.type = type;
+        this.plcPenId = plcPenId;
+        this.nickname = nickname;
+        this.file = file;
     }
 }
