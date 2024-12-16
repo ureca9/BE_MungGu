@@ -38,6 +38,7 @@ public class PensionPlaceScoreService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    private static final float EPSILON = 0.00001f; // 허용 오차 정의
 
     public void initializeAndUpdateScores() {
         log.info("pension_place_score 정보 저장 시작");
@@ -155,12 +156,14 @@ public class PensionPlaceScoreService {
                                         .build()
                         );
 
+
                         // 변경된 경우에만 추가
-                        if (pensionPlaceScore.getScore() != score) {
+                        if (Math.abs(pensionPlaceScore.getScore() - score) > EPSILON) {
                             pensionPlaceScore.setScore(score);
                             pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
                             scoresToSave.add(pensionPlaceScore);
                         }
+
                     }
                 }
             });
