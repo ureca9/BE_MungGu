@@ -1,6 +1,8 @@
 package com.meong9.backend.domain.review.dto;
 
 import com.meong9.backend.domain.review.entity.Review;
+import com.meong9.backend.domain.review.entity.ReviewFile;
+import com.meong9.backend.global.mediafile.entity.FileType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,11 +21,13 @@ public class MyReviewResponseDto {
     private final String type;
     private final Long plcPenId;
     private final String nickname;
-    private final FileResponseDto file;
+    private FileResponseDto file;
+
     @Setter
     private String plcPenName;
 
-    public MyReviewResponseDto(Long reviewId, String content, Float score, LocalDate visitDate, String type, Long plcPenId, String nickname, FileResponseDto file) {
+    public MyReviewResponseDto(Long reviewId, String content, Float score, LocalDate visitDate,
+                               String type, Long plcPenId, String nickname, ReviewFile reviewFile) {
         this.reviewId = reviewId;
         this.content = content;
         this.score = score;
@@ -31,6 +35,6 @@ public class MyReviewResponseDto {
         this.type = type;
         this.plcPenId = plcPenId;
         this.nickname = nickname;
-        this.file = file;
+        if(reviewFile != null) this.file=new FileResponseDto(reviewFile);
     }
 }

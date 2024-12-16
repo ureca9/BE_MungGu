@@ -30,11 +30,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findTop10RecentReviews();
 
     @Query("SELECT new com.meong9.backend.domain.review.dto.MyReviewResponseDto(" +
-            "r.reviewId, r.content, r.score, r.visitDate, r.type, r.placePensionId, r.nickname, " +
-            "new com.meong9.backend.domain.review.dto.FileResponseDto(rf)) " +
+            "r.reviewId, r.content, r.score, r.visitDate, r.type, r.placePensionId, r.nickname, rf)" +
             "FROM Review r " +
             "LEFT JOIN r.reviewFiles rf " +
-            "WHERE r.member = :member ")
+            "WHERE r.member = :member")
     List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
 
     @Query("""
