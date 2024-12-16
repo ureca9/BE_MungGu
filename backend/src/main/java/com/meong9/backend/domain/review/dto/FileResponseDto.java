@@ -7,20 +7,17 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
 public class FileResponseDto {
     private final FileType fileType;
     private final Integer fileSize;
     private final String fileUrl;
     private final String fileName;
 
-    public static FileResponseDto from(ReviewFile reviewFile) {
+    public FileResponseDto(ReviewFile reviewFile) {
         MediaFile file = reviewFile.getFile();
-        return FileResponseDto.builder()
-                .fileType(file.getFileType())
-                .fileSize(file.getFileSize())
-                .fileUrl(file.getFileUrl())
-                .fileName(file.getFileName())
-                .build();
+        this.fileType = file.getFileType();
+        this.fileSize = file.getFileSize();
+        this.fileUrl = file.getFileUrl();
+        this.fileName = file.getFileName();
     }
 }

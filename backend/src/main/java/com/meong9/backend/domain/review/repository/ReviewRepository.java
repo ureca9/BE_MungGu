@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.review.repository;
 
+import com.meong9.backend.domain.review.dto.MyReviewResponseDto;
 import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
@@ -28,14 +29,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         """)
     List<Review> findTop10RecentReviews();
 
-    @Query("""
-    SELECT r FROM Review r
-    WHERE r.member = :member
-    AND (:lastReviewId IS NULL OR r.reviewId < :lastReviewId)
-    ORDER BY r.reviewId DESC 
-    """)
-    Page<Review> findByMember(@Param("member") Member member,@Param("lastReviewId") Long lastReviewId,
-                              Pageable pageable);
+    @Query("SELECT new com.meong9.backend.domain.review.dto.MyReviewResponseDto(" +
+            "r.reviewId, r.content, r.score, r.visitDate, r.type, r.placePensionId, r.nickname, rf)" +
+            "FROM Review r " +
+            "LEFT JOIN r.reviewFiles rf " +
+            "WHERE r.member = :member")
+    List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
 
     @Query("""
     SELECT r FROM Review r
