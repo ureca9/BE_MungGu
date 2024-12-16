@@ -9,7 +9,11 @@ import com.meong9.backend.domain.recommendation.member_score.pension_member_scor
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.entity.PensionPlaceScore;
 import com.meong9.backend.domain.recommendation.member_score.pension_place_score.repository.PensionPlaceScoreRepository;
 import com.meong9.backend.domain.recommendation.member_score.place_member_score.repository.PlaceMemberScoreRepository;
+import com.meong9.backend.domain.recommendation.recommendation.dto.PensionPlaceScoreDto;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,26 +33,42 @@ public class PensionPlaceScoreService {
     private final PensionRepository pensionRepository;
     private final PlaceRepository placeRepository;
     private final ReviewRepository reviewRepository;
-
     private final PensionMemberScoreRepository pensionMemberScoreRepository;
+    private final PensionPlaceScoreJdbcRepository pensionPlaceScoreJdbcRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    @Transactional
+
     public void initializeAndUpdateScores() {
         log.info("pension_place_score 정보 저장 시작");
+
+        // 1. JPA를 사용하여 데이터 로드 및 점수 계산
+        List<PensionPlaceScore> scoresToSave = calculateScores();
+        clearPersistenceContext();
+        // 2. JDBC를 사용하여 데이터 저장
+        batchSaveScores(scoresToSave);
+
+        log.info("pension_place_score 저장 완료");
+    }
+
+    /**
+     * JPA를 사용한 데이터 로드 및 점수 계산
+     */
+    @Transactional(readOnly = true)
+    public List<PensionPlaceScore> calculateScores() {
         // 1. 리뷰가 있는 펜션과 시설 정보 로드
         List<Long> pensionIds = reviewRepository.findPensionReviewCount(1);
         List<Long> placeIds = placeMemberScoreRepository.findAllPlaceIds();
 
-        // 2. 공통 멤버를 조회하여 매핑
+        // 2. 공통 멤버 조회
         Map<Long, Map<Long, List<Long>>> pensionPlaceMembers = findAllCommonMembers(pensionIds, placeIds);
 
-        // 3. 모든 멤버에 대한 점수를 한 번에 조회
+        // 3. 멤버 점수 조회
         List<Long> allMemberIds = pensionPlaceMembers.values().stream()
                 .flatMap(placeMap -> placeMap.values().stream())
                 .flatMap(List::stream)
                 .distinct()
                 .toList();
-
 
         Map<Long, Float> pensionScores = convertToScoreMap(
                 pensionMemberScoreRepository.findScoresBatch(allMemberIds, pensionIds)
@@ -57,23 +77,36 @@ public class PensionPlaceScoreService {
                 placeMemberScoreRepository.findScoresBatch(allMemberIds, placeIds)
         );
 
-        // 4. 기존 데이터를 미리 로드
+        // 4. 기존 데이터 로드
         Map<PensionPlaceId, PensionPlaceScore> existingScores = loadExistingScores(pensionPlaceMembers);
 
-        // 5. 펜션과 시설 데이터를 한 번에 조회
+        // 5. 펜션과 시설 데이터 로드
         Map<Long, Pension> pensions = loadPensions(pensionIds);
         Map<Long, Place> places = loadPlaces(placeIds);
 
-        // 6. 점수 계산 및 저장할 리스트 생성
+        // 6. 점수 계산
         List<PensionPlaceScore> scoresToSave = new ArrayList<>();
         processScores(pensionPlaceMembers, pensionScores, placeScores, pensions, places, existingScores, scoresToSave);
 
         log.info("총 저장할 PensionPlaceScores: {}", scoresToSave.size());
-        scoresToSave.forEach(score -> log.info("저장될 항목 -> Pension ID: {}, Place ID: {}, Score: {}, Last Updated: {}",
-                score.getPensionPlaceId().getPensionId(), score.getPensionPlaceId().getPlaceId(), score.getScore(), score.getLastUpdatedAt()));
+        return scoresToSave;
+    }
 
-        // 7. 배치 저장
-        pensionPlaceScoreRepository.saveAll(scoresToSave);
+    /**
+     * JDBC를 사용한 배치 저장
+     */
+    private void batchSaveScores(List<PensionPlaceScore> scores) {
+        // DTO 변환 (JDBC에서는 필요한 데이터만 추출)
+        List<PensionPlaceScoreDto> scoreDtos = scores.stream()
+                .map(score -> new PensionPlaceScoreDto(
+                        score.getPensionPlaceId(),
+                        score.getScore(),
+                        score.getLastUpdatedAt()
+                ))
+                .toList();
+
+        // JDBC Batch Insert or Update 실행
+        pensionPlaceScoreJdbcRepository.batchInsertOrUpdate(scoreDtos);
     }
 
     private Map<Long, Map<Long, List<Long>>> findAllCommonMembers(List<Long> pensionIds, List<Long> placeIds) {
@@ -191,5 +224,11 @@ public class PensionPlaceScoreService {
         return pensionPlaceScoreRepository.findPensionIds();
     }
 
-
+    /**
+     * JPA 영속성 컨텍스트 초기화
+     */
+    @Transactional
+    public void clearPersistenceContext() {
+        entityManager.clear();
+    }
 }
