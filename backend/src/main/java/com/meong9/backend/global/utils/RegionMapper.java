@@ -18,29 +18,29 @@ public class RegionMapper {
         WEATHER_REGION_CODE_MAP.put("서울", "11B00000");
         WEATHER_REGION_CODE_MAP.put("경기", "11B00000");
         WEATHER_REGION_CODE_MAP.put("인천", "11B00000");
-        WEATHER_REGION_CODE_MAP.put("강원", "11D10000");
-        WEATHER_REGION_CODE_MAP.put("충청", "11C20000");
-        WEATHER_REGION_CODE_MAP.put("전라", "11F20000");
-        WEATHER_REGION_CODE_MAP.put("경상", "11H20000");
-        WEATHER_REGION_CODE_MAP.put("제주", "11G00000");
+        WEATHER_REGION_CODE_MAP.put("강원권", "11D10000");
+        WEATHER_REGION_CODE_MAP.put("충청권", "11C20000");
+        WEATHER_REGION_CODE_MAP.put("전라권", "11F20000");
+        WEATHER_REGION_CODE_MAP.put("경상권", "11H20000");
+        WEATHER_REGION_CODE_MAP.put("제주권", "11G00000");
 
         REGION_NAME_MAP.put("서울", "SEOUL");
         REGION_NAME_MAP.put("경기", "GYEONGGI");
         REGION_NAME_MAP.put("인천", "INCHEON");
-        REGION_NAME_MAP.put("강원", "GANGWON");
-        REGION_NAME_MAP.put("충청", "CHUNGCHEONG");
-        REGION_NAME_MAP.put("전라", "JEOLLA");
-        REGION_NAME_MAP.put("경상", "GYEONGSANG");
-        REGION_NAME_MAP.put("제주", "JEJU");
+        REGION_NAME_MAP.put("강원권", "GANGWON");
+        REGION_NAME_MAP.put("충청권", "CHUNGCHEONG");
+        REGION_NAME_MAP.put("전라권", "JEOLLA");
+        REGION_NAME_MAP.put("경상권", "GYEONGSANG");
+        REGION_NAME_MAP.put("제주권", "JEJU");
 
         WEATHER_REGION_XY_MAP.put("서울", new String[]{"60", "127"});
         WEATHER_REGION_XY_MAP.put("경기", new String[]{"60", "120"});
         WEATHER_REGION_XY_MAP.put("인천", new String[]{"55", "124"});
-        WEATHER_REGION_XY_MAP.put("강원", new String[]{"93", "132"});
-        WEATHER_REGION_XY_MAP.put("충청", new String[]{"67", "100"});
-        WEATHER_REGION_XY_MAP.put("전라", new String[]{"60", "74"});
-        WEATHER_REGION_XY_MAP.put("경상", new String[]{"89", "90"});
-        WEATHER_REGION_XY_MAP.put("제주", new String[]{"53", "38"});
+        WEATHER_REGION_XY_MAP.put("강원권", new String[]{"93", "132"});
+        WEATHER_REGION_XY_MAP.put("충청권", new String[]{"67", "100"});
+        WEATHER_REGION_XY_MAP.put("전라권", new String[]{"60", "74"});
+        WEATHER_REGION_XY_MAP.put("경상권", new String[]{"89", "90"});
+        WEATHER_REGION_XY_MAP.put("제주권", new String[]{"53", "38"});
 
         REGION_MAPPING.put("충청", List.of("충청", "대전", "세종"));
         REGION_MAPPING.put("전라", List.of("전라", "광주", "전북"));
