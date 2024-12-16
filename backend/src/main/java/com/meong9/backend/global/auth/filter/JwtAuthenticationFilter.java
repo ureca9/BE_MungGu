@@ -13,11 +13,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Slf4j(topic = "JwtAuthenticationFilter")
@@ -26,6 +29,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final UserDetailsService detailsService;
     private final RequestMatcher ignoredRequests;
+    private final RequestMatcher publicUrls = new OrRequestMatcher(
+            List.of(
+                    new AntPathRequestMatcher("/api/v1/search"),
+                    new AntPathRequestMatcher("/api/v1/spots/recommendations"),
+                    new AntPathRequestMatcher("/api/v1/pensions/detail/{pensionId}"),
+                    new AntPathRequestMatcher("/api/v1/places/detail/{placeId}"),
+                    new AntPathRequestMatcher("/api/v1/map/search")
+            )
+    );
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) {
@@ -42,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            if (req.getRequestURI().startsWith("/api/v1/search") || req.getRequestURI().equals("/api/v1/spots/recommendations")) {
+            if (publicUrls.matches(req)) {
                 if (req.getHeader("Authorization") == null) {
                     filterChain.doFilter(req, res);
                     return;
