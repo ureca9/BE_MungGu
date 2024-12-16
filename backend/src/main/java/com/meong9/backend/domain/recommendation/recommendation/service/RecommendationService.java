@@ -2,20 +2,25 @@ package com.meong9.backend.domain.recommendation.recommendation.service;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 import com.meong9.backend.domain.address.repository.PlcPenAddressRepository;
+import com.meong9.backend.domain.like.service.LikeService;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.member.repository.MemberRepository;
 import com.meong9.backend.domain.pension.entity.PensionFile;
 import com.meong9.backend.domain.place.entity.PlaceFile;
+import com.meong9.backend.domain.recommendation.id_class.PensionPlaceId;
 import com.meong9.backend.domain.recommendation.recommendation.dto.RecommendationDto;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PensionRecommendation;
 import com.meong9.backend.domain.recommendation.recommendation.entity.PlaceRecommendation;
+import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import com.meong9.backend.domain.recommendation.recommendation.repository.PensionRecommendationRepository;
 import com.meong9.backend.domain.recommendation.recommendation.repository.PlaceRecommendationRepository;
 import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.utils.AddressMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.mahout.cf.taste.impl.model.jdbc.ReloadFromJDBCDataModel;
+import org.apache.mahout.cf.taste.impl.recommender.GenericRecommendedItem;
 import org.apache.mahout.cf.taste.model.DataModel;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -25,19 +30,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class RecommendationService {
-
-    @Qualifier("pensionDataModel")
-    private final DataModel pensionDataModel;
-
-    @Qualifier("placeDataModel")
-    private final DataModel placeDataModel;
-
     private final UserBasedRecommendation userBasedRecommendation;
     private final ItemBasedRecommendation itemBasedRecommendation;
     private final ReviewRepository reviewRepository;
@@ -45,51 +44,8 @@ public class RecommendationService {
     private final PensionRecommendationRepository pensionRecommendationRepository;
     private final PlaceRecommendationRepository placeRecommendationRepository;
     private final PlcPenAddressRepository plcPenAddressRepository;
-
-    public RecommendationService(@Qualifier("pensionDataModel")DataModel pensionDataModel, @Qualifier("placeDataModel")DataModel placeDataModel,
-                                 UserBasedRecommendation userBasedRecommendation, ItemBasedRecommendation itemBasedRecommendation,
-                                 ReviewRepository reviewRepository, MemberRepository memberRepository,
-                                 PensionRecommendationRepository pensionRecommendationRepository, PlaceRecommendationRepository placeRecommendationRepository, PlcPenAddressRepository plcPenAddressRepository) {
-        this.pensionDataModel = pensionDataModel;
-        this.placeDataModel = placeDataModel;
-        this.userBasedRecommendation = userBasedRecommendation;
-        this.itemBasedRecommendation = itemBasedRecommendation;
-        this.reviewRepository = reviewRepository;
-        this.memberRepository = memberRepository;
-        this.pensionRecommendationRepository = pensionRecommendationRepository;
-        this.placeRecommendationRepository = placeRecommendationRepository;
-        this.plcPenAddressRepository = plcPenAddressRepository;
-    }
-
-    // 사용자 기반 펜션 추천 (User-Based)
-    @Transactional(readOnly = true)
-    public List<RecommendedItem> processUserRecommendations(Long userId) {
-        log.info("Processing recommendations for userId: {}", userId); // 로그 추가
-        try {
-            if (pensionDataModel instanceof ReloadFromJDBCDataModel) {
-                ReloadFromJDBCDataModel model = (ReloadFromJDBCDataModel) pensionDataModel;
-                model.refresh(null); // 데이터 새로고침
-
-                log.info("DataModel 새로고침.");
-            }
-            return userBasedRecommendation.recommend(pensionDataModel, userId, 10);
-        } catch (Exception e) {
-            log.error("Error processing user recommendations for userId: {}", userId, e);
-            return List.of();
-        }
-    }
-
-
-    // 특정 펜션에 대한 시설 추천 생성 (Item-Based)
-    @Transactional(readOnly = true)
-    public List<RecommendedItem> recommendFacilitiesForPension(Long pensionId) {
-        try {
-            return itemBasedRecommendation.recommend(placeDataModel, pensionId, 10);
-        } catch (Exception e) {
-            log.error("Error recommending facilities for pensionId: {}", pensionId, e);
-            return List.of();
-        }
-    }
+    private final ContentBasedRecommendation contentBasedRecommendation;
+    private final LikeService likeService;
 
     // 리뷰가 1개 이상 달린 펜션 ID 조회
     @Transactional(readOnly = true)
@@ -108,20 +64,16 @@ public class RecommendationService {
         return memberIds;
     }
 
-    // 추천 테이블 아이템 반환 (펜션)
+    // 추천 테이블 아이템 조회 (펜션)
     @Transactional(readOnly = true)
     public List<RecommendationDto> getPensionRecommendations(Member member, int maxItems) {
         List<PensionRecommendation> recommendations = pensionRecommendationRepository.findByMemberId(member.getMemberId());
 
-        // recommendations의 크기가 maxItems보다 작거나 같으면 전체 반환
-        if (recommendations.size() > maxItems) {
-            recommendations = recommendations.subList(0, maxItems);
-        }
-
+        // 추천 목록 생성
         List<RecommendationDto> pensionRecommendationList = new ArrayList<>();
 
-        for(PensionRecommendation pensionRecommendation : recommendations){
-            PlcPenAddress plcPenAddress= plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020")
+        for (PensionRecommendation pensionRecommendation : recommendations) {
+            PlcPenAddress plcPenAddress = plcPenAddressRepository.findByPlcPenIdAndType(pensionRecommendation.getPensionMemberId().getPensionId(), "020")
                     .orElseThrow(() -> NotFoundException.entityNotFound("시설 주소"));
 
             String address = AddressMapper.formatAddress(plcPenAddress);
@@ -153,10 +105,21 @@ public class RecommendationService {
 
             pensionRecommendationList.add(pensionRecommendationDto);
         }
+
+        // 추천 목록이 maxItems보다 적으면 인기 펜션 추가
+        if (pensionRecommendationList.size() < maxItems) {
+            int count = maxItems - pensionRecommendationList.size();
+            List<RecommendationDto> popularPensions = likeService.getTopLikedPensions(count);
+
+            for(int i=0;i<count;i++) {
+                pensionRecommendationList.add(popularPensions.get(i));
+            }
+        }
+
         return pensionRecommendationList;
     }
 
-    // 추천 테이블 아이템 반환 (시설)
+    // 추천 테이블 아이템 조회 (시설)
     @Transactional(readOnly = true)
     public List<RecommendationDto> getPlacecommendations(Long pensionId, int maxItems) {
         List<PlaceRecommendation> recommendations = placeRecommendationRepository.findByPensionId(pensionId);
@@ -214,6 +177,123 @@ public class RecommendationService {
             placeRecommendationList.add(placeRecommendationDto);
         }
         return placeRecommendationList;
+    }
+
+    /**
+     * 추천
+     * @param targetId : 추천 타겟 값 (사용자 펜션 추천에서는 사용자 Id, 펜션 관련 시설 추천에서는 펜션 Id)
+     * @param allItems : 추천 탐색을 할 아이템들 (사용자 펜션 추천에서는 펜션 ID, 펜션 관련 시설 추천에서는 시설 ID)
+     * @param type : 펜션인지 시설인지 구분 여부 (사용자 펜션 추천인지, 펜션 관련 시설 추천인지 구분)
+     * @param placeIdsByProvince : province 별로 place id 값을 가지고 있는 Map
+     * @return
+     */
+    public List<RecommendedItem> recommend(Long targetId, List<Long> allItems, String type, Map<String, List<PlcPenProjection>> placeIdsByProvince, PlcPenProjection pensionInfo) {
+//        log.info("추천 계산 시작 (targetId: {}, type: {})", targetId, type);
+
+        // 1. 점수 계산
+        Map<Long, Double> combinedScores = calculateScores(targetId, allItems, type, placeIdsByProvince, pensionInfo);
+
+        // 2. 상위 추천 항목 반환
+        return getTopRecommendations(combinedScores, 5);
+    }
+
+    /**
+     * Item 기반 추천 (recommend 전 데이터 처리)
+        @Param pensionIds : pension_place_score에 존재하는 pensionId들
+        @Param placeIdsByProvince : province 별로 place id 값을 가지고 있는 Map
+        @Param allPensionIds : 존재하는 모든 pensionId
+        @Param pensionId : 현재 추천 타겟 id
+        @Param type : 펜션인지 시설인지 구분 여부 (사용자 펜션 추천인지, 펜션 관련 시설 추천인지 구분)
+     */
+    public List<RecommendedItem> itemRecommend(List<Long> placeIds, Map<String, List<PlcPenProjection>> placeIdsByProvince,
+                                                 Long pensionId, String type, PlcPenProjection pensionInfo){
+
+        return recommend(pensionId, placeIds, type, placeIdsByProvince, pensionInfo);
+    }
+
+    private Map<Long, Double> calculateScores(Long targetId, List<Long> allItems, String type, Map<String, List<PlcPenProjection>> placeIdsByProvince, PlcPenProjection pensionInfo) {
+
+        Map<Long, Double> collaborativeScores = new HashMap<>();
+        Map<Long, Double> contentScores = new HashMap<>();
+        if(type.equals("Pension")){
+            // 협업 필터링 점수 계산
+            collaborativeScores = userBasedRecommendation.processUserRecommendations(targetId);
+//            log.info("user base 협업 필터링 점수: {}", collaborativeScores);
+
+            // 콘텐츠 기반 점수 계산
+            contentScores = contentBasedRecommendation.calculateContentScores(targetId, allItems, type);
+//            log.info("user base 콘텐츠 기반 점수: {}", contentScores);
+        } else if(type.equals("Place")){
+            // 협업 필터링 점수 계산
+            collaborativeScores = itemBasedRecommendation.recommendFacilitiesForPension(targetId);
+//            log.info("item base 협업 필터링 점수: {}", collaborativeScores);
+
+            // 콘텐츠 기반 점수 계산
+            contentScores = contentBasedRecommendation.calculateContentScoresByDistance(placeIdsByProvince, pensionInfo);
+//            log.info("item base 콘텐츠 기반 점수: {}", contentScores);
+        }
+
+        // 점수 결합
+        return combineScores(collaborativeScores, contentScores, 0.8);
+    }
+
+    private List<RecommendedItem> getTopRecommendations(Map<Long, Double> combinedScores, int limit) {
+        // 점수 기준으로 정렬 (내림차순)
+        List<Map.Entry<Long, Double>> sortedScores = combinedScores.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0) // 점수가 0보다 큰 항목만 포함
+                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
+                .collect(Collectors.toList());
+
+//        log.info("정렬된 점수 목록 (0점 제외): {}", sortedScores);
+
+        List<RecommendedItem> recommendations = new ArrayList<>();
+        for (Map.Entry<Long, Double> entry : sortedScores) {
+            if (recommendations.size() >= limit) break;
+
+            long itemId = entry.getKey();
+            double originalScore = entry.getValue();
+            float convertedScore = (float) originalScore;
+
+//            log.info("아이템 ID: {}, 원래 점수 (double): {}, 변환된 점수 (float): {}", itemId, originalScore, convertedScore);
+
+            recommendations.add(new GenericRecommendedItem(itemId, convertedScore));
+        }
+
+//        log.info("최종 추천 리스트 (Top {}): {}", limit, recommendations);
+        return recommendations;
+    }
+
+
+    public static Map<Long, Double> combineScores(
+            Map<Long, Double> collaborativeScores,
+            Map<Long, Double> contentScores,
+            double collaborativeWeight
+    ) {
+        double contentWeight = 1.0 - collaborativeWeight;
+        Map<Long, Double> combinedScores = new HashMap<>();
+
+        // 키의 합집합 생성
+        Set<Long> allKeys = new HashSet<>();
+        allKeys.addAll(collaborativeScores.keySet());
+        allKeys.addAll(contentScores.keySet());
+
+        // 모든 키에 대해 점수 결합
+        for (Long id : allKeys) {
+            double collaborativeScore = collaborativeScores.getOrDefault(id, 0.0);
+            double contentScore = contentScores.getOrDefault(id, 0.0);
+
+            // 최종 점수 계산
+            double combinedScore = (collaborativeScore * collaborativeWeight) + (contentScore * contentWeight);
+            if (combinedScore > 0) { // 0점 제외
+                combinedScores.put(id, combinedScore);
+            }
+
+
+//            log.info("ID: {}, Collaborative Score: {}, Content Score: {}, Combined Score: {}",
+//                    id, collaborativeScore, contentScore, combinedScore);
+        }
+
+        return combinedScores;
     }
 
 }

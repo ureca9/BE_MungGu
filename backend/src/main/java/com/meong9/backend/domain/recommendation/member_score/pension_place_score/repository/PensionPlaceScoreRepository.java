@@ -21,4 +21,20 @@ public interface PensionPlaceScoreRepository extends JpaRepository<PensionPlaceS
     """)
     List<Long> findCommonMembers(Long pensionId, Long placeId);
 
+
+    @Query("""
+        SELECT
+            pms.pension.pensionId, pms2.place.placeId, pms.member.memberId
+        FROM
+            PensionMemberScore pms
+        JOIN
+            PlaceMemberScore pms2 ON pms.member.memberId = pms2.member.memberId
+        WHERE
+            pms.pension.pensionId IN :pensionIds AND pms2.place.placeId IN :placeIds
+        
+    """)
+    List<Object[]> findCommonMembersBatch(List<Long> pensionIds, List<Long> placeIds);
+
+    @Query("SELECT DISTINCT p.pensionPlaceId.pensionId FROM PensionPlaceScore p")
+    List<Long> findPensionIds();
 }

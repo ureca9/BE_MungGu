@@ -64,4 +64,19 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
         @Param("ids") List<Long> ids,
         @Param("type") String type
     );
+
+    @Query("""
+        SELECT ppa.plcPenId
+        FROM PlcPenAddress ppa
+        JOIN Address a ON ppa.address.addressId = a.addressId
+        WHERE a.region.regionId IN :regionIds
+    """)
+    List<Long> findPensionIdsByRegionIds(@Param("regionIds") List<Long> regionIds);
+
+    @Query("""
+        SELECT DISTINCT ppa.plcPenId
+        FROM PlcPenAddress ppa
+        WHERE ppa.address.province LIKE :province%
+    """)
+    List<Long> findPlaceIdsByProvince(@Param("province") String province);
 }

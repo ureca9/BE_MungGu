@@ -9,6 +9,7 @@ import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
+import com.meong9.backend.domain.recommendation.member_score.MemberScoreService;
 import com.meong9.backend.domain.review.dto.*;
 import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
@@ -64,6 +65,8 @@ public class ReviewService {
     private final PlaceRepository placeRepository;
     private final MemberRepository memberRepository;
     private final BanWordInspector banWordInspector;
+    private final MemberScoreService memberScoreService;
+
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -140,6 +143,8 @@ public class ReviewService {
         Review savedReview = reviewRepository.save(review);
 
         processFileAsync(files, savedReview, mediaFiles);
+
+        memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
     }
 
     @Transactional
@@ -160,12 +165,16 @@ public class ReviewService {
             reviewFile.getFile().delete(); // mediafile 소프트 삭제
             mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey()); // S3에서 파일 삭제
         }
+        Float oldScore = review.getScore(); // 예전 점수
+        Float newScore = reviewRequestDto.getScore(); // 최신 점수
 
         review.update(reviewRequestDto);
 
         // 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
         processFileAsync(files, review, mediaFiles);
+
+        memberScoreService.updateReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), oldScore, newScore, reviewRequestDto.getType());
     }
 
 
@@ -273,6 +282,8 @@ public class ReviewService {
 
         // 리뷰 삭제 (ReviewFile은 CascadeType.ALL로 자동 삭제)
         reviewRepository.delete(review);
+
+        memberScoreService.deleteReview(member.getMemberId(), review.getPlacePensionId(), review.getScore(), review.getType());
     }
 
     // 최근 리뷰 10개 조회

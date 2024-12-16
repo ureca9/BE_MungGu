@@ -4,6 +4,7 @@ import com.meong9.backend.domain.pension.dto.PensionInfoDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
+import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -57,6 +58,9 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     Optional<PensionInfoDto> findPensionInfoByIdWithLikeStatus(@Param("pensionId") Long pensionId, @Param("memberId") Long memberId);
 
 
+    @EntityGraph(attributePaths = {"pensionTags.tag", "pensionFiles.mediaFile"})
+    @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
+    Optional<Pension> findByPensionId(@Param("pensionId") Long pensionId);
 
     @Query("""
     SELECT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
@@ -91,6 +95,7 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
 
     @Query("SELECT p.name FROM Pension p WHERE p.pensionId = :pensionId")
     String findNameByPensionId(@Param("pensionId") Long pensionId); // 이름만 조회
+
     /**
      * pensionId 목록으로 펜션 정보를 조회합니다.(TopPension 생성을 위해, tags만을 필요로 함)
      *
@@ -99,4 +104,16 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
      */
     @Query("SELECT p FROM Pension p LEFT JOIN FETCH p.pensionTags WHERE p.pensionId IN :pensionIds")
     List<Pension> findByPensionIds(@Param("pensionIds") List<Long> pensionIds);
+
+    @Query("SELECT p FROM Pension p WHERE p.pensionId IN :ids")
+    List<Pension> findAllByIdIn(@Param("ids") List<Long> ids);
+
+    @Query("SELECT p.pensionId FROM Pension p")
+    List<Long> findAllPensionIds();
+
+    @Query("""
+        SELECT p.pensionId AS id, p.latitude AS latitude, p.longitude AS longitude 
+        FROM Pension p 
+    """)
+    List<PlcPenProjection> findPensionProjection();
 }

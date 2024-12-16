@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public interface PlaceMemberScoreRepository extends JpaRepository<PlaceMemberScore, PlaceMemberId> {
     @Transactional
@@ -22,4 +23,13 @@ public interface PlaceMemberScoreRepository extends JpaRepository<PlaceMemberSco
 
     @Query("SELECT pms.score FROM PlaceMemberScore pms WHERE pms.placeMemberId.placeId = :placeId AND pms.placeMemberId.memberId = :memberId")
     float findScoreByPlaceIdAndMemberId(@Param("placeId") Long placeId, @Param("memberId") Long memberId);
+
+    @Query("""
+        SELECT pms.member.memberId, AVG(pms.score)
+        FROM PlaceMemberScore pms
+        WHERE pms.member.memberId IN :memberIds AND pms.place.placeId IN :placeIds
+        GROUP BY pms.member.memberId
+    """)
+    List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("placeIds") List<Long> placeIds);
+
 }
