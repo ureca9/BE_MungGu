@@ -1,6 +1,7 @@
 package com.meong9.backend.global.mediafile.service;
 
 import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -12,7 +13,6 @@ import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -28,8 +28,12 @@ import java.net.URL;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
@@ -37,12 +41,17 @@ public class MediaFileService {
 
     private final AmazonS3Client s3Client;
     private final MediaFileRepository mediaFileRepository;
+    private final AmazonS3 amazonS3;
+
     @Qualifier("taskExecutor")
     private final ThreadPoolTaskExecutor taskExecutor;
 
-
     @Value("${s3.bucket}")
     private String bucket;
+
+    @Value("${s3.credentials.region}")
+    private String region;
+
 
     /**
      * 유저가 등록한 프로필 이미지를 S3에 업로드
@@ -205,7 +214,7 @@ public class MediaFileService {
     /**
      * 미디어 파일 저장
      */
-    public void saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
+    public MediaFile saveMediaFile(ImageMetadataDto metadata, S3UploadResultDto s3UploadResultDto) {
         MediaFile mediaFile = MediaFile.builder()
                 .fileType(FileType.IMAGE)
                 .fileSize((int) metadata.getFileSize())
@@ -216,7 +225,7 @@ public class MediaFileService {
                 .fileKey(s3UploadResultDto.getFileKey())
                 .build();
 
-        mediaFileRepository.save(mediaFile);
+        return mediaFileRepository.save(mediaFile);
     }
 
     /**
@@ -229,6 +238,20 @@ public class MediaFileService {
         int height = bufferedImage.getHeight();
 
         return new ImageMetadataDto(width, height, image.getSize());
+    }
+
+    /**
+     * byte[] 데이터에서 이미지 메타데이터 추출
+     */
+    public ImageMetadataDto extractImageMetadata(byte[] imageData) throws IOException {
+        try (InputStream inputStream = new ByteArrayInputStream(imageData)) {
+            BufferedImage bufferedImage = ImageIO.read(inputStream);
+
+            int width = bufferedImage.getWidth();
+            int height = bufferedImage.getHeight();
+
+            return new ImageMetadataDto(width, height, imageData.length);
+        }
     }
 
     // S3에서 파일 삭제
@@ -334,4 +357,32 @@ public class MediaFileService {
         );
     }
 
+    public MediaFile registerFileKey(String fileKey) {
+
+        String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, fileKey);
+
+        return MediaFile.builder()
+                .fileType(FileType.IMAGE)
+                .fileKey(fileKey)
+                .fileName("profile.jpg")
+                .fileUrl(fileUrl)
+                .build();
+    }
+
+
+    public Map<String, String> getPresingedUrl(String objectKey) {
+        // PreSigned URL 생성
+        Date expiration = new Date(System.currentTimeMillis() + 1000 * 60 * 10); // 10분 유효
+        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey)
+                .withMethod(HttpMethod.PUT)
+                .withExpiration(expiration);
+
+        String presignedUrl = amazonS3.generatePresignedUrl(request).toString();
+
+        // PreSigned URL과 파일 경로 반환
+        Map<String, String> response = new HashMap<>();
+        response.put("presignedUrl", presignedUrl);
+        response.put("fileKey", objectKey); // 파일 경로
+        return response;
+    }
 }

@@ -159,7 +159,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .where(
                         Arrays.stream(searchWords)
                                 .map(word -> DSL.condition(
-                                        "MATCH(place_name, plc_description) AGAINST (? IN BOOLEAN MODE)", word + "*"
+                                        "MATCH(place_name) AGAINST (? IN BOOLEAN MODE)", word + "*"
                                 ))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
@@ -235,7 +235,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .from(PENSION)
                 .where(
                         Arrays.stream(searchWords)
-                                .map(word -> DSL.condition("MATCH(pension_name, info) AGAINST (? IN BOOLEAN MODE)", word + "*"))
+                                .map(word -> DSL.condition("MATCH(pension_name) AGAINST (? IN BOOLEAN MODE)", word + "*"))
                                 .reduce(DSL.noCondition(), DSL::or)
                 );
 
@@ -272,11 +272,14 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                         .from(ROOM)
                         .join(ROOM_AVAILABILITY).on(ROOM.ROOM_ID.eq(ROOM_AVAILABILITY.ROOM_ID))
                         .where(
-                                ROOM_AVAILABILITY.DATE.between(start, end
-                                ).and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
+                                ROOM.PENSION_ID.in(firstFilteredPensionIds)
+                                .and(ROOM_AVAILABILITY.DATE.between(start, end))
+                                .and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
                         )
                         .and(getWeightCondition(sizeCode))
                         .groupBy(ROOM.PENSION_ID)
+                        .limit(pageable.getPageSize()+1)
+                        .offset((int) pageable.getOffset())
                         .fetchInto(Long.class);
 
         boolean hasNext = results.size() > pageable.getPageSize();

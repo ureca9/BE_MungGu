@@ -16,5 +16,5 @@ import java.io.Serializable;
 public class PlaceFileId implements Serializable {
 
     private Long placeId; // Place의 ID
-    private Long fileId;  // MediaFile의 ID
+    private Long mediaFileId;  // MediaFile의 ID
 }

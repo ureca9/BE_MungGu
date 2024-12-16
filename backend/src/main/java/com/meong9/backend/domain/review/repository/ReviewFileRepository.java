@@ -8,20 +8,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.util.List;
 
 
 @Repository
 public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFileId> {
     List<ReviewFile> findByReview(Review review);
-  
+
     @Query("""
     SELECT rf
     FROM ReviewFile rf
     JOIN FETCH rf.file
     WHERE rf.review.reviewId IN :reviewIds
-    """)
-    Optional<List<ReviewFile>> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
-
+""")
+    List<ReviewFile> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
 }

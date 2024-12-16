@@ -11,18 +11,18 @@ import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
 import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.domain.puppy.repository.PuppyRepository;
+import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
-import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.entity.Region;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.repository.RegionRepository;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -129,15 +129,21 @@ public class MemberService {
         favoriteRegionRepository.batchInsert(batchParams);
     }
 
-    /**
-     * 사용자 정보를 등록하는 서비스 메서드
-     */
     @Transactional
-    public void insertMemberInfo(MultipartFile profileImage,MemberInfoDto dto, Member member) throws IOException {
+    public void insertMemberInfo(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
         updateMember(profileImage, dto, member);
-
         memberRepository.save(member);
     }
+
+//    /**
+//     * 사용자 정보를 등록하는 서비스 메서드
+//     */
+//    @Transactional
+//    public void insertMemberInfo(String fileKey,MemberInfoDto dto, Member member) throws IOException {
+//        updateMember(fileKey, dto, member);
+//
+//        memberRepository.save(member);
+//    }
 
     /**
      * 프로필 이미지를 삭제하는 서비스 메서드
@@ -192,8 +198,7 @@ public class MemberService {
                 .build();
     }
 
-    /**
-     * 마이페이지 수정 메서드
+    /* 마이페이지 수정 메서드
      */
     @Transactional
     public UpdateMyPageResponseDto updateMyPage(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
@@ -208,6 +213,22 @@ public class MemberService {
                 .build();
     }
 
+//    /**
+//     * 마이페이지 수정 메서드
+//     */
+//    @Transactional
+//    public UpdateMyPageResponseDto updateMyPage(String fileKey, MemberInfoDto dto, Member member) throws IOException {
+//        updateMember(fileKey, dto, member);
+//
+//        Member savedMember = memberRepository.save(member);
+//        return UpdateMyPageResponseDto.builder()
+//                .name(savedMember.getName())
+//                .phone(savedMember.getPhone())
+//                .nickname(savedMember.getNickname())
+//                .profileImageUrl(savedMember.getProfileImage().getFileUrl())
+//                .build();
+//    }
+
     private void updateMember(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
         member.setName(dto.getName().trim());
         member.setPhone(dto.getPhone().trim());
@@ -217,6 +238,13 @@ public class MemberService {
             mediaFileService.uploadProfileImage(profileImage, member.getMemberId(),"Mprofile/","_profile.jpg");
         }
     }
+
+//    private void updateMember(String fileKey, MemberInfoDto dto, Member member) throws IOException {
+//        member.setName(dto.getName().trim());
+//        member.setPhone(dto.getPhone().trim());
+//        member.setNickname(dto.getNickname().trim());
+//        member.setProfileImage(mediaFileService.registerFileKey(fileKey));
+//    }
 
     /**
      * 선호 지역 조회 메서드
