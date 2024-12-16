@@ -80,14 +80,6 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<MyReviewResponseDto> getMyReviews(Member member) {
         List<MyReviewResponseDto> reviews = reviewRepository.findReviewsByMember(member);
-        for (MyReviewResponseDto reviewDto : reviews) {
-            if(Objects.equals(reviewDto.getType(), "010")){ // 장소
-                reviewDto.setPlcPenName(placeRepository.findNameByPlaceId(reviewDto.getPlcPenId()));
-            }
-            if(Objects.equals(reviewDto.getType(), "020")){ // 펜션
-                reviewDto.setPlcPenName(pensionRepository.findNameByPensionId(reviewDto.getPlcPenId()));
-            }
-        }
 
         return reviews;
     }
