@@ -18,6 +18,10 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
+	all {
+		exclude group: 'commons-logging', module: 'commons-logging'
+		exclude group: 'org.slf4j', module: 'slf4j-reload4j'
+	}
 }
 
 repositories {
@@ -61,7 +65,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	// redis
-	implementation("org.springframework.boot:spring-boot-starter-data-redis")
+	implementation "org.springframework.boot:spring-boot-starter-data-redis"
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
