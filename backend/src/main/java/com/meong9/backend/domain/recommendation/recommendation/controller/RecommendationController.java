@@ -31,7 +31,7 @@ public class RecommendationController {
 
         if(member == null) { // 로그인 되지 않은 사용자
             // 좋아요 인기 펜션
-            List<RecommendationDto> recommendItem = likeService.getTopLikedPensions();
+            List<RecommendationDto> recommendItem = likeService.getTopLikedPensions(5);
             recommend.put("recommend", recommendItem);
         } else { // 로그인 된 사용자
             List<RecommendationDto> recommendItem = recommendationService.getPensionRecommendations(member, 5);

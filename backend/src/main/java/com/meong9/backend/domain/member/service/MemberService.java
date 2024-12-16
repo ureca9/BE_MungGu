@@ -172,7 +172,9 @@ public class MemberService {
                 .map(puppy -> MypagePuppyDto.builder()
                         .puppyId(puppy.getPuppyId())
                         .puppyName(puppy.getName())
-                        .puppyImageUrl(puppy.getProfileImage().getFileUrl())
+                        .puppyImageUrl(
+                                puppy.getProfileImage() != null ? puppy.getProfileImage().getFileUrl() : null
+                        )
                         .build())
                 .toList();
         return MypageDto.builder()

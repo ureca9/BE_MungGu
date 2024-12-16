@@ -80,8 +80,8 @@ public class LikeService {
     }
 
     // 좋아요 가장 많은 펜션
-    public List<RecommendationDto> getTopLikedPensions() {
-        PageRequest pageRequest = PageRequest.of(0, 5);
+    public List<RecommendationDto> getTopLikedPensions(int count) {
+        PageRequest pageRequest = PageRequest.of(0, count);
 
         // 좋아요가 많은 펜션 ID 가져오기
         Page<Long> pensionIdPage = likeRepository.findTopPensionIds(pageRequest);

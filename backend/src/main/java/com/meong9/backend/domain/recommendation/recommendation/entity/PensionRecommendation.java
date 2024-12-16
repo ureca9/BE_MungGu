@@ -17,7 +17,7 @@ public class PensionRecommendation {
     @EmbeddedId
     private PensionMemberId pensionMemberId;
 
-    private float score;
+    private Float score;
 
     private LocalDateTime lastUpdatedAt;
 
@@ -32,7 +32,7 @@ public class PensionRecommendation {
     private Pension pension;
 
     @Builder
-    public PensionRecommendation(PensionMemberId pensionMemberId, float score, LocalDateTime lastUpdatedAt) {
+    public PensionRecommendation(PensionMemberId pensionMemberId, Float score, LocalDateTime lastUpdatedAt) {
         this.pensionMemberId = pensionMemberId;
         this.score = score;
         this.lastUpdatedAt = lastUpdatedAt;

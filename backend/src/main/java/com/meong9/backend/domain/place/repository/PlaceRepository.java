@@ -4,6 +4,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
+import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -88,4 +89,19 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     @Query("SELECT p.name FROM Place p WHERE p.placeId = :placeId")
     String findNameByPlaceId(@Param("placeId") Long placeId); // 이름만 조회
+    @Query("SELECT c.plcCategoryId FROM Place p JOIN p.plcCategory c WHERE p.placeId = :placeId")
+    List<Long> findCategoryIdsByPensionId(@Param("placeId") Long placeId);
+
+    @Query("SELECT p FROM Place p WHERE p.placeId IN :ids")
+    List<Place> findAllByIdIn(@Param("ids") List<Long> ids);
+
+    @Query("SELECT p.placeId FROM Place p")
+    List<Long> findAllPlaceIds();
+
+    @Query("""
+        SELECT p.placeId AS id, p.latitude AS latitude, p.longitude AS longitude 
+        FROM Place p 
+        WHERE p.placeId IN :ids
+    """)
+    List<PlcPenProjection> findPlaceProjectionById(@Param("ids") List<Long> ids);
 }
