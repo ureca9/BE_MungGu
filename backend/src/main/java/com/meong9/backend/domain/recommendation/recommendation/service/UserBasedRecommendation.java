@@ -25,7 +25,7 @@ public class UserBasedRecommendation {
     @Qualifier("pensionDataModel")
     private final DataModel pensionDataModel;
 
-    public UserBasedRecommendation(DataModel pensionDataModel) {
+    public UserBasedRecommendation(@Qualifier("pensionDataModel") DataModel pensionDataModel) {
         this.pensionDataModel = pensionDataModel;
     }
 
