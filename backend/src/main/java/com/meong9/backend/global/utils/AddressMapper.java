@@ -2,14 +2,23 @@ package com.meong9.backend.global.utils;
 
 import com.meong9.backend.domain.address.entity.PlcPenAddress;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class AddressMapper {
 
     // 지역 - province 캐시
-    private static final Map<String, String> provinceToRegionCache = new HashMap<>();
+    // Caffeine 캐시 설정: 최대 크기 1000, 10분 만료
+    private static final Cache<String, String> provinceToRegionCache = Caffeine.newBuilder()
+            .maximumSize(1000) // 최대 캐시 크기
+            .expireAfterAccess(10, TimeUnit.MINUTES) // 마지막 접근 후 10분 만료
+            .build();
 
     public static String formatAddress(PlcPenAddress plcPenAddress) {
         if (plcPenAddress == null || plcPenAddress.getAddress() == null) {
@@ -85,7 +94,7 @@ public class AddressMapper {
 
             if (province != null) {
                 // 캐시된 결과가 있는지 확인
-                String regionKey = provinceToRegionCache.computeIfAbsent(province, p ->
+                String regionKey = provinceToRegionCache.get(province, p ->
                         regionMapping.entrySet().stream()
                                 .filter(entry -> entry.getValue().stream().anyMatch(p::startsWith))
                                 .map(Map.Entry::getKey)
