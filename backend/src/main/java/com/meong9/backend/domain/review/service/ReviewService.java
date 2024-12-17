@@ -106,7 +106,7 @@ public class ReviewService {
         if(Objects.equals(type, "020")){ // 펜션
             ReviewInfoQueryResult queryResult=pensionRepository.findByPensionIdWithImageAndReviewCount(plcPenId,type)
                     .orElseThrow(() -> NotFoundException
-                            .entityNotFound("type: " +type+", place_id: " + plcPenId));
+                            .entityNotFound("type: " +type+", pension_id: " + plcPenId));
             Pension pension = queryResult.getPension();
             Integer reviewCount =  Math.toIntExact(queryResult.getReviewCount());
 
@@ -141,7 +141,7 @@ public class ReviewService {
             place.increaseReviewCount();
         }
         if(Objects.equals(reviewRequestDto.getType(), "020")){
-            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
             pension.increaseReviewCount();
         }
         processFileAsync(files, savedReview, mediaFiles);
@@ -191,7 +191,7 @@ public class ReviewService {
         return CompletableFuture.completedFuture(null);
     }
 
-    @Retryable( // 재시도 로직 정의
+    @Retryable( // 재시도 로직
             value = TimeoutException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000)
@@ -291,7 +291,7 @@ public class ReviewService {
             place.decreaseReviewCount();
         }
         if(Objects.equals(review.getType(), "020")){
-            Pension pension=pensionRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            Pension pension=pensionRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
             pension.decreaseReviewCount();
         }
         memberScoreService.deleteReview(member.getMemberId(), review.getPlacePensionId(), review.getScore(), review.getType());
