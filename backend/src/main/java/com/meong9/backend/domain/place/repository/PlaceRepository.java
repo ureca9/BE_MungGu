@@ -48,15 +48,16 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     """)
     Optional<PlaceSummaryResponseDto> findPlaceSummaryResponseDtoById(@Param("placeId") Long placeId);
 
-    @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
     @Query("""
-    SELECT P,
+    SELECT DISTINCT P,
            CASE WHEN EXISTS (SELECT 1
                 FROM PlaceLike pl
                 JOIN Like l ON pl.likeId = l.likeId
             WHERE l.member.memberId = :memberId AND pl.place.placeId = P.placeId) 
             THEN TRUE ELSE FALSE END AS LIKED 
     FROM Place P
+    LEFT JOIN P.placeFiles pf
+    LEFT JOIN pf.mediaFile
     WHERE P.placeId IN :placeIds
     """)
     List<Object[]> findAllWithLikeStatus(
@@ -94,11 +95,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
      */
     @Query("SELECT p FROM Place p LEFT JOIN FETCH p.placeTags WHERE p.placeId IN :placeIds")
     List<Place> findByPlaceIds(@Param("placeIds") List<Long> placeIds);
-
-    @Query("SELECT p.name FROM Place p WHERE p.placeId = :placeId")
-    String findNameByPlaceId(@Param("placeId") Long placeId); // 이름만 조회
-    @Query("SELECT c.plcCategoryId FROM Place p JOIN p.plcCategory c WHERE p.placeId = :placeId")
-    List<Long> findCategoryIdsByPensionId(@Param("placeId") Long placeId);
 
     @Query("SELECT p FROM Place p WHERE p.placeId IN :ids")
     List<Place> findAllByIdIn(@Param("ids") List<Long> ids);
