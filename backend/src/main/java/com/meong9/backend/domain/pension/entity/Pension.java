@@ -69,8 +69,14 @@ public class Pension {
     public void increaseLikeCount(){
         this.likeCount++;
     }
-
     public void decreaseLikeCount(){
         this.likeCount=Math.max(this.likeCount-1,0);
+    }
+
+    public void increaseReviewCount() {
+        this.reviewCount++;
+    }
+    public void decreaseReviewCount() {
+        this.reviewCount = Math.max(this.reviewCount - 1, 0);
     }
 }

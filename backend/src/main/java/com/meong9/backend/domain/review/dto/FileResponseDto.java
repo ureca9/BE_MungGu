@@ -20,4 +20,11 @@ public class FileResponseDto {
         this.fileUrl = file.getFileUrl();
         this.fileName = file.getFileName();
     }
+
+    public FileResponseDto(FileType fileType, Integer fileSize, String fileUrl, String fileName) {
+        this.fileType = fileType;
+        this.fileSize = fileSize;
+        this.fileUrl = fileUrl;
+        this.fileName = fileName;
+    }
 }

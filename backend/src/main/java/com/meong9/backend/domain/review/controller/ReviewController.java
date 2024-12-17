@@ -35,9 +35,7 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<?> getMyReviews(@CurrentMember Member member, @PageableDefault(size = 5, sort = "reviewId",
-                                          direction = Sort.Direction.DESC) Pageable pageable,
-    @RequestParam(value = "lastReviewId", required = false) Long lastReviewId) {
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
         return CommonResponse.ok("success",reviewService.getMyReviews(member));
     }
 
@@ -50,7 +48,7 @@ public class ReviewController {
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException, InterruptedException, TimeoutException {
+            @CurrentMember Member member)  {
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }

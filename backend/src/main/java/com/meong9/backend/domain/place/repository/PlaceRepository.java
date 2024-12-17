@@ -1,10 +1,10 @@
 package com.meong9.backend.domain.place.repository;
 
-import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
+import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +29,14 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     @EntityGraph(attributePaths = {"placeFiles.mediaFile"})
     @Query("SELECT p FROM Place p WHERE p.placeId = :placeId")
     Optional<Place> findByPlaceIdWithImage(@Param("placeId")Long id);
+
+    @Query("SELECT new com.meong9.backend.domain.review.dto.ReviewInfoQueryResult(p, COUNT(r)) " +
+            "FROM Place p " +
+            "LEFT JOIN Review r ON r.placePensionId = p.placeId AND r.type = :type " +
+            "WHERE p.placeId = :placeId " +
+            "GROUP BY p")
+    Optional<ReviewInfoQueryResult> findByPlaceIdWithImageAndReviewCount(@Param("placeId") Long placeId,
+                                                                         @Param("type") String type);
 
     @Query(""" 
     SELECT new com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto(
