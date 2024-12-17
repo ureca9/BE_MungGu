@@ -1,10 +1,10 @@
 name: Build and Deploy to EC2 with Predefined Environment Variables
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - dev
+  push:
+    branches:
+      - main
+      - dev
   pull_request:
     branches:
       - main
@@ -44,12 +44,13 @@ jobs:
           S3_RESIZE_BUCKET_NAME: ${{ secrets.S3_RESIZE_BUCKET_NAME }}
         run: |
           echo "Building the project..."
+          echo "S3_RESIZE_BUCKET_NAME: $S3_RESIZE_BUCKET_NAME"
           ./gradlew clean build -x test \
             -DdbUrl=${{ secrets.DB_URL }} \
             -DdbUsername=${{ secrets.DB_USERNAME }} \
             -DdbPassword=${{ secrets.DB_PASSWORD }} \
             -Dweather.key=${{ secrets.WEATHER_KEY }} \
-            -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }} \
+            -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }}
           echo "Build completed successfully."
 
       # 5. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
