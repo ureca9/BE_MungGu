@@ -119,7 +119,6 @@ public class ReviewService {
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
         List<MediaFile> mediaFiles = new ArrayList<>();
-        log.info("내용: {}",reviewRequestDto.getContent());
         Review review = Review.builder()
                 .member(member)
                 .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))

@@ -126,7 +126,7 @@ public class MediaFileService {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
+        if (!List.of("jpg", "jpeg", "png", "webp", "mp4", "mov").contains(fileExtension)) {
             throw BadRequestException.invalidImageVideoFormat();
         }
     }
