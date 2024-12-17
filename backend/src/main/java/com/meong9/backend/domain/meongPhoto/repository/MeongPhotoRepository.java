@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MeongPhotoRepository extends JpaRepository<MeongPhoto, Long> {
 
@@ -14,13 +15,14 @@ public interface MeongPhotoRepository extends JpaRepository<MeongPhoto, Long> {
             SELECT new com.meong9.backend.domain.meongPhoto.dto.MeongPhotoDto(
             mp.meongPhotoId,
             m.nickname,
-            m.profileImage.fileUrl,
+            pi.fileUrl,
             mf.fileUrl,
             mf.createdAt)
             FROM MeongPhoto mp
             JOIN mp.member m
+            LEFT JOIN m.profileImage pi
             JOIN mp.mediaFile mf
-            ORDER BY mp.mediaFile.createdAt DESC
+            ORDER BY mf.createdAt DESC
             """)
     Slice<MeongPhotoDto> findAllWithPagination(Pageable pageable);
 
@@ -33,7 +35,7 @@ public interface MeongPhotoRepository extends JpaRepository<MeongPhoto, Long> {
             JOIN mp.member m
             JOIN mp.mediaFile mf
             WHERE m.memberId = :memberId
-            ORDER BY mp.mediaFile.createdAt DESC
+            ORDER BY mf.createdAt DESC
             """)
-    Slice<MyMeongPhotoDto> findAllByMemberIdWithPagination(Long memberId, Pageable pageable);
+    Slice<MyMeongPhotoDto> findAllByMemberIdWithPagination(@Param("memberId")Long memberId, Pageable pageable);
 }
