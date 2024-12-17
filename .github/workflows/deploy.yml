@@ -100,6 +100,7 @@ jobs:
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
               -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DS3_RESIZE_BUCKET_NAME=${{ S3_RESIZE_BUCKET_NAME }} \
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
@@ -162,6 +163,7 @@ jobs:
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
               -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DS3_RESIZE_BUCKET_NAME=${{ S3_RESIZE_BUCKET_NAME }} \
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
