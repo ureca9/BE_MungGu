@@ -80,14 +80,6 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<MyReviewResponseDto> getMyReviews(Member member) {
         List<MyReviewResponseDto> reviews = reviewRepository.findReviewsByMember(member);
-        for (MyReviewResponseDto reviewDto : reviews) {
-            if(Objects.equals(reviewDto.getType(), "010")){ // 장소
-                reviewDto.setPlcPenName(placeRepository.findNameByPlaceId(reviewDto.getPlcPenId()));
-            }
-            if(Objects.equals(reviewDto.getType(), "020")){ // 펜션
-                reviewDto.setPlcPenName(pensionRepository.findNameByPensionId(reviewDto.getPlcPenId()));
-            }
-        }
 
         return reviews;
     }
@@ -127,7 +119,6 @@ public class ReviewService {
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
         List<MediaFile> mediaFiles = new ArrayList<>();
-        log.info("내용: {}",reviewRequestDto.getContent());
         Review review = Review.builder()
                 .member(member)
                 .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))

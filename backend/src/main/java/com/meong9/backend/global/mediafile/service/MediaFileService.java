@@ -129,8 +129,17 @@ public class MediaFileService {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
+        if (!List.of("jpg", "jpeg", "png", "webp", "mp4", "mov").contains(fileExtension)) {
             throw BadRequestException.invalidImageVideoFormat();
+        }
+
+        // Webp 이미지인 경우 변환
+        if (fileExtension.equals("webp")) {
+            try {
+                Class.forName("com.luciad.imageio.webp.WebPReadParam");
+            } catch (ClassNotFoundException e) {
+                throw BadRequestException.invalidImageVideoFormat();
+            }
         }
     }
 

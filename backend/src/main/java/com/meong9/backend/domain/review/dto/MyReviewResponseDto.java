@@ -18,23 +18,23 @@ public class MyReviewResponseDto {
     private final String content;
     private final Float score;
     private final LocalDate visitDate;
+    private final FileResponseDto file;
     private final String type;
     private final Long plcPenId;
+    private final String plcPenName;
     private final String nickname;
-    private FileResponseDto file;
-
-    @Setter
-    private String plcPenName;
 
     public MyReviewResponseDto(Long reviewId, String content, Float score, LocalDate visitDate,
-                               String type, Long plcPenId, String nickname, ReviewFile reviewFile) {
+                               String type, Long plcPenId, String plcPenName, String nickname,
+                               FileResponseDto file) {
         this.reviewId = reviewId;
         this.content = content;
         this.score = score;
         this.visitDate = visitDate;
         this.type = type;
         this.plcPenId = plcPenId;
+        this.plcPenName = plcPenName;
         this.nickname = nickname;
-        if(reviewFile != null) this.file=new FileResponseDto(reviewFile);
+        this.file=file;
     }
 }

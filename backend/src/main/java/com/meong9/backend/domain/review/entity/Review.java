@@ -11,6 +11,12 @@ import java.util.Collections;
 import java.util.List;
 
 @Entity
+@Table(
+        name = "review",
+        indexes = {
+                @Index(name = "idx_review_member_type", columnList = "member_id, type")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 public class Review extends BaseTimeEntity {

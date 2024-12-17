@@ -35,9 +35,7 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<?> getMyReviews(@CurrentMember Member member, @PageableDefault(size = 5, sort = "reviewId",
-                                          direction = Sort.Direction.DESC) Pageable pageable,
-    @RequestParam(value = "lastReviewId", required = false) Long lastReviewId) {
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
         return CommonResponse.ok("success",reviewService.getMyReviews(member));
     }
 
