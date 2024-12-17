@@ -35,12 +35,18 @@ jobs:
 
       # 4. JSON 파일 생성
       - name: Create JSON Files
-        working-directory: backend/src/main
+        working-directory: backend
         run: |
-          mkdir -p resources/static
-          echo '${{ secrets.BAN_WORDS_JSON }}' > resources/static/banWords.json
-          echo '${{ secrets.EXCEPT_WORDS_JSON }}' > resources/static/exceptWords.json
-          echo "banWords.json and exceptWords.json have been created."
+          echo "Current working directory: $(pwd)"
+          ls -la
+          mkdir -p src/main/resources/static
+          echo "After creating resources/static directory:"
+          ls -la src/main/resources
+          echo '${{ secrets.BAN_WORDS_JSON }}' > src/main/resources/static/banWords.json
+          echo '${{ secrets.EXCEPT_WORDS_JSON }}' > src/main/resources/static/exceptWords.json
+          echo "After creating JSON files:"
+          ls -la src/main/resources/static
+          echo "JSON files have been created successfully."
 
       # 5. Build 수행
       - name: Build
