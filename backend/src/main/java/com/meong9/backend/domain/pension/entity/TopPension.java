@@ -37,8 +37,6 @@ public class TopPension {
     private Integer year;
     private Integer month;
     private Integer date;
-    @DecimalMin("0.0")
-    @DecimalMax("5.0")
     private BigDecimal roomPriceAvg;
 
     @OneToMany(mappedBy = "topPension", cascade = CascadeType.ALL, orphanRemoval = true)

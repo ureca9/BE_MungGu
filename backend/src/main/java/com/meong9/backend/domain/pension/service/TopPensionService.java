@@ -40,6 +40,7 @@ public class TopPensionService {
 
     // ----------------- 핵심 로직 -----------------
 
+    // 캐시 필요
     @Transactional(readOnly = true)
     public List<TopPensionResponseDto> getTop9PensionsByCategory() {
         LocalDate endDate = LocalDate.now();
@@ -81,6 +82,9 @@ public class TopPensionService {
     public void aggregateDailyTopPensions() {
         List<TopPension> topPensions = fetchAllPensionsFromRedis();
         topPensionRepository.saveAll(topPensions);
+        // 1. 레디스에서 한번에 다 가져온 다음 100건씩 배치 인서트(JDBC)
+
+        // 2. 레디스에서 100건씩 끊어서 가져온 다음 100건씩 배치 인서트
 
         // 모든 펜션의 조회수 데이터를 삭제합니다.
         clearAllPensionViewCounts();
@@ -97,12 +101,13 @@ public class TopPensionService {
 
         // Redis에서 조회수 상위 20개의 데이터(value와 score 포함)를 가져오기
         Set<ZSetOperations.TypedTuple<String>> topViewPensions = redisTemplate.opsForZSet()
-                .reverseRangeWithScores("pension:viewCount", 0, 19);
+                .reverseRangeWithScores("pension:viewCount", 0, -1);
 
         if (topViewPensions == null || topViewPensions.isEmpty()) {
             return new ArrayList<>(); // 데이터가 없을 경우 빈 리스트 반환
         }
 
+        // 여기서 100건 끊어서 가져와야 할듯?
         // Redis에서 가져온 pensionId 기반으로 Pension 데이터를 조회
         Map<Long, Pension> pensionMap = getPensionMapFromDatabase(topViewPensions);
 
