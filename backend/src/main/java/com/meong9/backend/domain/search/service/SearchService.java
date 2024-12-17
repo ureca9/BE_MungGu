@@ -81,7 +81,6 @@ public class SearchService {
         List<SearchPlaceDto> filteredPlaces =
                 searchRepository.searchPlaces(
                 secondFilteredPlaceIds.getContent(),
-                categoryIds,
                 typeCode,
                 memberId);
 

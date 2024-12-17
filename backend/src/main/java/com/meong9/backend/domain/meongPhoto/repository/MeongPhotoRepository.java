@@ -1,27 +1,41 @@
 package com.meong9.backend.domain.meongPhoto.repository;
 
+import com.meong9.backend.domain.meongPhoto.dto.MeongPhotoDto;
+import com.meong9.backend.domain.meongPhoto.dto.MyMeongPhotoDto;
 import com.meong9.backend.domain.meongPhoto.entity.MeongPhoto;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-
-import java.util.List;
+import org.springframework.data.repository.query.Param;
 
 public interface MeongPhotoRepository extends JpaRepository<MeongPhoto, Long> {
-    @Query("""
-                SELECT mp
-                FROM MeongPhoto mp
-                WHERE (:lastPhotoId IS NULL OR mp.meongPhotoId < :lastPhotoId)
-                ORDER BY mp.mediaFile.createdAt DESC
-            """)
-    List<MeongPhoto> findAllByLastPhotoId(Long lastPhotoId, Pageable pageable);
 
     @Query("""
-                SELECT mp
-                FROM MeongPhoto mp
-                WHERE mp.member.memberId = :memberId
-                  AND (:lastPhotoId IS NULL OR mp.meongPhotoId < :lastPhotoId)
-                ORDER BY mp.mediaFile.createdAt DESC
+            SELECT new com.meong9.backend.domain.meongPhoto.dto.MeongPhotoDto(
+            mp.meongPhotoId,
+            m.nickname,
+            pi.fileUrl,
+            mf.fileUrl,
+            mf.createdAt)
+            FROM MeongPhoto mp
+            JOIN mp.member m
+            LEFT JOIN m.profileImage pi
+            JOIN mp.mediaFile mf
+            ORDER BY mf.createdAt DESC
             """)
-    List<MeongPhoto> findAllByMemberIdAndLastPhotoId(Long memberId, Long lastPhotoId, Pageable pageable);
+    Slice<MeongPhotoDto> findAllWithPagination(Pageable pageable);
+
+    @Query("""
+            SELECT new com.meong9.backend.domain.meongPhoto.dto.MyMeongPhotoDto(
+            mp.meongPhotoId,
+            mf.fileUrl,
+            mf.createdAt)
+            FROM MeongPhoto mp
+            JOIN mp.member m
+            JOIN mp.mediaFile mf
+            WHERE m.memberId = :memberId
+            ORDER BY mf.createdAt DESC
+            """)
+    Slice<MyMeongPhotoDto> findAllByMemberIdWithPagination(@Param("memberId")Long memberId, Pageable pageable);
 }

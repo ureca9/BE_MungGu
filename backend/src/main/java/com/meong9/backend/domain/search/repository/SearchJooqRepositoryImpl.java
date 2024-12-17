@@ -26,7 +26,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     private final DSLContext dsl;
 
     @Override
-    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String typeCode, Long memberId) {
+    public List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, String typeCode, Long memberId) {
 
         List<SearchPlaceDto> places = dsl.select(
                         PLACE.PLACE_ID, // placeId
@@ -198,10 +198,10 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .from(PLACE)
                 .where(PLACE.PLACE_ID.in(firstFilteredPlaceIds))
                 .and(PLACE.PLC_CATEGORY_ID.in(categoryIds))
-                .and(getWeightCondition(sizeCode))
-                .orderBy(PLACE.REVIEW_COUNT.desc())
+                .and(getWeightCondition(PLACE.ENTER_PET_SIZE, sizeCode))
+                .orderBy(PLACE.REVIEW_COUNT.desc(), PLACE.PLACE_ID.asc())
                 .limit(pageable.getPageSize() + 1)
-                .offset((int) pageable.getOffset())
+                .offset(pageable.getOffset())
                 .fetchInto(Long.class);
 
         boolean hasNext = results.size() > pageable.getPageSize();
@@ -276,7 +276,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                                 .and(ROOM_AVAILABILITY.DATE.between(start, end))
                                 .and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
                         )
-                        .and(getWeightCondition(sizeCode))
+                        .and(getWeightCondition(PENSION.ENTER_PET_SIZE, sizeCode))
                         .groupBy(ROOM.PENSION_ID)
                         .limit(pageable.getPageSize()+1)
                         .offset((int) pageable.getOffset())
@@ -315,7 +315,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
                 .as("likeStatus");
     }
 
-    private Condition getWeightCondition(String sizeCode) {
+    private Condition getWeightCondition(Field<String> idField, String sizeCode) {
         // sizeCode가 010이면 모두 허용
         if ("010".equals(sizeCode)) return DSL.noCondition();
 
@@ -327,7 +327,7 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
 
         List<String> petSizes = weightCondition.getOrDefault(sizeCode, List.of());
 
-        return PLACE.ENTER_PET_SIZE.in(petSizes);
+        return idField.in(petSizes);
     }
 }
 

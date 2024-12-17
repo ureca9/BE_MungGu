@@ -42,7 +42,7 @@ public class TempFileService {
     private final MemberRepository memberRepository;
     private final MeongPhotoRepository meongPhotoRepository;
 
-    @Value("${s3.bucket}")
+    @Value("${s3.buckets.source}")
     private String bucket;
 
     /**

@@ -11,8 +11,8 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.tempFile.service.TempFileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,46 +58,16 @@ public class MeongPhotoService {
     }
 
     @Transactional(readOnly = true)
-    public MeongPhotoListDto getAllMeongPhoto(Long lastPhotoId, int size) {
-        Pageable pageable = PageRequest.of(0, size+1);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-        List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByLastPhotoId(lastPhotoId, pageable);
-        boolean hasNext = meongPhotos.size() > size;
-        List<MeongPhoto> trimmedMeongPhotos = meongPhotos.stream().limit(size).toList();
-
-        // DTO 변환
-        List<MeongPhotoDto> meongPhotoDtos = trimmedMeongPhotos.stream()
-                .map(photo -> new MeongPhotoDto(
-                        photo.getMeongPhotoId(),
-                        photo.getMember().getNickname(),
-                        photo.getMember().getProfileImage().getFileUrl(),
-                        photo.getMediaFile().getFileUrl(),
-                        photo.getMediaFile().getCreatedAt().format(formatter)
-                ))
-                .toList();
-
-        return new MeongPhotoListDto(meongPhotoDtos, hasNext);
+    public MeongPhotoListDto getAllMeongPhoto(Pageable pageable) {
+        Slice<MeongPhotoDto> meongPhotos = meongPhotoRepository.findAllWithPagination(pageable);
+        return new MeongPhotoListDto(meongPhotos.getContent(), meongPhotos.hasNext());
     }
 
     @Transactional(readOnly = true)
-    public MyMeongPhotoListDto getMyMeongPhotos(Member member, Long lastPhotoId, int size) {
-        Pageable pageable = PageRequest.of(0, size);
-
-        List<MeongPhoto> meongPhotos = meongPhotoRepository.findAllByMemberIdAndLastPhotoId(
-                member.getMemberId(), lastPhotoId, pageable);
-        boolean hasNext = meongPhotos.size() > size;
-        List<MeongPhoto> trimmedMeongPhotos = meongPhotos.stream().limit(size).toList();
-
-        List<MyMeongPhotoDto> myMeongPhotoDtos = trimmedMeongPhotos.stream()
-                .map(photo -> new MyMeongPhotoDto(
-                        photo.getMeongPhotoId(),
-                        photo.getMediaFile().getFileUrl(),
-                        photo.getMediaFile().getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                ))
-                .toList();
-
-        return new MyMeongPhotoListDto(myMeongPhotoDtos, hasNext);
+    public MyMeongPhotoListDto getMyMeongPhotos(Member member, Pageable pageable) {
+        Slice<MyMeongPhotoDto> myMeongPhotos = meongPhotoRepository.findAllByMemberIdWithPagination(
+                member.getMemberId(), pageable);
+        return new MyMeongPhotoListDto(myMeongPhotos.getContent(), myMeongPhotos.hasNext());
     }
 
 }
