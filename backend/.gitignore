@@ -38,3 +38,5 @@ logback.xml
 
 ### VS Code ###
 .vscode/
+src/main/resources/static/banWords.json
+src/main/resources/static/exceptWords.json
