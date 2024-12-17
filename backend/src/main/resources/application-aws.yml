@@ -33,7 +33,9 @@ s3:
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
     region: ${AWS_REGION}
-  bucket: ${S3_BUCKET_NAME}
+  buckets:
+    source: ${S3_BUCKET_NAME}
+    resize: ${S3_RESIZE_BUCKET_NAME}
 
 kakao:
   client-id: ${KAKAO_REST_API_KEY}

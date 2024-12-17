@@ -129,15 +129,15 @@ public class MemberService {
         favoriteRegionRepository.batchInsert(batchParams);
     }
 
+    /**
+     * 사용자 정보를 등록하는 서비스 메서드
+     */
     @Transactional
     public void insertMemberInfo(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
         updateMember(profileImage, dto, member);
         memberRepository.save(member);
     }
 
-//    /**
-//     * 사용자 정보를 등록하는 서비스 메서드
-//     */
 //    @Transactional
 //    public void insertMemberInfo(String fileKey,MemberInfoDto dto, Member member) throws IOException {
 //        updateMember(fileKey, dto, member);
@@ -151,6 +151,7 @@ public class MemberService {
     @Transactional
     public void deleteProfileImage(Member member) {
         mediaFileService.deleteProfileImage(member.getMemberId(),"Mprofile/","_profile.jpg");
+        member.setProfileImage(null);
     }
 
     /**
@@ -173,14 +174,15 @@ public class MemberService {
                         .puppyId(puppy.getPuppyId())
                         .puppyName(puppy.getName())
                         .puppyImageUrl(
-                                puppy.getProfileImage() != null ? puppy.getProfileImage().getFileUrl() : null
+                                puppy.getProfileImage() != null ?
+                                        mediaFileService.getResizeBucketUrl(puppy.getProfileImage().getFileKey()) : null
                         )
                         .build())
                 .toList();
         return MypageDto.builder()
                 .memberId(foundMember.getMemberId())
                 .nickname(foundMember.getNickname())
-                .profileImageUrl(foundMember.getProfileImage().getFileUrl())
+                .profileImageUrl(mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()))
                 .puppyList(puppyList)
                 .build();
     }
@@ -196,11 +198,12 @@ public class MemberService {
                 .name(foundMember.getName())
                 .nickname(foundMember.getNickname())
                 .phone(foundMember.getPhone())
-                .profileImageUrl(foundMember.getProfileImage().getFileUrl())
+                .profileImageUrl(mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()))
                 .build();
     }
 
-    /* 마이페이지 수정 메서드
+    /**
+     * 마이페이지 수정 메서드
      */
     @Transactional
     public UpdateMyPageResponseDto updateMyPage(MultipartFile profileImage, MemberInfoDto dto, Member member) throws IOException {
@@ -215,9 +218,6 @@ public class MemberService {
                 .build();
     }
 
-//    /**
-//     * 마이페이지 수정 메서드
-//     */
 //    @Transactional
 //    public UpdateMyPageResponseDto updateMyPage(String fileKey, MemberInfoDto dto, Member member) throws IOException {
 //        updateMember(fileKey, dto, member);

@@ -22,7 +22,7 @@ import java.util.List;
 public class VideoService { // 추후에 ME
     private final AmazonS3Client s3Client;
 
-    @Value("${s3.bucket}")
+    @Value("${s3.buckets.source}")
     private String bucket;
 
     /**
