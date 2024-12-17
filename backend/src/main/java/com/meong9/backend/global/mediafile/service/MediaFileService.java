@@ -129,6 +129,15 @@ public class MediaFileService {
         if (!List.of("jpg", "jpeg", "png", "webp", "mp4", "mov").contains(fileExtension)) {
             throw BadRequestException.invalidImageVideoFormat();
         }
+
+        // Webp 이미지인 경우 변환
+        if (fileExtension.equals("webp")) {
+            try {
+                Class.forName("com.luciad.imageio.webp.WebPReadParam");
+            } catch (ClassNotFoundException e) {
+                throw BadRequestException.invalidImageVideoFormat();
+            }
+        }
     }
 
 
