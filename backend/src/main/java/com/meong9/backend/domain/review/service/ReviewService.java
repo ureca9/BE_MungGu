@@ -136,13 +136,14 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
-//        if(Objects.equals(reviewRequestDto.getType(), "010")){
-//            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
-//
-//        }
-//        if(Objects.equals(reviewRequestDto.getType(), "020")){
-//
-//        }
+        if(Objects.equals(reviewRequestDto.getType(), "010")){
+            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            place.increaseReviewCount();
+        }
+        if(Objects.equals(reviewRequestDto.getType(), "020")){
+            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            pension.increaseReviewCount();
+        }
         processFileAsync(files, savedReview, mediaFiles);
 
         memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
@@ -284,6 +285,15 @@ public class ReviewService {
         // 리뷰 삭제 (ReviewFile은 CascadeType.ALL로 자동 삭제)
         reviewRepository.delete(review);
 
+        // 리뷰 개수 감소
+        if(Objects.equals(review.getType(), "010")){
+            Place place=placeRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            place.decreaseReviewCount();
+        }
+        if(Objects.equals(review.getType(), "020")){
+            Pension pension=pensionRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            pension.decreaseReviewCount();
+        }
         memberScoreService.deleteReview(member.getMemberId(), review.getPlacePensionId(), review.getScore(), review.getType());
     }
 
