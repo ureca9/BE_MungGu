@@ -64,7 +64,7 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     Optional<Pension> findByPensionId(@Param("pensionId") Long pensionId);
 
     @Query("""
-    SELECT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
+    SELECT DISTINCT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
     p.name,
     p.reviewAvg,
     p.reviewCount
@@ -86,15 +86,16 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     Optional<ReviewInfoQueryResult> findByPensionIdWithImageAndReviewCount(@Param("pensionId") Long pensionId,
                                                                          @Param("type") String type);
 
-    @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("""
-    SELECT P,
+    SELECT DISTINCT P,
            CASE WHEN EXISTS (SELECT 1
                 FROM PensionLike pl
                 JOIN Like l ON pl.likeId = l.likeId
             WHERE l.member.memberId = :memberId AND pl.pension.pensionId = P.pensionId) 
             THEN TRUE ELSE FALSE END AS LIKED 
     FROM Pension P
+    LEFT JOIN P.pensionFiles pf
+    LEFT JOIN pf.mediaFile
     WHERE P.pensionId IN :pensionIds
     """)
     List<Object[]> findAllWithLikeStatus(
