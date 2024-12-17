@@ -182,7 +182,8 @@ public class MemberService {
         return MypageDto.builder()
                 .memberId(foundMember.getMemberId())
                 .nickname(foundMember.getNickname())
-                .profileImageUrl(mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()))
+                .profileImageUrl(foundMember.getProfileImage() != null ?
+                        mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()): null)
                 .puppyList(puppyList)
                 .build();
     }
@@ -198,7 +199,8 @@ public class MemberService {
                 .name(foundMember.getName())
                 .nickname(foundMember.getNickname())
                 .phone(foundMember.getPhone())
-                .profileImageUrl(mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()))
+                .profileImageUrl(foundMember.getProfileImage() != null ?
+                        mediaFileService.getResizeBucketUrl(foundMember.getProfileImage().getFileKey()): null)
                 .build();
     }
 
