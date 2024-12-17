@@ -72,7 +72,6 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/pensions/{pensionId}/summary", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/places/{placeId}/reviews", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/places/{placeId}/summary", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/api/v1/map/places", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/photos", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/places/{category}/top", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/pensions/top", HttpMethod.GET.name()),
@@ -87,16 +86,11 @@ public class SecurityConfig {
                 .requestMatchers(ignoredRequests).permitAll()
                 .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll() // 정적 리소스 허용
                 .requestMatchers(HttpMethod.GET, "/api/v1/search/**", "/api/v1/spots/recommendations",
-                        "/api/v1/map/search", "/api/v1/pensions/detail/{pensionId}",
-                        "/api/v1/places/detail/{placeId}").permitAll()
+                        "/api/v1/pensions/detail/{pensionId}", "/api/v1/places/detail/{placeId}").permitAll()
                 .requestMatchers("/index.html", "/favicon.ico").permitAll()
                 .requestMatchers(HttpMethod.GET, "/ping", "/error", "/actuator/health").permitAll() // 헬스 체크 허용
                 .anyRequest().authenticated() // 나머지 요청은 MEMBER 역할 필요
         );
-
-//        http.authorizeHttpRequests(auth -> auth
-//                .anyRequest().permitAll() // 모든 요청 허용
-//        );
 
         // CSRF 비활성화 및 CORS 설정
         http.csrf(AbstractHttpConfigurer::disable)
