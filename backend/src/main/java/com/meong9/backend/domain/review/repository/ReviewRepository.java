@@ -29,7 +29,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         """)
     List<Review> findTop10RecentReviews();
 
-    @Query("SELECT new com.meong9.backend.domain.review.dto.MyReviewResponseDto(" +
+    @Query("SELECT DISTINCT new com.meong9.backend.domain.review.dto.MyReviewResponseDto(" +
             "r.reviewId, r.content, r.score, r.visitDate, r.type, r.placePensionId, " +
             "CASE WHEN r.type = '010' THEN p.name WHEN r.type = '020' THEN ps.name ELSE null END, r.nickname, " +
             "new com.meong9.backend.domain.review.dto.FileResponseDto(mf.fileType, mf.fileSize, mf.fileUrl, mf.fileName)) " +
