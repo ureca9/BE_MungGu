@@ -5,6 +5,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
+import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -76,6 +77,14 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
     Optional<Pension> findByPensionIdWithImage(@Param("pensionId") Long pensionId);
+
+    @Query("SELECT new com.meong9.backend.domain.review.dto.ReviewInfoQueryResult(p, COUNT(r)) " +
+            "FROM Pension p " +
+            "LEFT JOIN Review r ON r.placePensionId = p.pensionId AND r.type = :type " +
+            "WHERE p.pensionId = :pensionId " +
+            "GROUP BY p")
+    Optional<ReviewInfoQueryResult> findByPensionIdWithImageAndReviewCount(@Param("pensionId") Long pensionId,
+                                                                         @Param("type") String type);
 
     @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
     @Query("""

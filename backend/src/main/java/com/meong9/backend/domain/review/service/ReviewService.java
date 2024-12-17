@@ -28,7 +28,6 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
@@ -90,28 +89,33 @@ public class ReviewService {
         String fullAddress=plcPenAddressRepository.findFullAddress(type, plcPenId)
                 .orElseThrow(() -> NotFoundException
                         .entityNotFound("찾으시는 주소가 없습니다, type: " +type+", id: " + plcPenId));
+
         if(Objects.equals(type, "010")){ // 장소
-            Place place=placeRepository.findByPlaceIdWithImage(plcPenId)
+            ReviewInfoQueryResult queryResult=placeRepository.findByPlaceIdWithImageAndReviewCount(plcPenId,type)
                     .orElseThrow(() -> NotFoundException
                     .entityNotFound("type: " +type+", place_id: " + plcPenId));
+            Place place = queryResult.getPlace();
+            Integer reviewCount =  Math.toIntExact(queryResult.getReviewCount());
             String fileUrl=null;
-            if(place.getPlaceFiles() != null) {
+            if(!place.getPlaceFiles().isEmpty()) {
                 fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
-
-            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl,place.getLikeCount());
+            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),reviewCount,fileUrl,place.getLikeCount());
         }
+
         if(Objects.equals(type, "020")){ // 펜션
-            Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
+            ReviewInfoQueryResult queryResult=pensionRepository.findByPensionIdWithImageAndReviewCount(plcPenId,type)
                     .orElseThrow(() -> NotFoundException
-                            .entityNotFound("type: " +type+", pension_id: " + plcPenId));
+                            .entityNotFound("type: " +type+", place_id: " + plcPenId));
+            Pension pension = queryResult.getPension();
+            Integer reviewCount =  Math.toIntExact(queryResult.getReviewCount());
 
             String fileUrl=null;
-            if(pension.getPensionFiles() != null) {
+            if(!pension.getPensionFiles().isEmpty()) {
                 fileUrl=pension.getPensionFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
 
-            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl,pension.getLikeCount());
+            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),reviewCount,fileUrl,pension.getLikeCount());
         }
         return null;
     }
@@ -132,6 +136,13 @@ public class ReviewService {
 
         Review savedReview = reviewRepository.save(review);
 
+//        if(Objects.equals(reviewRequestDto.getType(), "010")){
+//            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+//
+//        }
+//        if(Objects.equals(reviewRequestDto.getType(), "020")){
+//
+//        }
         processFileAsync(files, savedReview, mediaFiles);
 
         memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
