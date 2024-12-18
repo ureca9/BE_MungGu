@@ -28,6 +28,8 @@ out/
 
 application-dev.yml
 logback.xml
+banWords.json
+exceptWords.json
 
 ### NetBeans ###
 /nbproject/private/
