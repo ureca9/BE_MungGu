@@ -7,7 +7,7 @@ import java.util.*;
 public class AhoCorasickWordUtil implements WordUtil {
 
     private final TrieNode root;
-    private static final String REMOVE_PATTERN = "[\\p{N}\\s\\u3164\\p{L}&&[^ㄱ-ㅎ가-힣ㅏ-ㅣa-zA-Z]]";
+    private static final String REMOVE_PATTERN = "[\\p{N}\\s\\u3164\\p{L}\\p{P}&&[^ㄱ-ㅎ가-힣ㅏ-ㅣa-zA-Z]]";
 
     public AhoCorasickWordUtil() {
         this.root = new TrieNode();
