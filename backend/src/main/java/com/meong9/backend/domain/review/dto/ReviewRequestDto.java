@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ public class ReviewRequestDto {
     @NotNull(message = "plcPenId는 필수 입력값입니다.")
     private Long plcPenId; // 시설 또는 펜션 ID
 
+    @Setter
     @NotBlank(message = "내용을 입력하세요.")
     private String content; // 리뷰 내용
 
