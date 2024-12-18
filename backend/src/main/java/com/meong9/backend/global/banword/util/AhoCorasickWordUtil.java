@@ -7,6 +7,7 @@ import java.util.*;
 public class AhoCorasickWordUtil implements WordUtil {
 
     private final TrieNode root;
+    private static final String REMOVE_PATTERN = "[\\p{N}\\s\\u3164\\p{L}&&[^ㄱ-ㅎ가-힣ㅏ-ㅣa-zA-Z]]";
 
     public AhoCorasickWordUtil() {
         this.root = new TrieNode();
@@ -67,20 +68,30 @@ public class AhoCorasickWordUtil implements WordUtil {
         if (word == null || word.isEmpty()) return result;
         TrieNode node = root;
 
-        int realIndex = 0;
-        int nonSpaceIndex = 0;
+        int realIndex = 0; // 원본 문자열 인덱스
+        int nonSpaceIndex = 0; // 변환된 문자열 인덱스
 
+        // 변환된 문자열 인덱스를 원본 문자열 인덱스와 매핑
         Map<Integer, Integer> startIndices = new HashMap<>();
 
+        // 변환된 문자열 만들기 (제거 규칙 적용)
+        StringBuilder transformed = new StringBuilder();
         for (int i = 0; i < word.length(); i++) {
             char c = word.charAt(i);
 
-            if (Character.isWhitespace(c)) {
-                realIndex++;
-                continue;
+            // REMOVE_PATTERN에 포함되지 않는 문자만 추가
+            if (!String.valueOf(c).matches(REMOVE_PATTERN)) {
+                startIndices.put(nonSpaceIndex, realIndex);
+                transformed.append(c);
+                nonSpaceIndex++;
             }
+            realIndex++;
+        }
 
-            startIndices.put(nonSpaceIndex, realIndex);
+        // 변환된 문자열에서 금칙어 탐지
+        node = root;
+        for (int i = 0; i < transformed.length(); i++) {
+            char c = transformed.charAt(i);
 
             while (node != root && !node.children.containsKey(c)) {
                 node = node.failureLink;
@@ -91,16 +102,16 @@ public class AhoCorasickWordUtil implements WordUtil {
             }
 
             for (String pattern : node.output) {
-                int start = startIndices.getOrDefault(nonSpaceIndex - (pattern.length() - 1), -1);
-                int end = realIndex + 1;
+                int transformedStart = i - (pattern.length() - 1);
+                int start = startIndices.getOrDefault(transformedStart, -1);
+                int end = startIndices.getOrDefault(i, -1) + 1;
 
-                if (start != -1) {
-                    result.add(new Word(pattern, start, end));
+                if (start != -1 && end != -1) {
+                    // 원본 문자열에서 금칙어 텍스트 추출
+                    String originalMatch = word.substring(start, end);
+                    result.add(new Word(originalMatch, start, end));
                 }
             }
-
-            nonSpaceIndex++;
-            realIndex++;
         }
 
         return result;
