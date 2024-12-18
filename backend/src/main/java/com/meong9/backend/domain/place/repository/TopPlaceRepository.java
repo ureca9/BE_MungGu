@@ -27,23 +27,22 @@ public interface TopPlaceRepository extends JpaRepository<TopPlace,Long> {
      * @return 상위 장소 목록과 다음 페이지 존재 여부
      */
     @Query(value = """
-        SELECT new com.meong9.backend.domain.place.dto.TopPlaceResponseDto(
-            t.placeId, t.placeName, t.reviewCount, t.reviewAvg,
-            t.province, t.cityDistrict, t.subDistrict, t.viewCount)
-        FROM TopPlace t
-        WHERE
-            (
-                (t.year = :startYear AND t.month = :startMonth AND t.date >= :startDate)\s
-                OR (t.year = :endYear AND t.month = :endMonth AND t.date <= :endDate)\s
-                OR (t.year = :startYear AND t.month > :startMonth)\s
-                OR (t.year = :endYear AND t.month < :endMonth)\s
-                OR (t.year > :startYear AND t.year < :endYear)
-            )
-            AND t.category = :category
-        GROUP BY t.placeId, t.placeName, t.reviewCount, t.reviewAvg,
-                t.province, t.cityDistrict, t.subDistrict, t.viewCount
-        ORDER BY SUM(t.viewCount) DESC
-        """)
+    SELECT new com.meong9.backend.domain.place.dto.TopPlaceResponseDto(
+        t.placeId, MAX(t.placeName), MAX(t.reviewCount), AVG(t.reviewAvg),
+        MAX(t.province), MAX(t.cityDistrict), MAX(t.subDistrict), SUM(t.viewCount))
+    FROM TopPlace t
+    WHERE
+        (
+            (t.year = :startYear AND t.month = :startMonth AND t.date >= :startDate)
+            OR (t.year = :endYear AND t.month = :endMonth AND t.date <= :endDate)
+            OR (t.year = :startYear AND t.month > :startMonth)
+            OR (t.year = :endYear AND t.month < :endMonth)
+            OR (t.year > :startYear AND t.year < :endYear)
+        )
+        AND t.category = :category
+    GROUP BY t.placeId
+    ORDER BY SUM(t.viewCount) DESC
+    """)
     Slice<TopPlaceResponseDto> findTop9PlacesByDateRangeAndCategory(
             @Param("startYear") Integer startYear,
             @Param("startMonth") Integer startMonth,
@@ -55,7 +54,7 @@ public interface TopPlaceRepository extends JpaRepository<TopPlace,Long> {
             Pageable pageable);
 
     @Query("""
-    SELECT pf.place.placeId AS placeId, mf.fileUrl AS fileUrl
+    SELECT DISTINCT pf.place.placeId AS placeId, mf.fileUrl AS fileUrl
     FROM PlaceFile pf
     JOIN pf.mediaFile mf
     WHERE pf.place.placeId IN :placeIds
