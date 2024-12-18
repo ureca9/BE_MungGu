@@ -11,7 +11,6 @@ import java.util.List;
 
 @Component
 public class WordLoader {
-
     public List<String> readBanWords() {
         return read("static/banWords.json");
     }
@@ -22,7 +21,8 @@ public class WordLoader {
 
     private List<String> read(String path) {
         try {
-            return new ObjectMapper().readValue(new ClassPathResource(path).getInputStream(), new TypeReference<>() {});
+            return new ObjectMapper().readValue(new ClassPathResource(path).getInputStream(),
+                                                new TypeReference<>() {});
         } catch (IOException e) {
             return Collections.emptyList();
         }
