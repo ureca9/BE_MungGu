@@ -38,7 +38,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             "LEFT JOIN rf.file mf " +
             "LEFT JOIN Place p ON r.placePensionId = p.placeId AND r.type = '010' " +
             "LEFT JOIN Pension ps ON r.placePensionId = ps.pensionId AND r.type = '020' " +
-            "WHERE r.member = :member")
+            "WHERE r.member = :member ")
     List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
 
     @Query("""

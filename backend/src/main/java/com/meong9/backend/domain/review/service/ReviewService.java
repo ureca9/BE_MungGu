@@ -79,7 +79,8 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<MyReviewResponseDto> getMyReviews(Member member) {
         List<MyReviewResponseDto> reviews = reviewRepository.findReviewsByMember(member);
-
+        reviews.sort((r1, r2) -> Long.compare(r2.getReviewId(), r1.getReviewId()));
+        
         return reviews;
     }
 
@@ -135,7 +136,7 @@ public class ReviewService {
                 .build();
 
         Review savedReview = reviewRepository.save(review);
-
+        log.info("saved review: {}", savedReview);
         if(Objects.equals(reviewRequestDto.getType(), "010")){
             Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
             place.increaseReviewCount();

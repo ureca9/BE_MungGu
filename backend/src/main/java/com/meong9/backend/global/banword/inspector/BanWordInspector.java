@@ -4,11 +4,13 @@ import com.meong9.backend.global.banword.domain.Word;
 import com.meong9.backend.global.banword.config.InspectorConfig;
 import com.meong9.backend.global.banword.manager.ExceptWordManager;
 import com.meong9.backend.global.banword.manager.BanWordManager;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Slf4j
 @Component
 public class BanWordInspector {
     private final BanWordManager banWordManager;
@@ -38,13 +40,21 @@ public class BanWordInspector {
     }
 
     public String mask(String word, String replace) {
-        word=word.replaceAll(REMOVE_PATTERN, "");
         StringBuilder sb = new StringBuilder(word);
         List<Word> data = inspect(word);
 
+        /**
+         입력: 과징금 크악 씨  이  빨
+         문자 제거: 과징금크악씨이빨
+
+         기대 결과: 과징금 크악 멍멍
+         실제 결과: 과징금크악멍멍
+
+         **/
         for (int i = data.size() - 1; i >= 0; i--) {
             sb.replace(data.get(i).startIndex(), data.get(i).endIndex(), replace);
         }
+
         return sb.toString();
     }
 }
