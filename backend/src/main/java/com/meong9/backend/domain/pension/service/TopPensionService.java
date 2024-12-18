@@ -77,7 +77,7 @@ public class TopPensionService {
     /**
      * 매일 자정에 실행되어 상위 TopPension 데이터를 처리합니다.
      */
-    @Scheduled(cron = "0 0 0 * * ?")
+//    @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void aggregateDailyTopPensions() {
         List<TopPension> topPensions = fetchAllPensionsFromRedis();

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 public class RedisTopPensionDto {
     private Long pensionId;
     private Double score;
+    private Integer rank;
 
     private String pensionName;
     private Integer reviewCount;
@@ -23,4 +25,6 @@ public class RedisTopPensionDto {
     private String subDistrict;
 
     private BigDecimal roomPriceAvg;
+
+    private List<Long> tagIds;
 }

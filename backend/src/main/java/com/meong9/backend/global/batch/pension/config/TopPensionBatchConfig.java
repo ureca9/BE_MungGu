@@ -1,52 +1,80 @@
 package com.meong9.backend.global.batch.pension.config;
 
-import com.meong9.backend.domain.pension.entity.TopPension;
+import com.meong9.backend.global.batch.pension.dto.CreatePensionFeatureDto;
 import com.meong9.backend.global.batch.pension.dto.RedisTopPensionDto;
+import com.meong9.backend.global.batch.pension.dto.TopPensionAndFeature;
+import com.meong9.backend.global.batch.pension.listener.JobExecutionContextCleaner;
+import com.meong9.backend.global.batch.pension.listener.StepListener;
+import com.meong9.backend.global.batch.pension.listener.TopPensionJobListener;
+import com.meong9.backend.global.batch.pension.processor.PensionFeatureProcessor;
+import com.meong9.backend.global.batch.pension.processor.TopPensionAndFeatureProcessor;
+import com.meong9.backend.global.batch.pension.reader.PensionFeatureReader;
+import com.meong9.backend.global.batch.pension.reader.TopPensionRedisReader;
+import com.meong9.backend.global.batch.pension.writer.PensionFeatureWriter;
+import com.meong9.backend.global.batch.pension.writer.TopPensionAndFeatureWriter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
-import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.PlatformTransactionManager;
 
-@Configuration
 @RequiredArgsConstructor
+@Configuration
+@Slf4j
 public class TopPensionBatchConfig {
 
-    private JobLauncher jobLauncher;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
+    private final TopPensionJobListener topPensionJobListener;
+    private final JobExecutionContextCleaner jobExecutionContextCleaner;
 
     @Bean
-    public Job aggregateTopPensionJob(Step aggregateTopPensionStep) {
+    public Job aggregateTopPensionJob(
+            Step saveTopPensionAndFeatureStep,
+            Step savePensionFeatureStep) {
         return new JobBuilder("aggregateTopPensionJob", jobRepository)
-                .start(aggregateTopPensionStep)
-                .preventRestart() // 재시작 가능 설정
+                .listener(topPensionJobListener)
+                .listener(jobExecutionContextCleaner)
+                .start(saveTopPensionAndFeatureStep)
+                .on("FAILED").end() // Step 실패 시 Job 종료
+                .from(saveTopPensionAndFeatureStep)
+                .on("COMPLETED").to(savePensionFeatureStep)
+                .from(savePensionFeatureStep)
+                .on("FAILED").fail() // Step 실패 시 Job 실패
+                .from(savePensionFeatureStep)
+                .on("COMPLETED").end()
+                .end()
                 .build();
     }
 
     @Bean
-    public Step aggregateTopPensionStep(ItemReader<RedisTopPensionDto> topPensionReader,
-                                        ItemProcessor<RedisTopPensionDto, TopPension> topPensionProcessor,
-                                        ItemWriter<TopPension> topPensionWriter) {
-        return new StepBuilder("aggregateTopPensionStep", jobRepository)
-                .<RedisTopPensionDto, TopPension>chunk(100, transactionManager) // 타입 수정
-                .reader(topPensionReader)
-                .processor(topPensionProcessor)
-                .writer(topPensionWriter)
-                .allowStartIfComplete(true) // 이미 완료된 Step도 재시작 가능
+    public Step saveTopPensionAndFeatureStep(TopPensionRedisReader reader,
+                                             TopPensionAndFeatureProcessor processor,
+                                             TopPensionAndFeatureWriter writer) {
+        return new StepBuilder("saveTopPensionAndFeatureStep", jobRepository)
+                .<RedisTopPensionDto, TopPensionAndFeature>chunk(10, transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .listener(new StepListener()) // StepListener 추가
+                .build();
+    }
+
+    @Bean
+    public Step savePensionFeatureStep(PensionFeatureReader reader,
+                                       PensionFeatureProcessor processor,
+                                       PensionFeatureWriter writer) {
+        return new StepBuilder("savePensionFeatureStep", jobRepository)
+                .<CreatePensionFeatureDto, CreatePensionFeatureDto>chunk(10, transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
+                .listener(new StepListener()) // StepListener 추가
                 .build();
     }
 }

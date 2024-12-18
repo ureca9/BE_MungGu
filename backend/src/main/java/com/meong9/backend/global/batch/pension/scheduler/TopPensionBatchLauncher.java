@@ -6,7 +6,6 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,10 +20,9 @@ public class TopPensionBatchLauncher {
 
     private final JobLauncher jobLauncher;
 
-    @Qualifier("aggregateTopPensionJob")
     private final Job aggregateTopPensionJob;
 
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "50 40 22 * * ?")
     public void launchTopPensionJob() {
         log.info("Top Pension Job 시작 - 시작 시간: {}", LocalDateTime.now());
         long startTime = System.currentTimeMillis();
