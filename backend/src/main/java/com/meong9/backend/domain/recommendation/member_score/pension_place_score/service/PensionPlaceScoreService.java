@@ -247,7 +247,12 @@ public class PensionPlaceScoreService {
         }
 
         // 가중 평균 계산
-        float weightedAverageScore = totalWeightedScore / totalWeight;
+        float weightedAverageScore;
+        if(totalWeight == 0.0f){
+            weightedAverageScore = 0.0f;
+        } else{
+            weightedAverageScore = totalWeightedScore / totalWeight;
+        }
 
         // 점수는 0 ~ 최대 점수 사이로 클램핑 (안정성 보장)
         return Math.max(0.0f, Math.min(maxScore, weightedAverageScore));
