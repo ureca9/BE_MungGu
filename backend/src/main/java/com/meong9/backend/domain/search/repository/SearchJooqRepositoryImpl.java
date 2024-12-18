@@ -289,10 +289,11 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     }
 
     @Override
-    public List<Long> findPensionIdsMatchWithSizeCode(String sizeCode) {
+    public List<Long> findPensionIdsMatchWithSizeCode(List<Long> firstFilteredPensionIds,String sizeCode) {
         return dsl.select(PENSION.PENSION_ID)
                         .from(PENSION)
-                        .where(getWeightCondition(PENSION.ENTER_PET_SIZE, sizeCode))
+                        .where(PENSION.PENSION_ID.in(firstFilteredPensionIds))
+                        .and(getWeightCondition(PENSION.ENTER_PET_SIZE, sizeCode))
                         .fetchInto(Long.class);
 
     }

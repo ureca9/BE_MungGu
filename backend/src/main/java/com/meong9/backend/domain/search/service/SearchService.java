@@ -113,7 +113,7 @@ public class SearchService {
 
         // 2. 반려견 체중 조건 추가
         String sizeCode = heaviestDogWeight < 10 ? "010" : heaviestDogWeight < 25 ? "020" : "030";
-        List<Long> secondFilteredPlaceIds = searchRepository.findPensionIdsMatchWithSizeCode(sizeCode);
+        List<Long> secondFilteredPlaceIds = searchRepository.findPensionIdsMatchWithSizeCode(firstFilteredPensionIds, sizeCode);
 
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
