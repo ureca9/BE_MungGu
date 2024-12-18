@@ -113,17 +113,18 @@ public class SearchService {
 
         // 2. 반려견 체중 조건 추가
         String sizeCode = heaviestDogWeight < 10 ? "010" : heaviestDogWeight < 25 ? "020" : "030";
+        List<Long> secondFilteredPlaceIds = searchRepository.findPensionIdsMatchWithSizeCode(sizeCode);
 
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
 
         // 3. 최종 필터링된 펜션ID 조회
-        Slice<Long> secondFilteredPlaceIds = searchRepository.findPensionIdsIsAvailable(firstFilteredPensionIds, sizeCode, start, end, pageable);
+        Slice<Long> thirdFilteredPlaceIds = searchRepository.findPensionIdsIsAvailable(secondFilteredPlaceIds, start, end, pageable);
 
         // 4. pendionId를 가지고 정보 조회
         List<SearchPensionDto> filteredPensions =
                 searchRepository.searchPensions(
-                        secondFilteredPlaceIds.getContent(),
+                        thirdFilteredPlaceIds.getContent(),
                         startDate,
                         endDate,
                         sizeCode,
@@ -131,6 +132,6 @@ public class SearchService {
                         memberId);
 
         // 4. 반환
-        return new SearchPensionsResponseDto(filteredPensions, secondFilteredPlaceIds.hasNext());
+        return new SearchPensionsResponseDto(filteredPensions, thirdFilteredPlaceIds.hasNext());
     }
 }

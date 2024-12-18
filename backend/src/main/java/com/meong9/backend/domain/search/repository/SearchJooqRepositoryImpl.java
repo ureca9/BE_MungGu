@@ -265,18 +265,17 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
     }
 
     @Override
-    public Slice<Long> findPensionIdsIsAvailable(List<Long> firstFilteredPensionIds, String sizeCode, LocalDate start, LocalDate end, Pageable pageable) {
+    public Slice<Long> findPensionIdsIsAvailable(List<Long> secondFilteredPensionIds, LocalDate start, LocalDate end, Pageable pageable) {
 
         List<Long> results =
                 dsl.select(ROOM.PENSION_ID)
                         .from(ROOM)
                         .join(ROOM_AVAILABILITY).on(ROOM.ROOM_ID.eq(ROOM_AVAILABILITY.ROOM_ID))
                         .where(
-                                ROOM.PENSION_ID.in(firstFilteredPensionIds)
+                                ROOM.PENSION_ID.in(secondFilteredPensionIds)
                                 .and(ROOM_AVAILABILITY.DATE.between(start, end))
                                 .and(ROOM_AVAILABILITY.IS_AVAILABLE.isTrue())
                         )
-                        .and(getWeightCondition(PENSION.ENTER_PET_SIZE, sizeCode))
                         .groupBy(ROOM.PENSION_ID)
                         .limit(pageable.getPageSize()+1)
                         .offset((int) pageable.getOffset())
@@ -286,6 +285,15 @@ public class SearchJooqRepositoryImpl implements SearchJooqRepository {
         if (hasNext) results.remove(results.size() - 1);
 
         return new SliceImpl<>(results, pageable, hasNext);
+
+    }
+
+    @Override
+    public List<Long> findPensionIdsMatchWithSizeCode(String sizeCode) {
+        return dsl.select(PENSION.PENSION_ID)
+                        .from(PENSION)
+                        .where(getWeightCondition(PENSION.ENTER_PET_SIZE, sizeCode))
+                        .fetchInto(Long.class);
 
     }
 
