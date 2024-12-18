@@ -170,6 +170,7 @@ public class ReviewService {
         Float oldScore = review.getScore(); // 예전 점수
         Float newScore = reviewRequestDto.getScore(); // 최신 점수
 
+        reviewRequestDto.setContent(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"));
         review.update(reviewRequestDto);
 
         // 새로운 파일 처리
