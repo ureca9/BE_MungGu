@@ -9,7 +9,6 @@ import com.meong9.backend.domain.pension.entity.TopPension;
 import com.meong9.backend.domain.pension.entity.id.PensionFeatureId;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.pension.repository.TopPensionRepository;
-import com.meong9.backend.domain.place.dto.TopPlaceResponseDto;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.topFeature.repository.TopFeatureRepository;
 import com.meong9.backend.global.utils.RedisUtils;
@@ -19,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

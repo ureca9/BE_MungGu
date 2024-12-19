@@ -20,20 +20,21 @@ public class TopPensionResponseDto {
     private String province;
     private String cityDistrict;
     private String subDistrict;
-    private Long viewCount;
+    private Long totalViewCount;
     private String address;
 
     private String pensionImageUrl;
 
-    public TopPensionResponseDto(Long pensionId, String pensionName, Integer reviewCount, BigDecimal reviewAvg, String province, String cityDistrict, String subDistrict, Long viewCount) {
+    public TopPensionResponseDto(Long pensionId, String pensionName, Integer reviewCount, Double reviewAvg,
+                                 String province, String cityDistrict, String subDistrict, Long totalViewCount) {
         this.pensionId = pensionId;
         this.pensionName = pensionName;
         this.reviewCount = reviewCount;
-        this.reviewAvg = reviewAvg;
+        this.reviewAvg = reviewAvg != null ? BigDecimal.valueOf(reviewAvg) : null;
         this.province = province;
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
-        this.viewCount = viewCount;
+        this.totalViewCount = totalViewCount;
         this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
     }
 }
