@@ -78,6 +78,10 @@ public class PensionPlaceScoreService {
                 placeMemberScoreRepository.findScoresBatch(allMemberIds, placeIds)
         );
 
+        // 리뷰 날짜 조회
+        Map<Long, LocalDateTime> pensionReviewDates = loadReviewDates(allMemberIds, pensionIds, true);
+        Map<Long, LocalDateTime> placeReviewDates = loadReviewDates(allMemberIds, placeIds, false);
+
         // 4. 기존 데이터 로드
         Map<PensionPlaceId, PensionPlaceScore> existingScores = loadExistingScores(pensionPlaceMembers);
 
@@ -87,11 +91,13 @@ public class PensionPlaceScoreService {
 
         // 6. 점수 계산
         List<PensionPlaceScore> scoresToSave = new ArrayList<>();
-        processScores(pensionPlaceMembers, pensionScores, placeScores, pensions, places, existingScores, scoresToSave);
+        processScores(pensionPlaceMembers, pensionScores, placeScores, pensionReviewDates, placeReviewDates,
+                pensions, places, existingScores, scoresToSave);
 
         log.info("총 저장할 PensionPlaceScores: {}", scoresToSave.size());
         return scoresToSave;
     }
+
 
     /**
      * JDBC를 사용한 배치 저장
@@ -131,6 +137,8 @@ public class PensionPlaceScoreService {
             Map<Long, Map<Long, List<Long>>> pensionPlaceMembers,
             Map<Long, Float> pensionScores,
             Map<Long, Float> placeScores,
+            Map<Long, LocalDateTime> pensionReviewDates,
+            Map<Long, LocalDateTime> placeReviewDates,
             Map<Long, Pension> pensions,
             Map<Long, Place> places,
             Map<PensionPlaceId, PensionPlaceScore> existingScores,
@@ -139,7 +147,8 @@ public class PensionPlaceScoreService {
         pensionPlaceMembers.forEach((pensionId, placeMembers) -> {
             placeMembers.forEach((placeId, commonMembers) -> {
                 if (!commonMembers.isEmpty()) {
-                    float score = calculateScore(commonMembers, pensionScores, placeScores);
+                    float score = calculateScore(commonMembers, pensionScores, placeScores,
+                            pensionReviewDates, placeReviewDates); // 리뷰 날짜 전달
                     Pension pension = pensions.get(pensionId);
                     Place place = places.get(placeId);
 
@@ -156,19 +165,18 @@ public class PensionPlaceScoreService {
                                         .build()
                         );
 
-
                         // 변경된 경우에만 추가
                         if (Math.abs(pensionPlaceScore.getScore() - score) > EPSILON) {
                             pensionPlaceScore.setScore(score);
                             pensionPlaceScore.setLastUpdatedAt(LocalDateTime.now());
                             scoresToSave.add(pensionPlaceScore);
                         }
-
                     }
                 }
             });
         });
     }
+
 
 
     private Map<Long, Float> convertToScoreMap(List<Object[]> results) {
@@ -206,21 +214,51 @@ public class PensionPlaceScoreService {
     private float calculateScore(
             List<Long> commonMembers,
             Map<Long, Float> pensionScores,
-            Map<Long, Float> placeScores
+            Map<Long, Float> placeScores,
+            Map<Long, LocalDateTime> pensionReviewDates, // 펜션 리뷰 날짜
+            Map<Long, LocalDateTime> placeReviewDates   // 시설 리뷰 날짜
     ) {
-        float totalScore = 0.0f; // 점수 총합 초기화
+        if (commonMembers.isEmpty()) {
+            return 0.0f; // 공통 멤버가 없으면 점수는 0
+        }
+
+        float totalWeightedScore = 0.0f; // 가중 평균 점수의 총합
+        float totalWeight = 0.0f;        // 전체 가중치 총합
+        float maxScore = 10.0f;          // 최대 점수 기준 (10점 만점 기준)
+
+        // 각 공통 멤버에 대해 펜션 점수와 시설 점수를 가중치를 적용해 계산
         for (Long memberId : commonMembers) {
-            // 각 멤버의 펜션 점수, 시설 점수 조회
             float pensionScore = pensionScores.getOrDefault(memberId, 0.0f);
             float placeScore = placeScores.getOrDefault(memberId, 0.0f);
 
-            // 펜션 점수와 시설 점수의 평균을 계산하여 총합에 더함
-            totalScore += (pensionScore + placeScore) / 2;
+            LocalDateTime pensionDate = pensionReviewDates.getOrDefault(memberId, LocalDateTime.now());
+            LocalDateTime placeDate = placeReviewDates.getOrDefault(memberId, LocalDateTime.now());
+
+            // 날짜 차이 계산 (일 단위)
+            long daysBetween = Math.abs(java.time.Duration.between(pensionDate, placeDate).toDays());
+
+            // 가중치 = 1 / (1 + 날짜 차이), 날짜가 가까울수록 가중치가 큼
+            float weight = 1.0f / (1 + daysBetween);
+
+            // 점수의 평균을 가중치와 곱해 누적
+            float averageScore = (pensionScore + placeScore) / 2;
+            totalWeightedScore += averageScore * weight;
+            totalWeight += weight;
         }
 
-        // 공통 멤버 수로 나눠 최종 평균 점수 계산
-        return totalScore / commonMembers.size();
+        // 가중 평균 계산
+        float weightedAverageScore;
+        if(totalWeight == 0.0f){
+            weightedAverageScore = 0.0f;
+        } else{
+            weightedAverageScore = totalWeightedScore / totalWeight;
+        }
+
+        // 점수는 0 ~ 최대 점수 사이로 클램핑 (안정성 보장)
+        return Math.max(0.0f, Math.min(maxScore, weightedAverageScore));
     }
+
+
 
     @Transactional(readOnly = true)
     public List<Long> getPensionIds() {
@@ -234,4 +272,25 @@ public class PensionPlaceScoreService {
     public void clearPersistenceContext() {
         entityManager.clear();
     }
+
+    private Map<Long, LocalDateTime> loadReviewDates(
+            List<Long> memberIds, List<Long> targetIds, boolean isPension) {
+
+        List<Object[]> results;
+        if (isPension) {
+            results = pensionMemberScoreRepository.findReviewDatesBatch(memberIds, targetIds);
+        } else {
+            results = placeMemberScoreRepository.findReviewDatesBatch(memberIds, targetIds);
+        }
+
+        Map<Long, LocalDateTime> reviewDates = new HashMap<>();
+        for (Object[] result : results) {
+            Long memberId = (Long) result[0];
+            LocalDateTime reviewDate = (LocalDateTime) result[1];
+            reviewDates.put(memberId, reviewDate);
+        }
+        return reviewDates;
+    }
+
+
 }

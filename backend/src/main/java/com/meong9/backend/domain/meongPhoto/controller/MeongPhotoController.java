@@ -10,6 +10,8 @@ import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,9 +40,8 @@ public class MeongPhotoController {
      * 멍생네컷 전체 조회 컨트롤러
      */
     @GetMapping
-    public ResponseEntity<?> getAllMeongPhoto(@RequestParam(name = "lastPhotoId", required = false) Long lastPhotoId,
-                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
-        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(lastPhotoId, size);
+    public ResponseEntity<?> getAllMeongPhoto(@PageableDefault(page = 0, size = 6) Pageable pageable) {
+        MeongPhotoListDto dto = meongPhotoService.getAllMeongPhoto(pageable);
         return CommonResponse.ok("success", dto);
     }
 
@@ -49,10 +50,8 @@ public class MeongPhotoController {
      */
     @GetMapping("/mine")
     public ResponseEntity<?> getMyMeongPhotos(@CurrentMember Member member,
-                                              @RequestParam(required = false) Long lastPhotoId,
-                                              @RequestParam(name = "size", required = false, defaultValue = "10") int size) {
-
-        MyMeongPhotoListDto dto = meongPhotoService.getMyMeongPhotos(member, lastPhotoId, size);
+                                              @PageableDefault(page = 0, size = 6) Pageable pageable) {
+        MyMeongPhotoListDto dto = meongPhotoService.getMyMeongPhotos(member, pageable);
         return CommonResponse.ok("success", dto);
     }
 }

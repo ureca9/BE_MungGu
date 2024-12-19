@@ -46,8 +46,11 @@ public class MediaFileService {
     @Qualifier("taskExecutor")
     private final ThreadPoolTaskExecutor taskExecutor;
 
-    @Value("${s3.bucket}")
+    @Value("${s3.buckets.source}")
     private String bucket;
+
+    @Value("${s3.buckets.resize}")
+    private String resizeBucket;
 
     @Value("${s3.credentials.region}")
     private String region;
@@ -126,8 +129,17 @@ public class MediaFileService {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
 
         // 허용 확장자를 소문자로 비교
-        if (!List.of("jpg", "jpeg", "png","mp4","mov").contains(fileExtension)) {
+        if (!List.of("jpg", "jpeg", "png", "webp", "mp4", "mov").contains(fileExtension)) {
             throw BadRequestException.invalidImageVideoFormat();
+        }
+
+        // Webp 이미지인 경우 변환
+        if (fileExtension.equals("webp")) {
+            try {
+                Class.forName("com.luciad.imageio.webp.WebPReadParam");
+            } catch (ClassNotFoundException e) {
+                throw BadRequestException.invalidImageVideoFormat();
+            }
         }
     }
 
@@ -355,6 +367,10 @@ public class MediaFileService {
                 Integer.parseInt(parts[0]), // width (픽셀)
                 Integer.parseInt(parts[1])  // height (픽셀)
         );
+    }
+
+    public String getResizeBucketUrl(String fileKey) {
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", resizeBucket, region, fileKey);
     }
 
     public MediaFile registerFileKey(String fileKey) {

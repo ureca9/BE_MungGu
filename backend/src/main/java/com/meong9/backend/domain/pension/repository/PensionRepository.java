@@ -5,6 +5,7 @@ import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
+import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -63,7 +64,7 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     Optional<Pension> findByPensionId(@Param("pensionId") Long pensionId);
 
     @Query("""
-    SELECT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
+    SELECT DISTINCT new com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto(
     p.name,
     p.reviewAvg,
     p.reviewCount
@@ -77,15 +78,24 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     @Query("SELECT p FROM Pension p WHERE p.pensionId = :pensionId")
     Optional<Pension> findByPensionIdWithImage(@Param("pensionId") Long pensionId);
 
-    @EntityGraph(attributePaths = {"pensionFiles.mediaFile"})
+    @Query("SELECT new com.meong9.backend.domain.review.dto.ReviewInfoQueryResult(p, COUNT(r)) " +
+            "FROM Pension p " +
+            "LEFT JOIN Review r ON r.placePensionId = p.pensionId AND r.type = :type " +
+            "WHERE p.pensionId = :pensionId " +
+            "GROUP BY p")
+    Optional<ReviewInfoQueryResult> findByPensionIdWithImageAndReviewCount(@Param("pensionId") Long pensionId,
+                                                                         @Param("type") String type);
+
     @Query("""
-    SELECT P,
+    SELECT DISTINCT P,
            CASE WHEN EXISTS (SELECT 1
                 FROM PensionLike pl
                 JOIN Like l ON pl.likeId = l.likeId
             WHERE l.member.memberId = :memberId AND pl.pension.pensionId = P.pensionId) 
             THEN TRUE ELSE FALSE END AS LIKED 
     FROM Pension P
+    LEFT JOIN P.pensionFiles pf
+    LEFT JOIN pf.mediaFile
     WHERE P.pensionId IN :pensionIds
     """)
     List<Object[]> findAllWithLikeStatus(

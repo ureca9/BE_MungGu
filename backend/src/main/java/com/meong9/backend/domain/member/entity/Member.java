@@ -1,6 +1,7 @@
 package com.meong9.backend.domain.member.entity;
 
 import com.meong9.backend.domain.puppy.entity.Puppy;
+import com.meong9.backend.global.blacklist.entity.BlackList;
 import com.meong9.backend.global.entity.BaseTimeEntity;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
@@ -53,6 +54,14 @@ public class Member extends BaseTimeEntity {
 
     @Setter
     private LocalDateTime lastActivity = LocalDateTime.now();
+
+    @OneToOne(mappedBy = "member", orphanRemoval = true)
+    @Setter
+    private BlackList blackList;
+
+    @Column
+    @Setter
+    private int badPostCount = 0;
 
     @Builder
     public Member (String email, String name, String provider, String providerId, MediaFile profileImage) {

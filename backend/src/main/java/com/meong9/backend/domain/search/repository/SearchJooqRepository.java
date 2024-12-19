@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface SearchJooqRepository {
-    List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, List<Long> categoryIds, String typeCode, Long memberId);
+    List<SearchPlaceDto> searchPlaces(List<Long> filteredPlaceIds, String typeCode, Long memberId);
     List<SearchPensionDto> searchPensions(List<Long> filteredPensionIds, String startDate, String endDate, String sizeCode, String typeCode, Long memberId);
 
     Slice<Long> findPlaceIdsBySearchWordForMap(String searchWord, Pageable pageable);
@@ -19,5 +19,7 @@ public interface SearchJooqRepository {
     List<Long> findPlaceIdsBySearchWord(String searchWord);
 
     Slice<Long> findPlaceIdsMatchWithCategoryIds(List<Long> firstFilteredPlaceIds, List<Long> categoryIds, String sizeCode, Pageable pageable);
-    Slice<Long> findPensionIdsIsAvailable(List<Long> firstFilteredPensionIds, String sizeCode, LocalDate start, LocalDate end, Pageable pageable);
+    Slice<Long> findPensionIdsIsAvailable(List<Long> secondFilteredPensionIds, LocalDate start, LocalDate end, Pageable pageable);
+
+    List<Long> findPensionIdsMatchWithSizeCode(List<Long> firstFilteredPensionIds, String sizeCode);
 }

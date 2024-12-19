@@ -71,6 +71,9 @@ dependencies {
 	// caffeine
 	implementation 'com.github.ben-manes.caffeine:caffeine:3.1.6'
 
+	// webp 처리
+	implementation 'org.sejda.imageio:webp-imageio:0.1.6'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -91,7 +94,7 @@ jooq {
 					driver = 'com.mysql.cj.jdbc.Driver'
 					url = System.getProperty('dbUrl', 'jdbc:mysql://localhost:3306/meong9')
 					user = System.getProperty('dbUsername', 'root')
-					password = System.getProperty('dbPassword', '1234')
+					password = System.getProperty('dbPassword', '')
 				}
 				generator {
 					database {

@@ -28,7 +28,6 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
@@ -78,19 +77,11 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<MyReviewResponseDto> getMyReviews(Member member,Long lastReviewId,Pageable pageable) {
-        List<Review> reviews = reviewRepository.findByMember(member,lastReviewId,pageable).getContent();
-        List<MyReviewResponseDto> result = new ArrayList<>();
-        for (Review review : reviews) {
-            if(Objects.equals(review.getType(), "010")){ // 장소
-                result.add(MyReviewResponseDto.from(review,placeRepository.findNameByPlaceId(review.getPlacePensionId())));
-            }
-            if(Objects.equals(review.getType(), "020")){ // 펜션
-                result.add(MyReviewResponseDto.from(review,pensionRepository.findNameByPensionId(review.getPlacePensionId())));
-            }
-        }
-
-        return result;
+    public List<MyReviewResponseDto> getMyReviews(Member member) {
+        List<MyReviewResponseDto> reviews = reviewRepository.findReviewsByMember(member);
+        reviews.sort((r1, r2) -> Long.compare(r2.getReviewId(), r1.getReviewId()));
+        
+        return reviews;
     }
 
     @Transactional(readOnly = true)
@@ -99,28 +90,33 @@ public class ReviewService {
         String fullAddress=plcPenAddressRepository.findFullAddress(type, plcPenId)
                 .orElseThrow(() -> NotFoundException
                         .entityNotFound("찾으시는 주소가 없습니다, type: " +type+", id: " + plcPenId));
+
         if(Objects.equals(type, "010")){ // 장소
-            Place place=placeRepository.findByPlaceIdWithImage(plcPenId)
+            ReviewInfoQueryResult queryResult=placeRepository.findByPlaceIdWithImageAndReviewCount(plcPenId,type)
                     .orElseThrow(() -> NotFoundException
                     .entityNotFound("type: " +type+", place_id: " + plcPenId));
+            Place place = queryResult.getPlace();
+            Integer reviewCount =  Math.toIntExact(queryResult.getReviewCount());
             String fileUrl=null;
-            if(place.getPlaceFiles() != null) {
+            if(!place.getPlaceFiles().isEmpty()) {
                 fileUrl=place.getPlaceFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
-
-            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),place.getReviewCount(),fileUrl,place.getLikeCount());
+            return new PlacePensionInfoResponseDto.PlaceResponse(place.getName(),fullAddress,place.getReviewAvg(),reviewCount,fileUrl,place.getLikeCount());
         }
+
         if(Objects.equals(type, "020")){ // 펜션
-            Pension pension=pensionRepository.findByPensionIdWithImage(plcPenId)
+            ReviewInfoQueryResult queryResult=pensionRepository.findByPensionIdWithImageAndReviewCount(plcPenId,type)
                     .orElseThrow(() -> NotFoundException
                             .entityNotFound("type: " +type+", pension_id: " + plcPenId));
+            Pension pension = queryResult.getPension();
+            Integer reviewCount =  Math.toIntExact(queryResult.getReviewCount());
 
             String fileUrl=null;
-            if(pension.getPensionFiles() != null) {
+            if(!pension.getPensionFiles().isEmpty()) {
                 fileUrl=pension.getPensionFiles().get(0).getMediaFile().getFileUrl(); // 0번째 사진 가져오기
             }
 
-            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),pension.getReviewCount(),fileUrl,pension.getLikeCount());
+            return new PlacePensionInfoResponseDto.PensionResponse(pension.getName(),fullAddress,pension.getReviewAvg(),reviewCount,fileUrl,pension.getLikeCount());
         }
         return null;
     }
@@ -128,10 +124,9 @@ public class ReviewService {
     @Transactional
     public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
         List<MediaFile> mediaFiles = new ArrayList<>();
-        log.info("내용: {}",reviewRequestDto.getContent());
         Review review = Review.builder()
                 .member(member)
-                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))
+                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member))
                 .nickname(member.getNickname())
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())
@@ -141,7 +136,15 @@ public class ReviewService {
                 .build();
 
         Review savedReview = reviewRepository.save(review);
-
+        log.info("saved review: {}", savedReview);
+        if(Objects.equals(reviewRequestDto.getType(), "010")){
+            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            place.increaseReviewCount();
+        }
+        if(Objects.equals(reviewRequestDto.getType(), "020")){
+            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
+            pension.increaseReviewCount();
+        }
         processFileAsync(files, savedReview, mediaFiles);
 
         memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
@@ -168,6 +171,7 @@ public class ReviewService {
         Float oldScore = review.getScore(); // 예전 점수
         Float newScore = reviewRequestDto.getScore(); // 최신 점수
 
+        reviewRequestDto.setContent(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member));
         review.update(reviewRequestDto);
 
         // 새로운 파일 처리
@@ -189,7 +193,7 @@ public class ReviewService {
         return CompletableFuture.completedFuture(null);
     }
 
-    @Retryable( // 재시도 로직 정의
+    @Retryable( // 재시도 로직
             value = TimeoutException.class,
             maxAttempts = 3,
             backoff = @Backoff(delay = 2000)
@@ -283,6 +287,15 @@ public class ReviewService {
         // 리뷰 삭제 (ReviewFile은 CascadeType.ALL로 자동 삭제)
         reviewRepository.delete(review);
 
+        // 리뷰 개수 감소
+        if(Objects.equals(review.getType(), "010")){
+            Place place=placeRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            place.decreaseReviewCount();
+        }
+        if(Objects.equals(review.getType(), "020")){
+            Pension pension=pensionRepository.findById(review.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
+            pension.decreaseReviewCount();
+        }
         memberScoreService.deleteReview(member.getMemberId(), review.getPlacePensionId(), review.getScore(), review.getType());
     }
 

@@ -223,6 +223,8 @@ public class RecommendationService {
             // 콘텐츠 기반 점수 계산
             contentScores = contentBasedRecommendation.calculateContentScores(targetId, allItems, type);
 //            log.info("user base 콘텐츠 기반 점수: {}", contentScores);
+            return combineScores(collaborativeScores, contentScores, 0.8);
+
         } else if(type.equals("Place")){
             // 협업 필터링 점수 계산
             collaborativeScores = itemBasedRecommendation.recommendFacilitiesForPension(targetId);
@@ -231,10 +233,12 @@ public class RecommendationService {
             // 콘텐츠 기반 점수 계산
             contentScores = contentBasedRecommendation.calculateContentScoresByDistance(placeIdsByProvince, pensionInfo);
 //            log.info("item base 콘텐츠 기반 점수: {}", contentScores);
+            return combineScores(collaborativeScores, contentScores, 0.4);
+
         }
 
         // 점수 결합
-        return combineScores(collaborativeScores, contentScores, 0.8);
+        return null;
     }
 
     private List<RecommendedItem> getTopRecommendations(Map<Long, Double> combinedScores, int limit) {

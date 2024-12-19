@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.review.repository;
 
+import com.meong9.backend.domain.review.dto.MyReviewResponseDto;
 import com.meong9.backend.domain.review.dto.PhotoReviewSummaryResponseDto;
 import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.review.entity.Review;
@@ -28,14 +29,17 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         """)
     List<Review> findTop10RecentReviews();
 
-    @Query("""
-    SELECT r FROM Review r
-    WHERE r.member = :member
-    AND (:lastReviewId IS NULL OR r.reviewId < :lastReviewId)
-    ORDER BY r.reviewId DESC 
-    """)
-    Page<Review> findByMember(@Param("member") Member member,@Param("lastReviewId") Long lastReviewId,
-                              Pageable pageable);
+    @Query("SELECT new com.meong9.backend.domain.review.dto.MyReviewResponseDto(" +
+            "r.reviewId, r.content, r.score, r.visitDate, r.type, r.placePensionId, " +
+            "CASE WHEN r.type = '010' THEN p.name WHEN r.type = '020' THEN ps.name ELSE null END, r.nickname, " +
+            "new com.meong9.backend.domain.review.dto.FileResponseDto(mf.fileType, mf.fileSize, mf.fileUrl, mf.fileName)) " +
+            "FROM Review r " +
+            "LEFT JOIN r.reviewFiles rf " +
+            "LEFT JOIN rf.file mf " +
+            "LEFT JOIN Place p ON r.placePensionId = p.placeId AND r.type = '010' " +
+            "LEFT JOIN Pension ps ON r.placePensionId = ps.pensionId AND r.type = '020' " +
+            "WHERE r.member = :member ")
+    List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
 
     @Query("""
     SELECT r FROM Review r

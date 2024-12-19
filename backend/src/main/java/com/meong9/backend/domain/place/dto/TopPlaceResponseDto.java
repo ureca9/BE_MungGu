@@ -20,24 +20,25 @@ public class TopPlaceResponseDto {
     private String province;
     private String cityDistrict;
     private String subDistrict;
-    private Long viewCount;
     private String address;
+    private Long totalViewCount;
 
     private String placeImageUrl;
 
-    public TopPlaceResponseDto(Long placeId, String placeName, Integer reviewCount, BigDecimal reviewAvg, String province, String cityDistrict, String subDistrict, Long viewCount) {
+    public TopPlaceResponseDto(Long placeId, String placeName, Integer reviewCount, Double reviewAvg,
+                               String province, String cityDistrict, String subDistrict, Long totalViewCount) {
         this.placeId = placeId;
         this.placeName = placeName;
         this.reviewCount = reviewCount;
-        this.reviewAvg = reviewAvg;
+        this.reviewAvg = reviewAvg != null ? BigDecimal.valueOf(reviewAvg) : null;
         this.province = province;
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
-        this.viewCount = viewCount;
+        this.totalViewCount = totalViewCount;
         this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
     }
 
-
+}
 
 
 }

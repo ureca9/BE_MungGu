@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -22,7 +20,7 @@ import java.util.List;
 public class VideoService { // 추후에 ME
     private final AmazonS3Client s3Client;
 
-    @Value("${s3.bucket}")
+    @Value("${s3.buckets.source}")
     private String bucket;
 
     /**

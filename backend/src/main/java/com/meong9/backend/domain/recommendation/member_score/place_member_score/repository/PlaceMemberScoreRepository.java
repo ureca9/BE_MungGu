@@ -32,4 +32,10 @@ public interface PlaceMemberScoreRepository extends JpaRepository<PlaceMemberSco
     """)
     List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("placeIds") List<Long> placeIds);
 
+    @Query("SELECT pms.member.memberId, pms.lastUpdatedAt " +
+            "FROM PlaceMemberScore pms " +
+            "WHERE pms.member.memberId IN :memberIds AND pms.place.placeId IN :placeIds")
+    List<Object[]> findReviewDatesBatch(@Param("memberIds") List<Long> memberIds,
+                                        @Param("placeIds") List<Long> placeIds);
+
 }

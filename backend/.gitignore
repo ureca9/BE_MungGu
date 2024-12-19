@@ -28,6 +28,8 @@ out/
 
 application-dev.yml
 logback.xml
+banWords.json
+exceptWords.json
 
 ### NetBeans ###
 /nbproject/private/
@@ -38,3 +40,5 @@ logback.xml
 
 ### VS Code ###
 .vscode/
+src/main/resources/static/banWords.json
+src/main/resources/static/exceptWords.json

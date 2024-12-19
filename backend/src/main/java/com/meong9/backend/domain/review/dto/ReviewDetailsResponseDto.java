@@ -30,7 +30,7 @@ public class ReviewDetailsResponseDto {
                 .plcPenId(review.getPlacePensionId())
                 .nickname(review.getNickname())
                 .file(review.getReviewFiles().stream()
-                        .map(FileResponseDto::from)
+                        .map(FileResponseDto::new)
                         .toList())
                 .build();
     }

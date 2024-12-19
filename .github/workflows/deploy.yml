@@ -33,7 +33,22 @@ jobs:
         working-directory: backend
         run: chmod +x ./gradlew
 
-      # 4. Build 수행
+      # 4. JSON 파일 생성
+      - name: Create JSON Files
+        working-directory: backend
+        run: |
+          echo "Current working directory: $(pwd)"
+          ls -la
+          mkdir -p src/main/resources/static
+          echo "After creating resources/static directory:"
+          ls -la src/main/resources
+          echo '${{ secrets.BAN_WORDS_JSON }}' > src/main/resources/static/banWords.json
+          echo '${{ secrets.EXCEPT_WORDS_JSON }}' > src/main/resources/static/exceptWords.json
+          echo "After creating JSON files:"
+          ls -la src/main/resources/static
+          echo "JSON files have been created successfully."
+
+      # 5. Build 수행
       - name: Build
         working-directory: backend
         env:
@@ -41,16 +56,19 @@ jobs:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           WEATHER_KEY: ${{ secrets.WEATHER_KEY }}
+          S3_RESIZE_BUCKET_NAME: ${{ secrets.S3_RESIZE_BUCKET_NAME }}
         run: |
           echo "Building the project..."
+          echo "S3_RESIZE_BUCKET_NAME: $S3_RESIZE_BUCKET_NAME"
           ./gradlew clean build -x test \
             -DdbUrl=${{ secrets.DB_URL }} \
             -DdbUsername=${{ secrets.DB_USERNAME }} \
             -DdbPassword=${{ secrets.DB_PASSWORD }} \
-            -Dweather.key=${{ secrets.WEATHER_KEY }}
+            -Dweather.key=${{ secrets.WEATHER_KEY }} \
+            -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }}
           echo "Build completed successfully."
 
-      # 5. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
+      # 6. AWS 자격 증명 설정 및 JAR 파일 S3 업로드
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -64,7 +82,7 @@ jobs:
           aws s3 cp backend/build/libs/backend-0.0.1-SNAPSHOT.jar s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar
           echo "JAR file uploaded successfully."
 
-      # 6. EC2 배포 및 실행
+      # 7. EC2 배포 및 실행
       - name: Deploy and Start Application on EC2-1
         uses: appleboy/ssh-action@master
         with:
@@ -100,6 +118,7 @@ jobs:
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
               -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }} \
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
@@ -162,6 +181,7 @@ jobs:
               -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -DAWS_REGION=${{ secrets.AWS_REGION }} \
               -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+              -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }} \
               -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
@@ -171,14 +191,6 @@ jobs:
 
             echo "Sleeping for 30 seconds to allow the application to initialize..."
             sleep 30
-
-            # echo "Checking if the application is running on EC2-2..."
-            # if lsof -i:8080; then
-            #   echo "Application is running on port 8080."
-            # else
-            #   echo "Application failed to start on EC2-2. Check logs for details."
-            #   exit 1
-            # fi
 
             echo "Checking the log file..."
             if [ -f /home/ubuntu/deployments/app.log ]; then

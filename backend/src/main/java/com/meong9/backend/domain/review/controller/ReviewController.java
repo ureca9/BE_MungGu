@@ -9,14 +9,12 @@ import com.meong9.backend.global.dto.CommonResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +33,8 @@ public class ReviewController {
     }
 
     @GetMapping("/reviews")
-    public ResponseEntity<?> getMyReviews(@CurrentMember Member member, @PageableDefault(size = 5, sort = "reviewId",
-                                          direction = Sort.Direction.DESC) Pageable pageable,
-    @RequestParam(value = "lastReviewId", required = false) Long lastReviewId) {
-        return CommonResponse.ok("success",reviewService.getMyReviews(member,lastReviewId,pageable));
+    public ResponseEntity<?> getMyReviews(@CurrentMember Member member) {
+        return CommonResponse.ok("success",reviewService.getMyReviews(member));
     }
 
     @GetMapping("/reviews/info")
@@ -50,7 +46,11 @@ public class ReviewController {
     public ResponseEntity<?> createReview(
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> files,
-            @CurrentMember Member member) throws IOException, InterruptedException, TimeoutException {
+            @CurrentMember Member member)  {
+        // @PreAuthorize로 관리할 경우 403을 반환하기 때문에 200을 반환하되 메시지를 명확히 적어 주도록 함
+        if (member.getBlackList() != null && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
+            return CommonResponse.ok("리뷰 작성 권한이 없습니다.");
+        }
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
     }

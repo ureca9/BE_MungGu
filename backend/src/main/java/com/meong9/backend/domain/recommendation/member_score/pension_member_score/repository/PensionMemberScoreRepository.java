@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 public interface PensionMemberScoreRepository extends JpaRepository<PensionMemberScore, PensionMemberId> {
     @Transactional
@@ -25,4 +24,10 @@ public interface PensionMemberScoreRepository extends JpaRepository<PensionMembe
         GROUP BY pms.member.memberId
     """)
     List<Object[]> findScoresBatch(@Param("memberIds") List<Long> memberIds, @Param("pensionIds") List<Long> pensionIds);
+
+    @Query("SELECT pms.member.memberId, pms.lastUpdatedAt " +
+            "FROM PensionMemberScore pms " +
+            "WHERE pms.member.memberId IN :memberIds AND pms.pension.pensionId IN :pensionIds")
+    List<Object[]> findReviewDatesBatch(@Param("memberIds") List<Long> memberIds,
+                                        @Param("pensionIds") List<Long> pensionIds);
 }
