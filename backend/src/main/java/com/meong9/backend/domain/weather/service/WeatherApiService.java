@@ -21,12 +21,12 @@ public class WeatherApiService {
     private String weatherKey; // 서비스 키
 
     // 단기 예보
-    public String getWeatherForecastST(String[] xy, String date) {
+    public String getWeatherForecastST(String[] xy, String date, String time) {
         try {
             // URL 포맷 지정
             String url = String.format(
-                    "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=%s&pageNo=1&numOfRows=798&dataType=JSON&base_date=%s&base_time=1400&nx=%s&ny=%s",
-                    weatherKey, date, xy[0], xy[1]
+                    "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=%s&pageNo=1&numOfRows=798&dataType=JSON&base_date=%s&base_time=%s&nx=%s&ny=%s",
+                    weatherKey, date, time, xy[0], xy[1]
             );
 
             // WebClient 호출
@@ -55,7 +55,6 @@ public class WeatherApiService {
                     "http://apis.data.go.kr/1360000/MidFcstInfoService/getMidLandFcst?serviceKey=%s&pageNo=1&numOfRows=10&dataType=JSON&regId=%s&tmFc=%s",
                     weatherKey, code, date
             );
-
             // WebClient 호출
             String responseBody = webClient.get()
                     .uri(URI.create(url)) // 자동 인코딩 방지
