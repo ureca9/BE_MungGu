@@ -79,4 +79,13 @@ public class Pension {
     public void decreaseReviewCount() {
         this.reviewCount = Math.max(this.reviewCount - 1, 0);
     }
+
+    public void calcReviewAvg(Integer prevReviewCount, Integer currentReviewCount, Double prevScore, Double currScore) {
+        if (currentReviewCount == 0) {
+            this.reviewAvg = 0.0;
+            return;
+        }
+        double newAvg = (prevReviewCount * this.reviewAvg - prevScore + currScore) / currentReviewCount;
+        this.reviewAvg = Math.round(newAvg * 100) / 100.0;
+    }
 }

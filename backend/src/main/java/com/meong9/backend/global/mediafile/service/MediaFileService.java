@@ -285,16 +285,17 @@ public class MediaFileService {
     }
 
     /**
-     * MultipartFile에서 이미지 메타데이터 추출
+     * MultipartFile에서 비디오 메타데이터 추출
      */
     public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException, InterruptedException, TimeoutException {
         // 타임아웃 설정 (초 단위)
         int timeout = 30;
 
         // FFprobe 명령어 설정
+
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "ffprobe",
-                "-v", "error", // 에러 메시지 최소화
+                "-v", "error",
                 "-select_streams", "v:0", // 비디오 스트림만 선택
                 "-show_entries", "stream=width,height,duration", // 필요한 메타데이터 필드 지정
                 "-of", "csv=p=0", // CSV 형식 출력
@@ -306,14 +307,15 @@ public class MediaFileService {
             // FFprobe 프로세스 시작
             process = processBuilder.start();
 
-            // CompletableFuture를 사용하여 비동기 작업 수행
+            // 비동기 작업 수행
             CompletableFuture<String> future = executeWithTimeout(process, video);
 
-            // 결과 가져오기 (타임아웃 적용)
+            // 결과 가져오기
             String result = future.get(timeout, TimeUnit.SECONDS);
 
             // FFprobe 출력 결과를 파싱하여 메타데이터 DTO로 변환
             return parseMetadata(result);
+
         } catch (TimeoutException e) {
             throw new TimeoutException("비디오 메타데이터 추출 시간 초과");
         } catch (Exception e) {

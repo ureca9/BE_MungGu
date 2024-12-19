@@ -6,13 +6,14 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
+@Slf4j
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -85,5 +86,14 @@ public class Place {
     }
     public void decreaseReviewCount() {
         this.reviewCount = Math.max(this.reviewCount - 1, 0);
+    }
+
+    public void calcReviewAvg(Integer prevReviewCount, Integer currentReviewCount, Double prevScore, Double currScore) {
+        if (currentReviewCount == 0) {
+            this.reviewAvg = 0.0;
+            return;
+        }
+        double newAvg = (prevReviewCount * this.reviewAvg - prevScore + currScore) / currentReviewCount;
+        this.reviewAvg = Math.round(newAvg * 100) / 100.0;
     }
 }

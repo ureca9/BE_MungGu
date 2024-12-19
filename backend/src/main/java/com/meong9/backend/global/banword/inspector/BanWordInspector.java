@@ -52,14 +52,6 @@ public class BanWordInspector {
             memberService.handleBadPost(member);
         }
 
-        /**
-         입력: 과징금 크악 씨  이  빨
-         문자 제거: 과징금크악씨이빨
-
-         기대 결과: 과징금 크악 멍멍
-         실제 결과: 과징금크악멍멍
-
-         **/
         for (int i = data.size() - 1; i >= 0; i--) {
             sb.replace(data.get(i).startIndex(), data.get(i).endIndex(), replace);
         }
