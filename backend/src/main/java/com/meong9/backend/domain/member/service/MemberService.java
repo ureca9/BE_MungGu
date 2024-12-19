@@ -14,6 +14,9 @@ import com.meong9.backend.domain.puppy.repository.PuppyRepository;
 import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
+import com.meong9.backend.global.blacklist.entity.BlackList;
+import com.meong9.backend.global.blacklist.entity.LockedReason;
+import com.meong9.backend.global.blacklist.repository.BlackListRepository;
 import com.meong9.backend.global.entity.Region;
 import com.meong9.backend.global.exception.AuthenticationException;
 import com.meong9.backend.global.exception.NotFoundException;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,6 +47,7 @@ public class MemberService {
     private final RegionRepository regionRepository;
     private final MediaFileService mediaFileService;
     private final PuppyRepository puppyRepository;
+    private final BlackListRepository blackListRepository;
 
     /**
      * refresh token 사용하여 access token 재발급하는 서비스 메서드
@@ -270,5 +275,24 @@ public class MemberService {
         return new InterestDto(favCategoryList.stream()
                 .map(favoritePlace -> favoritePlace.getPlcCategory().getName())
                 .collect(Collectors.toSet()));
+    }
+
+    public void handleBadPost(Member member) {
+        member.setBadPostCount(member.getBadPostCount() + 1);
+
+        // 3번 이상 나쁜 리뷰를 작성하면
+        if (member.getBadPostCount() >= 3) {
+            LocalDateTime lockedUntil = LocalDateTime.now().plusMonths(1);
+            BlackList blackList = BlackList.builder()
+                    .member(member)
+                    .reason(String.valueOf(LockedReason.BADWORDS))
+                    .lockedUntil(lockedUntil)
+                    .build();
+            blackListRepository.save(blackList);
+            member.setBlackList(blackList);
+            member.setBadPostCount(0);
+        }
+
+        memberRepository.save(member);
     }
 }

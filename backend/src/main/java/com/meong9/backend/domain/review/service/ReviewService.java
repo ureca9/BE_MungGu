@@ -126,7 +126,7 @@ public class ReviewService {
         List<MediaFile> mediaFiles = new ArrayList<>();
         Review review = Review.builder()
                 .member(member)
-                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"))
+                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member))
                 .nickname(member.getNickname())
                 .score(reviewRequestDto.getScore())
                 .type(reviewRequestDto.getType())
@@ -171,7 +171,7 @@ public class ReviewService {
         Float oldScore = review.getScore(); // 예전 점수
         Float newScore = reviewRequestDto.getScore(); // 최신 점수
 
-        reviewRequestDto.setContent(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍"));
+        reviewRequestDto.setContent(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member));
         review.update(reviewRequestDto);
 
         // 새로운 파일 처리
