@@ -29,11 +29,20 @@ public class TopPensionJobListener implements JobExecutionListener {
         log.info("Redis의 펜션 조회수 데이터가 삭제되었습니다.");
     }
 
+    private static final String PENSION_VIEW_COUNT_KEY = "pension:viewCount";
     /**
      * 모든 펜션의 조회수 데이터를 삭제합니다.
      */
     private void clearAllPensionViewCounts() {
-        String sortedSetKey = "pension:viewCount";
-        redisTemplate.delete(sortedSetKey);
+        try {
+            // Redis에서 키 삭제
+            redisTemplate.delete(PENSION_VIEW_COUNT_KEY);
+        } catch (Exception e) {
+            // 오류 발생 시 로그 기록
+            log.error("Redis 데이터 삭제 중 오류 발생: {}", e.getMessage(), e);
+
+            // 사용자 정의 예외 메시지를 던짐
+            throw new RuntimeException("Redis 데이터 삭제 실패", e);
+        }
     }
 }

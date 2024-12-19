@@ -6,6 +6,7 @@ import com.meong9.backend.global.batch.place.dto.TopPlaceAndFeature;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TopPlaceAndFeatureProcessor implements ItemProcessor<RedisTopPlaceDto, TopPlaceAndFeature> {
 
     @Override
@@ -58,7 +60,7 @@ public class TopPlaceAndFeatureProcessor implements ItemProcessor<RedisTopPlaceD
         TopFeature topFeature = new TopFeature();
 
         if (tagIds == null || tagIds.isEmpty()) {
-            System.out.println("Warning: No tag IDs provided. Skipping TopFeature creation.");
+            log.warn("태그 ID가 제공되지 않았습니다. TopFeature 생성을 건너뜁니다.");
             return topFeature;
         }
 

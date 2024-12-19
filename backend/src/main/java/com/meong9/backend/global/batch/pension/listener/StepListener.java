@@ -16,11 +16,19 @@ public class StepListener implements StepExecutionListener {
     @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         if (stepExecution.getStatus() == BatchStatus.FAILED) {
-            log.error("Step '{}' 실패. 원인: {}", stepExecution.getStepName(), stepExecution.getFailureExceptions());
-            return ExitStatus.FAILED; // 실패 상태 반환
+            log.error("Step '{}' 실패. 처리된 아이템: {}, 건너뛴 아이템: {}, 실패 원인: {}",
+                    stepExecution.getStepName(),
+                    stepExecution.getWriteCount(),
+                    stepExecution.getSkipCount(),
+                    stepExecution.getFailureExceptions());
+            return ExitStatus.FAILED;
         } else {
-            log.info("Step '{}' 완료. 처리된 아이템 수: {}", stepExecution.getStepName(), stepExecution.getWriteCount());
-            return ExitStatus.COMPLETED; // 성공 상태 반환
+            log.info("Step '{}' 완료. 처리된 아이템: {}, 건너뛴 아이템: {}",
+                    stepExecution.getStepName(),
+                    stepExecution.getWriteCount(),
+                    stepExecution.getSkipCount());
+            return ExitStatus.COMPLETED;
         }
     }
+
 }

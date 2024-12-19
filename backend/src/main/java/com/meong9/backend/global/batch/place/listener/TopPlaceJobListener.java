@@ -36,11 +36,24 @@ public class TopPlaceJobListener implements JobExecutionListener {
      * 모든 펜션의 조회수 데이터를 삭제합니다.
      */
     private void clearAllPlaceViewCounts() {
+        // 카테고리 목록 가져오기
         List<String> categoryList = CategoryMapper.getAllCategoryNames();
 
         for (String category : categoryList) {
-            String sortedSetKey = "place:category:" + category; // Redis Sorted Set 키 생성
-            redisTemplate.delete(sortedSetKey);
+            // Redis 정렬된 세트 키 생성
+            String sortedSetKey = "place:category:" + category;
+
+            // 키 존재 여부 확인
+            Boolean hasKey = redisTemplate.hasKey(sortedSetKey);
+
+            if (hasKey != null && hasKey) {
+                // 키 삭제
+                redisTemplate.delete(sortedSetKey);
+                log.info("카테고리 {} 의 Redis 데이터가 삭제되었습니다.", category);
+            } else {
+                // 키가 존재하지 않을 경우 경고 로그
+                log.warn("카테고리 {} 의 Redis 데이터가 존재하지 않습니다.", category);
+            }
         }
     }
 }
