@@ -19,5 +19,7 @@ public interface SearchJooqRepository {
     List<Long> findPlaceIdsBySearchWord(String searchWord);
 
     Slice<Long> findPlaceIdsMatchWithCategoryIds(List<Long> firstFilteredPlaceIds, List<Long> categoryIds, String sizeCode, Pageable pageable);
-    Slice<Long> findPensionIdsIsAvailable(List<Long> firstFilteredPensionIds, String sizeCode, LocalDate start, LocalDate end, Pageable pageable);
+    Slice<Long> findPensionIdsIsAvailable(List<Long> secondFilteredPensionIds, LocalDate start, LocalDate end, Pageable pageable);
+
+    List<Long> findPensionIdsMatchWithSizeCode(List<Long> firstFilteredPensionIds, String sizeCode);
 }

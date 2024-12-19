@@ -16,16 +16,17 @@ import java.util.List;
 public interface TopPensionRepository extends JpaRepository<TopPension, Long> {
     @Query(value = """
         SELECT new com.meong9.backend.domain.pension.dto.TopPensionResponseDto(
-            t.pensionId, t.pensionName, t.reviewCount, t.reviewAvg,
-            t.province, t.cityDistrict, t.subDistrict, t.viewCount)
+            t.pensionId, MAX(t.pensionName), MAX(t.reviewCount), AVG(t.reviewAvg),
+            MAX(t.province), MAX(t.cityDistrict), MAX(t.subDistrict), SUM(t.viewCount))
         FROM TopPension t
-        WHERE (t.year = :startYear AND t.month = :startMonth AND t.date >= :startDate)
-        OR (t.year = :endYear AND t.month = :endMonth AND t.date <= :endDate)
-        OR (t.year = :startYear AND t.month > :startMonth)
-        OR (t.year = :endYear AND t.month < :endMonth)
-        OR (t.year > :startYear AND t.year < :endYear)
-        GROUP BY t.pensionId, t.pensionName, t.reviewCount, t.reviewAvg,
-                t.province, t.cityDistrict, t.subDistrict, t.viewCount
+        WHERE (
+                (t.year = :startYear AND t.month = :startMonth AND t.date >= :startDate)
+                OR (t.year = :endYear AND t.month = :endMonth AND t.date <= :endDate)
+                OR (t.year = :startYear AND t.month > :startMonth)
+                OR (t.year = :endYear AND t.month < :endMonth)
+                OR (t.year > :startYear AND t.year < :endYear)
+        )
+        GROUP BY t.pensionId
         ORDER BY SUM(t.viewCount) DESC
         """)
     Slice<TopPensionResponseDto> findTop9PensionsByDateRangeAndCategory(

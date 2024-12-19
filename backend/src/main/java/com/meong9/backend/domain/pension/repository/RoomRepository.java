@@ -24,4 +24,10 @@ public interface RoomRepository extends JpaRepository<Room,Long> {
             "GROUP BY r.pension.pensionId")
     List<Object[]> findAveragePricesByPensionIds(@Param("pensionIds") List<Long> pensionIds);
 
+    @Query("""
+    SELECT AVG(r.price)
+    FROM Room r
+    WHERE r.pension.pensionId = :pensionId AND r.price IS NOT NULL
+""")
+    Double findAveragePriceByPensionId(@Param("pensionId") Long pensionId);
 }
