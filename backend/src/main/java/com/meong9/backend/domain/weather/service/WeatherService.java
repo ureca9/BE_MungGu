@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +34,15 @@ public class WeatherService {
     private static final String WEATHER_KEY = "weather:";
     private static final DateTimeFormatter FULL_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter FULL_DATE_TIME_FORMATTER_ST = DateTimeFormatter.ofPattern("HHmm");
+
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final WeatherApiService weatherApiService;
 
     // 지역 별 날씨 데이터 (기상청  api 호출)
-    @Scheduled(cron = "0 0 6 * * ?") // 새벽 6시
+    @Scheduled(cron = "0 0 6,18 * * ?")// 새벽 6시, 저녁 6시
 //    @Scheduled(cron = "0 * * * * ?")
     public void fetchAndStoreWeatherData() {
         for (Map.Entry<String, String> entry : RegionMapper.getWeatherRegionAll().entrySet()) {
@@ -65,6 +68,8 @@ public class WeatherService {
             weatherDto.setRegionName(region);
 
             return weatherDto;
+        } catch (NotFoundException e){
+            throw NotFoundException.entityNotFound("날씨 데이터");
         } catch (JsonProcessingException e) {
             // json 파싱 오류
             throw InternalServerError.parseJsonError(e.getMessage());
@@ -82,28 +87,35 @@ public class WeatherService {
         int attempt = 0;
         while (attempt < maxRetries) {
             try {
-                processRegionWeather(regionKey, regionValue); // 지역 날씨 처리
+                LocalTime now = LocalTime.now();
+                int hour = now.getHour();
+
+                processRegionWeather(regionKey, regionValue, hour); // 지역 날씨 처리
                 return; // 성공 시 메서드 종료
             } catch (Exception e) {
                 attempt++;
                 log.info(String.format("지역 처리 실패: %s (%d/%d 시도)", regionKey, attempt, maxRetries));
                 if (attempt >= maxRetries) {
                     log.error("최대 재시도 횟수 초과: " + regionKey);
-                    throw InternalServerError.schedulerFailError(e.getMessage());
+                    log.error("날씨 데이터를 저장하지 않고 종료합니다.");
+
+                    return;
                 }
             }
         }
     }
 
     // 날씨 데이터 처리
-    private void processRegionWeather(String region, String code) {
-        String dateFormatMid = getFixedTime(6, 0).format(FULL_DATE_TIME_FORMATTER);
-        String dateFormatST = getYesterday().format(DATE_FORMATTER);
+    private void processRegionWeather(String region, String code, int hour) {
+        String dateFormatMid = getFixedTime(hour, 0).format(FULL_DATE_TIME_FORMATTER);
+
+        String timeFormat = getFixedTime(hour - 1, 0).format(FULL_DATE_TIME_FORMATTER_ST);
+        String dateFormatST = getToday().format(DATE_FORMATTER);
 
         String[] xy = RegionMapper.getWeatherXYRegion(region);
 
         String responseMid = weatherApiService.getWeatherForecastMid(code, dateFormatMid);
-        String responseST = weatherApiService.getWeatherForecastST(xy, dateFormatST);
+        String responseST = weatherApiService.getWeatherForecastST(xy, dateFormatST, timeFormat);
 
         // 단기
         List<String> weatherCodes = parseShortTermWeather(responseST);
@@ -215,7 +227,7 @@ public class WeatherService {
         return LocalDateTime.now().withHour(hour).withMinute(minute);
     }
 
-    private LocalDate getYesterday() {
-        return LocalDate.now().minusDays(1);
+    private LocalDate getToday() {
+        return LocalDate.now();
     }
 }
