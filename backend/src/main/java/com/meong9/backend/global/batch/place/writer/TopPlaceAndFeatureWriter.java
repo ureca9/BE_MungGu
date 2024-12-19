@@ -1,7 +1,7 @@
-    package com.meong9.backend.global.batch.pension.writer;
+    package com.meong9.backend.global.batch.place.writer;
 
-    import com.meong9.backend.domain.pension.entity.TopPension;
-    import com.meong9.backend.global.batch.pension.dto.TopPensionAndFeature;
+    import com.meong9.backend.domain.place.entity.TopPlace;
+    import com.meong9.backend.global.batch.place.dto.TopPlaceAndFeature;
     import com.meong9.backend.global.topFeature.entity.TopFeature;
     import lombok.RequiredArgsConstructor;
     import lombok.extern.slf4j.Slf4j;
@@ -24,50 +24,50 @@
     @Component
     @RequiredArgsConstructor
     @Slf4j
-    public class TopPensionAndFeatureWriter implements ItemWriter<TopPensionAndFeature> {
+    public class TopPlaceAndFeatureWriter implements ItemWriter<TopPlaceAndFeature> {
 
         private final JdbcTemplate jdbcTemplate;
 
         @Override
-        public void write(Chunk<? extends TopPensionAndFeature> items) throws Exception {
-            // 1. TopPension 저장 및 ID 반환
-            List<Long> pensionIds = insertTopPensions(items);
+        public void write(Chunk<? extends TopPlaceAndFeature> items) throws Exception {
+            // 1. TopPlace 저장 및 ID 반환
+            List<Long> placeIds = insertTopPlaces(items);
 
             // 2. TopFeature 저장 및 ID 반환
             List<Long> featureIds = insertTopFeatures(items);
 
             // 3. IDs를 ExecutionContext에 저장
-            appendToExecutionContext("topPensionIds", pensionIds);
+            appendToExecutionContext("topPlaceIds", placeIds);
             appendToExecutionContext("topFeatureIds", featureIds);
         }
 
-        private List<Long> insertTopPensions(Chunk<? extends TopPensionAndFeature> items) {
+        private List<Long> insertTopPlaces(Chunk<? extends TopPlaceAndFeature> items) {
             List<Long> generatedIds = new ArrayList<>();
             String sql =
-                    "INSERT INTO top_pension (pension_name, review_count, review_avg, like_count, " +
-                            "province, city_district, sub_district, view_count, `rank`, year, month, `date`, room_price_avg, pension_id) " +
+                    "INSERT INTO top_place (place_name, review_count, review_avg, like_count, " +
+                            "province, city_district, sub_district, view_count, `rank`, year, month, `date`, place_id, category) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            for (TopPensionAndFeature item : items.getItems()) {
-                TopPension topPension = item.getTopPension();
+            for (TopPlaceAndFeature item : items.getItems()) {
+                TopPlace topPlace = item.getTopPlace();
                 // GeneratedKeyHolder 사용
                 KeyHolder keyHolder = new GeneratedKeyHolder();
                 jdbcTemplate.update(connection -> {
-                    PreparedStatement ps = connection.prepareStatement(sql, new String[]{"top_pension_id"});
-                    ps.setString(1, topPension.getPensionName());
-                    ps.setInt(2, topPension.getReviewCount());
-                    ps.setBigDecimal(3, topPension.getReviewAvg());
-                    ps.setInt(4, topPension.getLikeCount());
-                    ps.setString(5, topPension.getProvince());
-                    ps.setString(6, topPension.getCityDistrict());
-                    ps.setString(7, topPension.getSubDistrict());
-                    ps.setLong(8, topPension.getViewCount());
-                    ps.setInt(9, topPension.getRank());
-                    ps.setInt(10, topPension.getYear());
-                    ps.setInt(11, topPension.getMonth());
-                    ps.setInt(12, topPension.getDate());
-                    ps.setBigDecimal(13, topPension.getRoomPriceAvg());
-                    ps.setLong(14, topPension.getPensionId());
+                    PreparedStatement ps = connection.prepareStatement(sql, new String[]{"top_place_id"});
+                    ps.setString(1, topPlace.getPlaceName());
+                    ps.setInt(2, topPlace.getReviewCount());
+                    ps.setBigDecimal(3, topPlace.getReviewAvg());
+                    ps.setInt(4, topPlace.getLikeCount());
+                    ps.setString(5, topPlace.getProvince());
+                    ps.setString(6, topPlace.getCityDistrict());
+                    ps.setString(7, topPlace.getSubDistrict());
+                    ps.setLong(8, topPlace.getViewCount());
+                    ps.setInt(9, topPlace.getRank());
+                    ps.setInt(10, topPlace.getYear());
+                    ps.setInt(11, topPlace.getMonth());
+                    ps.setInt(12, topPlace.getDate());
+                    ps.setLong(13, topPlace.getPlaceId());
+                    ps.setString(14, topPlace.getCategory());
                     return ps;
                 }, keyHolder);
                 // 생성된 ID 저장
@@ -76,14 +76,14 @@
             return generatedIds;
         }
 
-        private List<Long> insertTopFeatures(Chunk<? extends TopPensionAndFeature> items) {
+        private List<Long> insertTopFeatures(Chunk<? extends TopPlaceAndFeature> items) {
             List<Long> generatedIds = new ArrayList<>();
             String sql =
                     "INSERT INTO top_feature (parking, pet_only_area, indoor_space, " +
                             "outdoor_space, weight_limit, swimming_pool, barbecue, bulmeong, fence, barking, no_smoking) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            for (TopPensionAndFeature item : items.getItems()) {
+            for (TopPlaceAndFeature item : items.getItems()) {
                 TopFeature topFeature = item.getTopFeature();
                 // GeneratedKeyHolder 사용
                 KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -123,6 +123,7 @@
 
             // JobExecution의 ExecutionContext 가져오기
             ExecutionContext jobContext = jobExecution.getExecutionContext();
+
 
             // 기존 데이터 가져오기 또는 새 리스트 생성
             List<Long> existingIds;// 가변 리스트로 변환

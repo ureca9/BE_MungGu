@@ -3,7 +3,7 @@ package com.meong9.backend.global.batch.pension.config;
 import com.meong9.backend.global.batch.pension.dto.CreatePensionFeatureDto;
 import com.meong9.backend.global.batch.pension.dto.RedisTopPensionDto;
 import com.meong9.backend.global.batch.pension.dto.TopPensionAndFeature;
-import com.meong9.backend.global.batch.pension.listener.JobExecutionContextCleaner;
+import com.meong9.backend.global.batch.pension.listener.PensionJobExecutionContextCleaner;
 import com.meong9.backend.global.batch.pension.listener.StepListener;
 import com.meong9.backend.global.batch.pension.listener.TopPensionJobListener;
 import com.meong9.backend.global.batch.pension.processor.PensionFeatureProcessor;
@@ -31,7 +31,7 @@ public class TopPensionBatchConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final TopPensionJobListener topPensionJobListener;
-    private final JobExecutionContextCleaner jobExecutionContextCleaner;
+    private final PensionJobExecutionContextCleaner pensionJobExecutionContextCleaner;
 
     @Bean
     public Job aggregateTopPensionJob(
@@ -39,7 +39,7 @@ public class TopPensionBatchConfig {
             Step savePensionFeatureStep) {
         return new JobBuilder("aggregateTopPensionJob", jobRepository)
                 .listener(topPensionJobListener)
-                .listener(jobExecutionContextCleaner)
+                .listener(pensionJobExecutionContextCleaner)
                 .start(saveTopPensionAndFeatureStep)
                 .on("FAILED").end() // Step 실패 시 Job 종료
                 .from(saveTopPensionAndFeatureStep)
@@ -57,7 +57,7 @@ public class TopPensionBatchConfig {
                                              TopPensionAndFeatureProcessor processor,
                                              TopPensionAndFeatureWriter writer) {
         return new StepBuilder("saveTopPensionAndFeatureStep", jobRepository)
-                .<RedisTopPensionDto, TopPensionAndFeature>chunk(10, transactionManager)
+                .<RedisTopPensionDto, TopPensionAndFeature>chunk(100, transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
@@ -70,7 +70,7 @@ public class TopPensionBatchConfig {
                                        PensionFeatureProcessor processor,
                                        PensionFeatureWriter writer) {
         return new StepBuilder("savePensionFeatureStep", jobRepository)
-                .<CreatePensionFeatureDto, CreatePensionFeatureDto>chunk(10, transactionManager)
+                .<CreatePensionFeatureDto, CreatePensionFeatureDto>chunk(100, transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)

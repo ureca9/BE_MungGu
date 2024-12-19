@@ -7,9 +7,9 @@ import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("pensionJobExecutionContextCleaner")
 @Slf4j
-public class JobExecutionContextCleaner implements JobExecutionListener {
+public class PensionJobExecutionContextCleaner implements JobExecutionListener {
 
     @Override
     public void afterJob(JobExecution jobExecution) {

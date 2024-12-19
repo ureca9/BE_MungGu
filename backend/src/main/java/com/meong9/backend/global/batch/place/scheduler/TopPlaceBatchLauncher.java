@@ -1,4 +1,4 @@
-package com.meong9.backend.global.batch.pension.scheduler;
+package com.meong9.backend.global.batch.place.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,26 +16,26 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @Slf4j
 @EnableScheduling
-public class TopPensionBatchLauncher {
+public class TopPlaceBatchLauncher {
 
     private final JobLauncher jobLauncher;
 
-    private final Job aggregateTopPensionJob;
+    private final Job aggregateTopPlaceJob;
 
     @Scheduled(cron = "0 0 0 * * ?")
-    public void launchTopPensionJob() {
-        log.info("Top Pension Job 시작 - 시작 시간: {}", LocalDateTime.now());
+    public void launchTopPlaceJob() {
+        log.info("Top Place Job 시작 - 시작 시간: {}", LocalDateTime.now());
         long startTime = System.currentTimeMillis();
         try {
             JobParameters jobParameters = new JobParametersBuilder()
                     .addLong("time", System.currentTimeMillis()) // 간결한 키
                     .toJobParameters();
-            jobLauncher.run(aggregateTopPensionJob, jobParameters);
+            jobLauncher.run(aggregateTopPlaceJob, jobParameters);
         } catch (Exception e) {
-            log.error("Top Pension Job 실행 중 오류 발생: {}", e.getMessage(), e);
+            log.error("Top Place Job 실행 중 오류 발생: {}", e.getMessage(), e);
         } finally {
             long endTime = System.currentTimeMillis();
-            log.info("Top Pension Job 종료 - 종료 시간: {}, 소요 시간: {}ms",
+            log.info("Top Place Job 종료 - 종료 시간: {}, 소요 시간: {}ms",
                     LocalDateTime.now(), (endTime - startTime));
         }
     }

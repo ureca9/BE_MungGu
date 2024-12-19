@@ -3,24 +3,26 @@ package com.meong9.backend.domain.pension.dto;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Getter
+@Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class TopPensionResponseDto {
-    private final Long pensionId;
-    private final String pensionName;
-    private final Integer reviewCount;
-    private final BigDecimal reviewAvg;
-    private final String province;
-    private final String cityDistrict;
-    private final String subDistrict;
-    private final Long viewCount;
-    private final String address;
+    private Long pensionId;
+    private String pensionName;
+    private Integer reviewCount;
+    private BigDecimal reviewAvg;
+    private String province;
+    private String cityDistrict;
+    private String subDistrict;
+    private Long viewCount;
+    private String address;
 
-    @Setter
     private String pensionImageUrl;
 
     public TopPensionResponseDto(Long pensionId, String pensionName, Integer reviewCount, BigDecimal reviewAvg, String province, String cityDistrict, String subDistrict, Long viewCount) {

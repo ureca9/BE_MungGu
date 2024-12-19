@@ -1,9 +1,6 @@
 package com.meong9.backend.global.batch.pension.writer;
 
-import com.meong9.backend.domain.pension.entity.PensionFeature;
-import com.meong9.backend.domain.pension.entity.TopPension;
 import com.meong9.backend.global.batch.pension.dto.CreatePensionFeatureDto;
-import com.meong9.backend.global.topFeature.entity.TopFeature;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
@@ -15,7 +12,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @RequiredArgsConstructor
-public class BatchWriterConfig {
+public class PensionFeatureBatchWriterConfig {
 
     private final DataSource dataSource;
 

@@ -1,8 +1,8 @@
-package com.meong9.backend.global.batch.pension.processor;
+package com.meong9.backend.global.batch.place.processor;
 
-import com.meong9.backend.domain.pension.entity.TopPension;
-import com.meong9.backend.global.batch.pension.dto.RedisTopPensionDto;
-import com.meong9.backend.global.batch.pension.dto.TopPensionAndFeature;
+import com.meong9.backend.domain.place.entity.TopPlace;
+import com.meong9.backend.global.batch.place.dto.RedisTopPlaceDto;
+import com.meong9.backend.global.batch.place.dto.TopPlaceAndFeature;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
@@ -16,19 +16,20 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class TopPensionAndFeatureProcessor implements ItemProcessor<RedisTopPensionDto, TopPensionAndFeature> {
+public class TopPlaceAndFeatureProcessor implements ItemProcessor<RedisTopPlaceDto, TopPlaceAndFeature> {
 
     @Override
-    public TopPensionAndFeature process(RedisTopPensionDto dto) {
+    public TopPlaceAndFeature process(RedisTopPlaceDto dto) {
         LocalDate today = LocalDate.now();
 
-        // TopPension 객체 생성
-        TopPension topPension = TopPension.builder()
-                .pensionId(dto.getPensionId())
-                .pensionName(dto.getPensionName())
+        // TopPlace 객체 생성
+        TopPlace topPlace = TopPlace.builder()
+                .placeId(dto.getPlaceId())
+                .placeName(dto.getPlaceName())
                 .reviewCount(dto.getReviewCount())
                 .reviewAvg(BigDecimal.valueOf(dto.getReviewAvg() != null ? dto.getReviewAvg() : 0))
                 .likeCount(dto.getLikeCount())
+                .category(dto.getCategory())
                 .province(dto.getProvince())
                 .cityDistrict(dto.getCityDistrict())
                 .subDistrict(dto.getSubDistrict())
@@ -37,14 +38,13 @@ public class TopPensionAndFeatureProcessor implements ItemProcessor<RedisTopPens
                 .year(today.getYear())
                 .month(today.getMonthValue())
                 .date(today.getDayOfMonth())
-                .roomPriceAvg(dto.getRoomPriceAvg())
-                .pensionFeatures(new ArrayList<>())
+                .placeFeatures(new ArrayList<>())
                 .build();
 
         // TopFeature 생성
         TopFeature topFeature = createTopFeatureFromTags(dto.getTagIds());
 
-        return new TopPensionAndFeature(topPension, topFeature);
+        return new TopPlaceAndFeature(topPlace, topFeature);
     }
 
 

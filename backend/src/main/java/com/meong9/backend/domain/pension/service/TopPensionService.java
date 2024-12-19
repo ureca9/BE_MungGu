@@ -9,8 +9,10 @@ import com.meong9.backend.domain.pension.entity.TopPension;
 import com.meong9.backend.domain.pension.entity.id.PensionFeatureId;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.pension.repository.TopPensionRepository;
+import com.meong9.backend.domain.place.dto.TopPlaceResponseDto;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.topFeature.repository.TopFeatureRepository;
+import com.meong9.backend.global.utils.RedisUtils;
 import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +35,8 @@ import java.util.stream.Collectors;
 public class TopPensionService {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> objectRedisTemplate;
+
     private final PensionRepository pensionRepository;
     private final TopPensionRepository topPensionRepository;
     private final AddressService addressService;
@@ -40,13 +45,21 @@ public class TopPensionService {
 
     // ----------------- 핵심 로직 -----------------
 
-    // 캐시 필요
     @Transactional(readOnly = true)
     public List<TopPensionResponseDto> getTop9PensionsByCategory() {
+
+        String cacheKey = "top_Pension";
+
+        // Step 1: Redis에서 데이터 읽기
+        Object cachedData = objectRedisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            return (List<TopPensionResponseDto>) cachedData;
+        }
+
+        // Step 2: DB에서 데이터 조회
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(7);
 
-        // Step 1: TopPension 데이터 조회
         List<TopPensionResponseDto> pensions = topPensionRepository.findTop9PensionsByDateRangeAndCategory(
                 startDate.getYear(),
                 startDate.getMonthValue(),
@@ -57,19 +70,24 @@ public class TopPensionService {
                 PageRequest.of(0, 9)
         ).getContent();
 
-        // Step 2: pensionIds 추출
+        /// Step 3: pensionIds 추출
         List<Long> pensionIds = pensions.stream()
                 .map(TopPensionResponseDto::getPensionId)
                 .toList();
 
-        // Step 3: 대표 이미지 조회
+        // Step 4: 대표 이미지 조회
         List<Object[]> images = topPensionRepository.findRepresentativeImagesByPensionIds(pensionIds);
 
-        // Step 4: 이미지 매핑
+        // Step 5: 이미지 매핑
         Map<Long, String> imageMap = images.stream()
                 .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> (String) obj[1]));
 
+        // 이미지 URL을 DTO에 매핑
         pensions.forEach(p -> p.setPensionImageUrl(imageMap.get(p.getPensionId())));
+
+        // Step 6: Redis에 데이터 저장
+        long ttlUntil2AM = RedisUtils.calculateTTLUntil2AM();
+        objectRedisTemplate.opsForValue().set(cacheKey, pensions, ttlUntil2AM, TimeUnit.SECONDS);
 
         return pensions;
     }
