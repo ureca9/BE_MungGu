@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,9 @@ public class ReviewController {
             @CurrentMember Member member)  {
         // @PreAuthorize로 관리할 경우 403을 반환하기 때문에 200을 반환하되 메시지를 명확히 적어 주도록 함
         if (member.getBlackList() != null && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
-            return CommonResponse.ok("리뷰 작성 권한이 없습니다.");
+            String date = member.getBlackList().getLockedUntil().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String message = String.format("%s일까지 리뷰 작성 권한이 제한됩니다.", date);
+            return CommonResponse.ok(message);
         }
         reviewService.createReview(reviewRequestDto,files,member);
         return CommonResponse.created("success");
