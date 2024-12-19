@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class TopPlaceResponseDto {
@@ -22,7 +23,6 @@ public class TopPlaceResponseDto {
     private String address;
     private Long totalViewCount;
 
-    @Setter
     private String placeImageUrl;
 
     public TopPlaceResponseDto(Long placeId, String placeName, Integer reviewCount, Double reviewAvg,

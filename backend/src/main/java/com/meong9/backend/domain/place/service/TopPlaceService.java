@@ -12,6 +12,7 @@ import com.meong9.backend.domain.place.repository.TopPlaceRepository;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import com.meong9.backend.global.topFeature.repository.TopFeatureRepository;
 import com.meong9.backend.global.utils.CategoryMapper;
+import com.meong9.backend.global.utils.RedisUtils;
 import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 public class TopPlaceService {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> objectRedisTemplate;
+
     private final PlaceRepository placeRepository;
     private final TopPlaceRepository topPlaceRepository;
     private final AddressService addressService;
@@ -47,12 +51,17 @@ public class TopPlaceService {
      */
     @Transactional(readOnly = true)
     public List<TopPlaceResponseDto> getTop9PlacesByCategory(String category) {
+        String cacheKey = "top_places:" + category;
+
+        // Step 1: Redis에서 데이터 읽기
+        Object cachedData = objectRedisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            return (List<TopPlaceResponseDto>) cachedData;
+        }
+
+        // Step 2: DB에서 데이터 조회
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(7);
-
-
-        // Step 1: TopPlace 데이터 조회
-        log.info("Category: {}", CategoryMapper.getCategoryName(category));
 
         List<TopPlaceResponseDto> places = topPlaceRepository.findTop9PlacesByDateRangeAndCategory(
                 startDate.getYear(),
@@ -65,26 +74,30 @@ public class TopPlaceService {
                 PageRequest.of(0, 9)
         ).getContent();
 
-        // Step 2: placeIds 추출
-        List<Long> placeIds = places.stream()
-                .map(TopPlaceResponseDto::getPlaceId)
-                .toList();
+        /// Step 3: pensionIds 추출
+        List<Long> placeIds = places.stream().map(TopPlaceResponseDto::getPlaceId).toList();
 
-        // Step 3: 대표 이미지 조회
+        // Step 4: 대표 이미지 조회
         List<Object[]> images = topPlaceRepository.findRepresentativeImagesByPlaceIds(placeIds);
 
-        // Step 4: 이미지 매핑
+        // Step 5: 이미지 매핑
         Map<Long, String> imageMap = images.stream()
                 .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> (String) obj[1]));
 
+        // 이미지 URL을 DTO에 매핑
         places.forEach(p -> p.setPlaceImageUrl(imageMap.get(p.getPlaceId())));
+
+        // Step 6: Redis에 데이터 저장
+        long ttlUntilMidnight = RedisUtils.calculateTTLUntil2AM();
+        objectRedisTemplate.opsForValue().set(cacheKey, places, ttlUntilMidnight, TimeUnit.SECONDS);
+
         return places;
     }
 
     /**
      * 매일 자정에 실행되어 각 카테고리의 상위 TopPlace 데이터를 처리합니다.
      */
-    @Scheduled(cron = "0 0 0 * * ?")
+//    @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void aggregateDailyTopPlaces() {
         List<String> categoryList = CategoryMapper.getAllCategoryNames();

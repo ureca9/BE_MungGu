@@ -4,12 +4,14 @@ import com.meong9.backend.domain.pension.entity.id.PensionFeatureId;
 import com.meong9.backend.global.topFeature.entity.TopFeature;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "pension_feature")
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
 public class PensionFeature {
     @EmbeddedId
     private PensionFeatureId id;

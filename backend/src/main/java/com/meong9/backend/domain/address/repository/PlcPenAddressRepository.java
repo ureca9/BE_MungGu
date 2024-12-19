@@ -79,4 +79,5 @@ public interface PlcPenAddressRepository extends JpaRepository<PlcPenAddress, Lo
         WHERE ppa.address.province LIKE :province%
     """)
     List<Long> findPlaceIdsByProvince(@Param("province") String province);
+
 }
