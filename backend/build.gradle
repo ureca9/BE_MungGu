@@ -74,6 +74,10 @@ dependencies {
 	// webp 처리
 	implementation 'org.sejda.imageio:webp-imageio:0.1.6'
 
+	// firebase
+	implementation 'com.google.firebase:firebase-admin:6.8.1'
+	implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.2.2'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
