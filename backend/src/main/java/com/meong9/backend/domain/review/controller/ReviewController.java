@@ -1,11 +1,14 @@
 package com.meong9.backend.domain.review.controller;
 
 import com.meong9.backend.domain.member.entity.Member;
+import com.meong9.backend.domain.review.dto.PresignedUrlDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
+import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
+import com.meong9.backend.global.mediafile.service.MediaFileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class ReviewController {
     private final ReviewService reviewService;
+    private final MediaFileService mediaFileService;
 
     @GetMapping("/reviews/{reviewId}")
     public ResponseEntity<?> getReviewDetails(@PathVariable Long reviewId) {
@@ -41,6 +45,12 @@ public class ReviewController {
     @GetMapping("/reviews/info")
     public ResponseEntity<?> getPlacePensionInfo(@RequestParam(required = true) String type,@RequestParam(required = true) Long id) {
         return CommonResponse.ok("success", reviewService.getPlacePensionInfo(type,id));
+    }
+
+    @PostMapping("/reviews/presigned-url")
+    public ResponseEntity<?> getPresignedUrlForReview(@RequestBody ReviewUrlRequestDto reviewUrlRequestDto) {
+        List<PresignedUrlDto> presignedUrls = mediaFileService.getPresignedUrlForReview(reviewUrlRequestDto);
+        return ResponseEntity.ok(presignedUrls);
     }
 
     @PostMapping("/reviews")
