@@ -5,6 +5,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.meong9.backend.domain.review.dto.PresignedUrlDto;
+import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
 import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
@@ -34,6 +36,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -402,5 +405,24 @@ public class MediaFileService {
         response.put("presignedUrl", presignedUrl);
         response.put("fileKey", objectKey); // 파일 경로
         return response;
+    }
+
+    public List<PresignedUrlDto> getPresignedUrlForReview(ReviewUrlRequestDto requestDto) {
+        return requestDto.getFiles().stream()
+                .map(fileName -> {
+                    URL presignedUrl = generatePresignedUrl(fileName);
+                    return new PresignedUrlDto(fileName, presignedUrl.toString());
+                })
+                .collect(Collectors.toList());
+    }
+
+    private URL generatePresignedUrl(String objectKey) {
+        // Presigned URL 생성 요청
+        GeneratePresignedUrlRequest presignedUrlRequest = new GeneratePresignedUrlRequest(bucket, objectKey)
+                .withMethod(HttpMethod.PUT)
+                .withExpiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000)); // 15분 유효
+
+        // Presigned URL 생성 및 반환
+        return amazonS3.generatePresignedUrl(presignedUrlRequest);
     }
 }
