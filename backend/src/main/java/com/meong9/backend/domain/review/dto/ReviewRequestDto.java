@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -34,5 +35,7 @@ public class ReviewRequestDto {
     @NotNull(message = "방문일은 필수 입력값입니다.")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate visitDate; // 방문 날짜
+
+    private List<String> fileUrls;
 
 }
