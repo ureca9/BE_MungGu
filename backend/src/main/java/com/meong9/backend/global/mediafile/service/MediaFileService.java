@@ -425,4 +425,22 @@ public class MediaFileService {
         // Presigned URL 생성 및 반환
         return amazonS3.generatePresignedUrl(presignedUrlRequest);
     }
+
+    public void uploadVideoAndThumbnail(String localFilePath, String s3Key) {
+        try (FileInputStream fileInputStream = new FileInputStream(localFilePath)) {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(new File(localFilePath).length());
+            if (localFilePath.endsWith(".mp4")) {
+                metadata.setContentType("video/mp4");
+            } else if (localFilePath.endsWith(".jpg")) {
+                metadata.setContentType("image/jpeg");
+            }
+
+            s3Client.putObject(bucket, s3Key, fileInputStream, metadata);
+            String s3Url = s3Client.getUrl(bucket, s3Key).toString();
+            System.out.println("S3 업로드 완료: " + s3Url);
+        } catch (IOException e) {
+            throw new RuntimeException("S3 업로드 중 오류 발생: " + e.getMessage(), e);
+        }
+    }
 }
