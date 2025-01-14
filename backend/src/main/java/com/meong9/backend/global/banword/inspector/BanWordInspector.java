@@ -19,8 +19,6 @@ public class BanWordInspector {
     private final ExceptWordManager exceptWordManager;
     private final MemberService memberService;
 
-    private static final String REMOVE_PATTERN = "[\\p{N}\\s\\u3164\\p{L}&&[^ㄱ-ㅎ가-힣ㅏ-ㅣa-zA-Z]]";
-
     @Autowired
     public BanWordInspector(InspectorConfig config, MemberService memberService) {
         banWordManager = config.getBanWordUtil();
