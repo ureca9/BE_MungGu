@@ -79,7 +79,9 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/weather", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())
+                        new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name()),
+                        new AntPathRequestMatcher("/api/v1/fcm/token", HttpMethod.POST.name())
+
                 ));
 
         // 요청별 권한 관리
