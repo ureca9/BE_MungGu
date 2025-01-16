@@ -1,13 +1,13 @@
 package com.meong9.backend.domain.alarm.dto;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FcmRequestDto {
-    private String targetToken;
-    private String title;
-    private String body;
+    private Long memberId;
+    private String token;
 }

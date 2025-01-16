@@ -1,13 +1,14 @@
 package com.meong9.backend.domain.alarm.service;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.meong9.backend.domain.alarm.FcmMessage;
+import com.meong9.backend.global.utils.EncryptionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,7 +19,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +43,9 @@ public class FcmService {
     private final int MAX_RETRY = 3;
     private final long RETRY_DELAY_MS = 1000; // 1초 대기
 
+    @Value("${aes.key}")
+    private String aesKey;
+
     // 매일 오후 3시에 FCM 알람
     @Scheduled(cron = "0 0 15 * * ?") // 매일 오후 3시에 실행
 //    @Scheduled(cron = "0 * * * * ?")
@@ -50,24 +57,49 @@ public class FcmService {
             return;
         }
 
-        // 배치 처리로 변경
+        // 배치 처리
+        // 중복 전송 방지를 위한 처리된 토큰 추적
+        Set<String> processedTokens = new HashSet<>();
+
         List<String> tokenList = new ArrayList<>(tokenKeys);
         for (int i = 0; i < tokenList.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, tokenList.size());
             List<String> batch = tokenList.subList(i, end);
 
-            batch.parallelStream().forEach(key -> {
+            batch.forEach(key -> {  // parallelStream() 제거
                 String token = getToken(key);
-                if (token != null) {
-                    sendMessageWithRetry(key, token, FCM_TITLE, FCM_BODY, MAX_RETRY); // 알림
+                if (token != null && !processedTokens.contains(token)) {
+                    processedTokens.add(token);
+                    sendMessageWithRetry(key, token, FCM_TITLE, FCM_BODY, MAX_RETRY);
                 }
             });
         }
     }
 
-    // 토큰 저장
+    // 토큰 저장 - 암호화
     public void saveToken(Long key, String token, long ttlInSeconds) {
-        redisTemplate.opsForValue().set(FCM_KEY + key, token, ttlInSeconds, TimeUnit.SECONDS);
+        try {
+            // GitHub Secrets에서 가져온 암호화 키 사용
+            SecretKey secretKey = getEncryptionKeyFromEnv(); // 대칭키
+            String encryptedToken = EncryptionUtil.encrypt(token, secretKey); // 토큰 암호화
+            redisTemplate.opsForValue().set(FCM_KEY + key, encryptedToken, ttlInSeconds, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("토큰 암호화 및 저장 실패", e);
+        }
+    }
+
+    // 토큰 조회 - 복호화
+    public String getToken(String key) {
+        try {
+            SecretKey secretKey = getEncryptionKeyFromEnv(); // GitHub Secrets에서 가져온 대칭키
+            String encryptedToken = (String) redisTemplate.opsForValue().get(key);
+            if (encryptedToken != null) {
+                return EncryptionUtil.decrypt(encryptedToken, secretKey); // 복호화된 토큰 반환
+            }
+        } catch (Exception e) {
+            log.error("토큰 복호화 실패", e);
+        }
+        return null;
     }
 
     // 알림 전송 로직 - 실패 시 재시도
@@ -116,8 +148,6 @@ public class FcmService {
 
         System.out.println(response.body().string());
     }
-
-
 
     private String makeMessage(String targetToken, String title, String body) throws JsonProcessingException {
         FcmMessage fcmMessage = FcmMessage.builder()
@@ -170,13 +200,25 @@ public class FcmService {
                 e.getMessage().contains("InvalidToken");
     }
 
-    // 토큰 조회
-    private String getToken(String key) {
-        return (String) redisTemplate.opsForValue().get(key);
-    }
+//    // 토큰 조회
+//    private String getToken(String key) {
+//        return (String) redisTemplate.opsForValue().get(key);
+//    }
 
     // 토큰 삭제
     private void deleteToken(String key) {
         redisTemplate.delete(key);
     }
+
+    // GitHub Secrets에서 암호화 키를 환경 변수로 받아오기
+    private SecretKey getEncryptionKeyFromEnv() {
+        String encryptionKeyString = aesKey;
+        byte[] keyBytes = encryptionKeyString.getBytes(StandardCharsets.UTF_8);
+        return new SecretKeySpec(keyBytes, "AES");
+    }
+
+//    @Scheduled(cron = "0 * * * * ?")
+//    public void tokenKey() throws Exception {
+//        System.out.println(EncryptionUtil.generateKey());
+//    }
 }
