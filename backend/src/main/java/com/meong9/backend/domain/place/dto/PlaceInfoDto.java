@@ -8,7 +8,8 @@ import lombok.Getter;
 public class PlaceInfoDto {
     private final Long placeId;
     private final String placeName;
-    private final String category;
+    private final long placCategoryId;
+    private final String placeCategoryName;
     private final Integer reviewCount;
     private final Double reviewAvg;
     private final String businessHour;

@@ -27,7 +27,7 @@ public class PensionWeeklyViewCountJobListener implements JobExecutionListener {
         }
 
         // 지난 7일간의 키를 합산하여 주간 데이터 생성
-        String weeklyKey = "pension:weekly:viewCount" + RedisUtils.formatCurrentDate();
+        String weeklyKey = "pension:weekly:viewCount" + RedisUtils.formatRelativeToNowDate(1);
         List<String> dailyKeys = IntStream.range(1, 8)
                 .mapToObj(dayOffset -> "pension:viewCount:" + RedisUtils.formatRelativeToNowDate(dayOffset))
                 .toList();

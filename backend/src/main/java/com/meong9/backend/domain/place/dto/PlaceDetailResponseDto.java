@@ -16,6 +16,7 @@ import java.util.List;
 public class PlaceDetailResponseDto {
     private final Long placeId;
     private final String placeName;
+    private final Long plcCategoryId;
     private final String category;
     private final Integer reviewCount;
     private final Double reviewAvg;
@@ -60,7 +61,8 @@ public class PlaceDetailResponseDto {
         return PlaceDetailResponseDto.builder()
                 .placeId(placeInfoDto.getPlaceId()) // 장소 ID
                 .placeName(placeInfoDto.getPlaceName()) // 장소 이름
-                .category(placeInfoDto.getCategory()) // 카테고리
+                .plcCategoryId(placeInfoDto.getPlacCategoryId())
+                .category(placeInfoDto.getPlaceCategoryName()) // 카테고리
                 .reviewCount(placeInfoDto.getReviewCount()) // 리뷰 수
                 .reviewAvg(placeInfoDto.getReviewAvg()!= null
                         ? BigDecimal.valueOf(placeInfoDto.getReviewAvg()).setScale(1, RoundingMode.HALF_UP).doubleValue()
