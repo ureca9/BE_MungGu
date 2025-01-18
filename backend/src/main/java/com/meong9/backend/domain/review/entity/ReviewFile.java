@@ -3,10 +3,7 @@ package com.meong9.backend.domain.review.entity;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -24,6 +21,9 @@ public class ReviewFile{ // 복합 키 클래스
     @MapsId("mediaFileId") // 복합 키와 매핑
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile file;
+
+    @Setter
+    private String status = "UPLOADED";
 
     @Builder
     public ReviewFile(Review review, MediaFile file,ReviewFileId reviewFileId) {
