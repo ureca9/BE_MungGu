@@ -21,12 +21,11 @@ public class TopPlaceResponseDto {
     private String cityDistrict;
     private String subDistrict;
     private String address;
-    private Long totalViewCount;
 
     private String placeImageUrl;
 
     public TopPlaceResponseDto(Long placeId, String placeName, Integer reviewCount, Double reviewAvg,
-                               String province, String cityDistrict, String subDistrict, Long totalViewCount) {
+                               String province, String cityDistrict, String subDistrict, String placeImageUrl) {
         this.placeId = placeId;
         this.placeName = placeName;
         this.reviewCount = reviewCount;
@@ -34,8 +33,8 @@ public class TopPlaceResponseDto {
         this.province = province;
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
-        this.totalViewCount = totalViewCount;
         this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
+        this.placeImageUrl = placeImageUrl;
     }
 
 }

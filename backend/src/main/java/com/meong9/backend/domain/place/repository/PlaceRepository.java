@@ -1,10 +1,14 @@
 package com.meong9.backend.domain.place.repository;
 
+import com.meong9.backend.domain.pension.dto.TopPensionResponseDto;
 import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
+import com.meong9.backend.domain.place.dto.TopPlaceResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -68,7 +72,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     @Query(""" 
     SELECT new com.meong9.backend.domain.place.dto.PlaceInfoDto(
-        p.placeId, p.name, p.plcCategory.name, p.reviewCount, p.reviewAvg,
+        p.placeId, p.name, p.plcCategory.plcCategoryId, p.plcCategory.name, p.reviewCount, p.reviewAvg,
         p.businessHour, p.telNo, p.hmpgUrl,
         p.latitude, p.longitude, p.closedDays,
         p.priceContent, p.petLimitInfo,
@@ -108,4 +112,54 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
         WHERE p.placeId IN :ids
     """)
     List<PlcPenProjection> findPlaceProjectionById(@Param("ids") List<Long> ids);
+
+    @Query("""
+            SELECT new com.meong9.backend.domain.place.dto.TopPlaceResponseDto(
+        p.placeId,
+        p.name,
+        p.reviewCount,
+        p.reviewAvg,
+        a.province,
+        a.cityDistrict,
+        a.subDistrict,
+        mf.fileUrl
+    )
+    FROM Place p
+    LEFT JOIN PlcPenAddress pp ON pp.plcPenId = p.placeId AND pp.type = :type
+    LEFT JOIN Address a ON a.addressId = pp.address.addressId
+    LEFT JOIN PlaceFile pf ON pf.place.placeId = p.placeId
+    LEFT JOIN MediaFile mf ON mf.mediaFileId = pf.mediaFile.mediaFileId AND mf.isDeleted = false
+    WHERE p.placeId IN :ids
+    AND pf.mediaFile.mediaFileId = (
+        SELECT MIN(pf_sub.mediaFile.mediaFileId)
+        FROM PlaceFile pf_sub
+        WHERE pf_sub.place.placeId = p.placeId
+    )
+    """)
+    List<TopPlaceResponseDto> findPlaceTop(@Param("ids") List<Long> ids, @Param("type") String type);
+
+    @Query("""
+    SELECT new com.meong9.backend.domain.place.dto.TopPlaceResponseDto(
+        p.placeId,
+        p.name,
+        p.reviewCount,
+        p.reviewAvg,
+        a.province,
+        a.cityDistrict,
+        a.subDistrict,
+        mf.fileUrl
+    )
+    FROM Place p
+    LEFT JOIN PlcPenAddress pp ON pp.plcPenId = p.placeId AND pp.type = :type
+    LEFT JOIN Address a ON a.addressId = pp.address.addressId
+    LEFT JOIN PlaceFile pf ON pf.place.placeId = p.placeId
+    LEFT JOIN MediaFile mf ON mf.mediaFileId = pf.mediaFile.mediaFileId AND mf.isDeleted = false
+    WHERE pf.mediaFile.mediaFileId = (
+        SELECT MIN(pf_sub.mediaFile.mediaFileId)
+        FROM PlaceFile pf_sub
+        WHERE pf_sub.place.placeId = p.placeId
+    )
+    ORDER BY p.reviewCount DESC
+""")
+    Page<TopPlaceResponseDto> findTopPlacesByReviewCount(@Param("type") String type, Pageable pageable);
 }
