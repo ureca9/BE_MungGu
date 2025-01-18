@@ -1,5 +1,6 @@
 package com.meong9.backend.global.batch.pension.listener;
 
+import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +28,9 @@ public class PensionWeeklyViewCountJobListener implements JobExecutionListener {
         }
 
         // 지난 7일간의 키를 합산하여 주간 데이터 생성
-        String weeklyKey = "pension:weekly:viewCount" + RedisUtils.formatRelativeToNowDate(1);
+        String weeklyKey = RedisKeys.getPensionWeeklyViewCountKey(RedisUtils.formatRelativeToNowDate(1));
         List<String> dailyKeys = IntStream.range(1, 8)
-                .mapToObj(dayOffset -> "pension:viewCount:" + RedisUtils.formatRelativeToNowDate(dayOffset))
+                .mapToObj(dayOffset -> RedisKeys.getPensionDailyViewCountKey(RedisUtils.formatRelativeToNowDate(dayOffset)))
                 .toList();
         redisTemplate.opsForZSet().unionAndStore(
                 dailyKeys.get(0),

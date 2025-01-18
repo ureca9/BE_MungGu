@@ -6,6 +6,7 @@ import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
 import com.meong9.backend.global.batch.place.dto.RedisTopPlaceDto;
 import com.meong9.backend.global.utils.CategoryMapper;
+import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +52,7 @@ public class TopPlaceRedisReader implements ItemReader<RedisTopPlaceDto> {
             String categoryName = CategoryMapper.getCategoryName(currentCategoryId);
 
             // Redis에서 데이터 조회 (name으로 저장된 key 사용)
-            String redisKey = "place:" + categoryName + ":viewCount:" + RedisUtils.formatRelativeToNowDate(1);
+            String redisKey = RedisKeys.getPlaceDailyViewCountKey(categoryName, RedisUtils.formatRelativeToNowDate(1));
 
             Set<ZSetOperations.TypedTuple<String>> redisData = redisTemplate.opsForZSet()
                     .reverseRangeWithScores(redisKey, currentIndex, currentIndex + PAGE_SIZE - 1);

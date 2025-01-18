@@ -33,7 +33,7 @@ public class TopPlaceBatchLauncher {
             maxAttempts = 3,
             backoff = @Backoff(delay = 5000)
     )
-    @Scheduled(cron = "0 55 16 * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")
     public void launchTopPlaceJob() {
         long startTime = System.nanoTime();
         try {

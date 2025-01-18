@@ -33,6 +33,7 @@ public class PlaceDetailResponseDto {
     private final String description;
     private final String enterPetSize;
     private final Boolean likeStatus;
+    private final Integer viewCount;
 
     private final List<String> images;
 
@@ -56,7 +57,8 @@ public class PlaceDetailResponseDto {
             List<String> tags,
             List<String> images,
             Slice<PhotoReviewSummaryResponseDto> photoReviewSummaryList,
-            List<ReviewSummaryResponseDto> reviewSummaryList
+            List<ReviewSummaryResponseDto> reviewSummaryList,
+            Integer viewCount
     ) {
         return PlaceDetailResponseDto.builder()
                 .placeId(placeInfoDto.getPlaceId()) // 장소 ID
@@ -85,6 +87,7 @@ public class PlaceDetailResponseDto {
                         ? photoReviewSummaryList.getContent() // 내용을 추가
                         : Collections.emptyList()) // 그렇지 않으면 빈 리스트 반환
                 .review(reviewSummaryList) // 일반 리뷰 리스트
+                .viewCount(viewCount)
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.meong9.backend.global.batch.place.listener;
 
 import com.meong9.backend.global.utils.CategoryMapper;
+import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +31,10 @@ public class PlaceWeeklyViewCountJobListener implements JobExecutionListener {
         List<String> categoryNames = CategoryMapper.getAllCategoryNames();
 
         for (String name : categoryNames) {
-            String weeklyKey = "place:"+name+":weekly:viewCount" + RedisUtils.formatRelativeToNowDate(1);
+            String weeklyKey = RedisKeys.getPlaceWeeklyViewCountKey(name, RedisUtils.formatRelativeToNowDate(1));
 
             List<String> dailyKeys = IntStream.range(1, 8)
-                    .mapToObj(dayOffset -> "place:"+name+":viewCount:" + RedisUtils.formatRelativeToNowDate(dayOffset))
+                    .mapToObj(dayOffset -> RedisKeys.getPlaceDailyViewCountKey(name, RedisUtils.formatRelativeToNowDate(dayOffset)))
                     .toList();
             redisTemplate.opsForZSet().unionAndStore(
                     dailyKeys.get(0),

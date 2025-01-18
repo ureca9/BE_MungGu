@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meong9.backend.domain.pension.dto.TopPensionResponseDto;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
+import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class TopPensionService {
     @Transactional(readOnly = true)
     public List<TopPensionResponseDto> getTop9PensionsByCategory() {
         // Step 1: Redis 캐시 키 정의
-        String cacheKey = "top_Pension";
+        String cacheKey = RedisKeys.TOP_PENSIONS;
 
 
         try {
@@ -56,7 +57,8 @@ public class TopPensionService {
             }
 
             // Step 3: Redis에서 상위 9개 ID 가져오기
-            String weeklyCountKey = "pension:weekly:viewCount" + RedisUtils.formatRelativeToNowDate(1);
+            String weeklyCountKey = RedisKeys.getPensionWeeklyViewCountKey(RedisUtils.formatRelativeToNowDate(1));
+
             List<Long> topIds = getTop9IdsFromRedis(weeklyCountKey);
 
             // Redis에서 상위 ID 데이터가 없을 경우
@@ -93,7 +95,7 @@ public class TopPensionService {
      * @return 증가 후의 조회수
      */
     public Double incrementPensionViewCount(Long pensionId) {
-        String sortedSetKey = "pension:viewCount:" + RedisUtils.formatCurrentDate();
+        String sortedSetKey = RedisKeys.getPensionDailyViewCountKey(RedisUtils.formatCurrentDate());
         String pensionIdStr = String.valueOf(pensionId);
         // Sorted Set에 조회수 증가
 
