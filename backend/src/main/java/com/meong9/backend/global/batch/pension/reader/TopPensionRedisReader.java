@@ -6,6 +6,7 @@ import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.pension.repository.PensionRepository;
 import com.meong9.backend.domain.pension.service.RoomService;
 import com.meong9.backend.global.batch.pension.dto.RedisTopPensionDto;
+import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
@@ -44,7 +45,7 @@ public class TopPensionRedisReader implements ItemReader<RedisTopPensionDto> {
     private void loadNextPage() {
         // Step 1: Redis에서 데이터 조회
         Set<ZSetOperations.TypedTuple<String>> redisData = redisTemplate.opsForZSet()
-                .reverseRangeWithScores("pension:viewCount", currentIndex, currentIndex + PAGE_SIZE - 1);
+                .reverseRangeWithScores("pension:viewCount:" + RedisUtils.formatRelativeToNowDate(1), currentIndex, currentIndex + PAGE_SIZE - 1);
 
         if (redisData == null || redisData.isEmpty()) {
             iterator = null;
