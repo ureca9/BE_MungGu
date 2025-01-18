@@ -28,6 +28,7 @@ public class MediaFile extends BaseTimeEntity {
     @Column(nullable = false)
     private String fileName;
 
+    @Setter
     private String fileUrl;
 
     private Double height;
@@ -42,8 +43,11 @@ public class MediaFile extends BaseTimeEntity {
     @Column(nullable = false)
     private Boolean isDeleted = false; // 소프트 삭제 여부 (기본값: false)
 
+    @Setter
+    private String status;
+
     @Builder
-    public MediaFile(FileType fileType, Integer fileSize, String fileName, String fileUrl, Double height, Double width, String fileKey) {
+    public MediaFile(FileType fileType, Integer fileSize, String fileName, String fileUrl, Double height, Double width, String fileKey, String status) {
         this.fileType = fileType;
         this.fileSize = fileSize;
         this.fileName = fileName;
@@ -51,9 +55,11 @@ public class MediaFile extends BaseTimeEntity {
         this.height = height;
         this.width = width;
         this.fileKey = fileKey;
+        this.status = status;
     }
 
     public void delete(){
         this.isDeleted = true;
     }
+
 }
