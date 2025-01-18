@@ -29,6 +29,13 @@ repositories {
 }
 
 dependencies {
+	// FFmpeg
+	implementation 'net.bramp.ffmpeg:ffmpeg:0.6.2'
+
+	// Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.apache.kafka:kafka-clients'
+
 	// Jooq
 	implementation 'org.jooq:jooq:3.18.0'
 	implementation 'org.jooq:jooq-meta:3.18.0'
@@ -94,7 +101,7 @@ jooq {
 					driver = 'com.mysql.cj.jdbc.Driver'
 					url = System.getProperty('dbUrl', 'jdbc:mysql://localhost:3306/meong9')
 					user = System.getProperty('dbUsername', 'root')
-					password = System.getProperty('dbPassword', '')
+					password = System.getProperty('dbPassword', 'root')
 				}
 				generator {
 					database {
