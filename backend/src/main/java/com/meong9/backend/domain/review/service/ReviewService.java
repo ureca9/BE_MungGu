@@ -19,7 +19,7 @@ import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.banword.inspector.BanWordInspector;
 import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
-import com.meong9.backend.global.kafka.service.KafkaService;
+import com.meong9.backend.global.kafka.dto.KafkaVideoDto;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
@@ -65,8 +65,6 @@ public class ReviewService {
     private final MemberRepository memberRepository;
     private final BanWordInspector banWordInspector;
     private final MemberScoreService memberScoreService;
-    private final KafkaService kafkaService;
-
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -123,7 +121,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void createReview(ReviewRequestDto dto, Member member) {
+    public List<KafkaVideoDto> createReview(ReviewRequestDto dto, Member member) {
         // 1. review 객체를 생성 및 저장한다
         Review review = Review.builder()
                 .member(member)
@@ -141,6 +139,7 @@ public class ReviewService {
          * Review 저장 후 MediaFile과 ReviewFile 저장이 실패하면 Review 데이터가 남는 경우를 처리해야 함
          */
         // 2. MediaFile 객체를 생성 및 저장한다
+        List<KafkaVideoDto> kafkaVideoDtos = new ArrayList<>();
         for (String fileUrl : dto.getFileUrls()) {
 
             FileType fileType = determineFileType(fileUrl);
@@ -158,12 +157,17 @@ public class ReviewService {
             reviewFileRepository.save(reviewFile);
 
             if (fileType.equals(FileType.VIDEO)) {
-                // 3. 만약 video일 경우 인코딩을 위해 해당 내용을 kafka에 전달
-                kafkaService.sendVideoToKafka(fileUrl);
+                kafkaVideoDtos.add(new KafkaVideoDto(file.getMediaFileId(), fileUrl));
             }
         }
 
         // 3. 부차적인 내용 업데이트
+        updatePlaceOrPension(dto);
+        memberScoreService.addReview(member.getMemberId(), dto.getPlcPenId(), dto.getScore(), dto.getType());
+        return kafkaVideoDtos;
+    }
+
+    private void updatePlaceOrPension(ReviewRequestDto dto) {
         if (Objects.equals(dto.getType(), "010")) {
             Place place = placeRepository.findById(dto.getPlcPenId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
             place.increaseReviewCount();
@@ -174,8 +178,6 @@ public class ReviewService {
             pension.increaseReviewCount();
             pension.calcReviewAvg(pension.getReviewCount() - 1, pension.getReviewCount(), 0.0, Double.valueOf(dto.getScore()));
         }
-
-        memberScoreService.addReview(member.getMemberId(), dto.getPlcPenId(), dto.getScore(), dto.getType());
     }
 
     private String extractFileName(String fileUrl) {

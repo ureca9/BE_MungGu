@@ -5,6 +5,7 @@ import com.meong9.backend.domain.review.dto.PresignedUrlDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
+import com.meong9.backend.domain.review.service.ReviewCreationService;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class ReviewController {
     private final ReviewService reviewService;
+    private final ReviewCreationService reviewCreationService;
     private final MediaFileService mediaFileService;
 
     @GetMapping("/reviews/{reviewId}")
@@ -62,7 +64,7 @@ public class ReviewController {
             String message = String.format("%s 까지 리뷰 작성 권한이 제한됩니다.", date);
             return CommonResponse.ok(message);
         }
-        reviewService.createReview(requestDto, member);
+        reviewCreationService.createReviewWithVideos(requestDto, member);
         return CommonResponse.created("success");
     }
 
