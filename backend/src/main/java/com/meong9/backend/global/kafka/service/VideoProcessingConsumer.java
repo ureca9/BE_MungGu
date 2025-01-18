@@ -33,7 +33,7 @@ public class VideoProcessingConsumer {
     @Value("${s3.buckets.source}")
     private String bucket;
 
-    @KafkaListener(topics = "video-transcoding", groupId = "video-transcoding-group", concurrency = "3")
+    @KafkaListener(topics = "video-transcoding", groupId = "video-transcoding-group", concurrency = "2")
     @Transactional
     public void listen(String message) {
         // 1. 메시지 수신: groupId를 통해 여러 Consumer가 병렬로 메시지를 처리할 수 있음
