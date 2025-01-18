@@ -1,90 +1,90 @@
-package com.meong9.backend.global.kafka.service;
+package com.meong9.backend.global.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
-import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.exception.NotFoundException;
-import com.meong9.backend.global.kafka.entity.VideoMessage;
+import com.meong9.backend.global.kafka.dto.VideoMessage;
+import com.meong9.backend.global.kafka.service.OutboxService;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
+import com.meong9.backend.global.slack.SlackNotificationService;
+import com.meong9.backend.global.slack.SlackNotificationType;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpegExecutor;
 import net.bramp.ffmpeg.builder.FFmpegBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.*;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class VideoProcessingConsumer {
 
     private final MediaFileService mediaFileService;
     private final MediaFileRepository mediaFileRepository;
     private final FFmpegExecutor ffmpegExecutor;
     private final ReviewFileRepository reviewFileRepository;
+    private final OutboxService outboxService;
+    private final SlackNotificationService slackNotificationService;
 
     @Value("${s3.buckets.source}")
     private String bucket;
 
+    @RetryableTopic(
+            // default 3번 재시도
+            backoff = @Backoff(delay = 5000), // 재시도 간격 (5초)
+            autoCreateTopics = "false" // 토픽 자동 생성 방지
+    )
     @KafkaListener(topics = "video-transcoding", groupId = "video-transcoding-group", concurrency = "2")
     @Transactional
     public void listen(String message) {
-        // 1. 메시지 수신: groupId를 통해 여러 Consumer가 병렬로 메시지를 처리할 수 있음
-        // t3.medium 인스턴스는 2개의 vCPU를 가지므로, 3개의 컨슈머가 적절한 병렬 처리 수준
-        // 토픽은 메시지를 보관하는 공간이고, 그룹은 메시지 소비자를 관리하는 단위. 3명이서 모여 해당 팀에 떨어진 일을 나눠 하는 방식.
-        System.out.println("메시지 수신 완료: " + message);
+        log.info("Kafka 메시지 수신: {}", message);
         try {
-            // 받은 Json메세지를 파싱해서 VideoMessage dto로 만듦
             VideoMessage videoMessage = parseMessage(message);
-
-            // video 인코딩 시작
             processVideo(videoMessage);
-
-            System.out.println("비디오 인코딩 완료: " + videoMessage.getFileUrl());
+            log.info("비디오 처리 완료: {}", videoMessage.getFileUrl());
         } catch (Exception e) {
-            // 좀더 정확한 에러 처리가 되었으면 좋겠는데, 에러 코드는 뭐가 좋을지?
-            System.err.println("비디오 인코딩 중 에러 발생: " + e.getMessage());
+            log.error("비디오 처리 실패: {}", message, e);
+            throw e;
         }
     }
 
     private VideoMessage parseMessage(String message) {
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            return objectMapper.readValue(message, VideoMessage.class);
+            return new ObjectMapper().readValue(message, VideoMessage.class);
         } catch (Exception e) {
             throw new RuntimeException("카프카 메시지 파싱 중 에러 발생: " + message, e);
         }
     }
 
     private void processVideo(VideoMessage videoMessage) {
-        // 1. file url 확인
         String fileUrl = videoMessage.getFileUrl();
-        if (fileUrl == null || fileUrl.isEmpty()) {
-            throw BadRequestException.invalidFileUrl();
-        }
-
-        // 2. MediaFile 가져오기
-        MediaFile mediaFile = mediaFileRepository.findByFileUrl(videoMessage.getFileUrl())
-                .orElseThrow(() -> NotFoundException.entityNotFound("media file url"));
+        // 1. 비디오 파일 검증 및 가져오기
+        MediaFile mediaFile = mediaFileRepository.findByFileUrl(fileUrl)
+                .orElseThrow(() -> NotFoundException.entityNotFound(String.format("media file url - %s", fileUrl)));
         ReviewFile reviewFile = reviewFileRepository.findByMediaFileId(mediaFile.getMediaFileId())
-                .orElseThrow(() -> NotFoundException.entityNotFound("review file"));
+                .orElseThrow(() -> NotFoundException.entityNotFound(String.format("review file - %s", mediaFile.getMediaFileId())));
 
         try {
             // 2. 트랜스 코딩
-            String outputDirPath = trandCodeToHls(fileUrl);
+            String outputDirPath = transCodeToHls(fileUrl);
 
             // 3. S3 업로드
             String s3Directory = "Review/" + extractFileNameWithoutExtension(fileUrl) + "_hls";
             mediaFileService.uploadHlsToS3(outputDirPath, s3Directory);
 
-            // 4. MediaFile 상태 업데이트
+            // 4. MediaFile, ReviewFile 상태 업데이트
             String s3BaseUrl = "https://" + bucket + ".s3.ap-northeast-2.amazonaws.com";
             mediaFile.setFileUrl(s3BaseUrl + "/" + s3Directory + "/master.m3u8"); // HLS 마스터 플레이리스트 경로
             reviewFile.setStatus("TRANSCODED");
@@ -95,13 +95,25 @@ public class VideoProcessingConsumer {
             deleteLocalDirectory(outputDirPath);
         } catch (Exception e) {
             // 트랜스코딩 실패 시 상태 업데이트
-            reviewFile.setStatus("FAILED");
-            mediaFileRepository.save(mediaFile);
+            handleFailedMessage(mediaFile.getMediaFileId(), reviewFile);
             throw new RuntimeException("비디오 처리 중 오류 발생: " + e.getMessage(), e);
         }
     }
 
-    private String trandCodeToHls(String fileUrl) {
+    private void handleFailedMessage(Long mediaFileId, ReviewFile reviewFile) {
+        reviewFile.setStatus("FAILED");
+        reviewFileRepository.save(reviewFile);
+
+        // Outbox 상태 관리
+        outboxService.updateOutbox(mediaFileId);
+
+        // Slack 알림 전송
+        String slackMessage = String.format("트랜스 코딩 실패 - MediaFile ID: %d, ReviewFile: %s", mediaFileId, reviewFile.getId());
+        slackNotificationService.sendSlackNotification(SlackNotificationType.KAFKA, slackMessage);
+
+    }
+
+    public String transCodeToHls(String fileUrl) {
         // 1. URL에서 파일 이름 추출
         String fileName = extractFileNameWithoutExtension(fileUrl);
         String outputDirPath = String.format("/tmp/%s_hls", fileName);
@@ -143,16 +155,11 @@ public class VideoProcessingConsumer {
 
                 .done();
 
-        try {
-            ffmpegExecutor.createJob(builder).run();
-            System.out.println("HLS 트랜스코딩 완료: " + outputDirPath);
-        } catch (Exception e) {
-            throw new RuntimeException("HLS 트랜스코딩 실패: " + e.getMessage(), e);
-        }
+        ffmpegExecutor.createJob(builder).run();
+        log.info("HLS 트랜스코딩 완료: " + outputDirPath);
+
         return outputDirPath;
     }
-
-
 
     /**
      * 로컬 디렉토리를 삭제
