@@ -1,4 +1,4 @@
-package com.meong9.backend.global.kafka.entity;
+package com.meong9.backend.global.kafka.dto;
 
 import lombok.Getter;
 import lombok.Setter;
