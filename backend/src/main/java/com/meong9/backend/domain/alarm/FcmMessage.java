@@ -17,6 +17,7 @@ public class FcmMessage {
     public static class Message {
         private Notification notification;
         private String token;
+        private WebPush webpush;
     }
 
     @Builder
@@ -26,5 +27,19 @@ public class FcmMessage {
         private String title;
         private String body;
         private String image;
+    }
+
+    @Builder
+    @AllArgsConstructor
+    @Getter
+    public static class WebPush {
+        private WebpushFcmOptions fcmOptions;
+    }
+
+    @Builder
+    @AllArgsConstructor
+    @Getter
+    public static class WebpushFcmOptions {
+        private String link;
     }
 }

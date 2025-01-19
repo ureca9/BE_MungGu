@@ -23,10 +23,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -47,8 +44,8 @@ public class FcmService {
     private String aesKey;
 
     // 매일 오후 3시에 FCM 알람
-    @Scheduled(cron = "0 0 15 * * ?") // 매일 오후 3시에 실행
-//    @Scheduled(cron = "0 * * * * ?")
+//    @Scheduled(cron = "0 0 15 * * ?") // 매일 오후 3시에 실행
+    @Scheduled(cron = "0 * * * * ?")
     @Transactional
     public void sendAnniversaryNotifications() {
         Set<String> tokenKeys = getAllTokensUsingScan();
@@ -158,7 +155,14 @@ public class FcmService {
                                 .body(body)
                                 .image(null)
                                 .build()
-                        ).build()).validateOnly(false).build();
+                        )
+                        .webpush(FcmMessage.WebPush.builder()
+                                .fcmOptions(FcmMessage.WebpushFcmOptions.builder()
+                                        .link("https://mungtivity.vercel.app")
+                                        .build())
+                                .build())
+                        .build())
+                .validateOnly(false).build();
 
         return objectMapper.writeValueAsString(fcmMessage);
     }
@@ -200,11 +204,6 @@ public class FcmService {
                 e.getMessage().contains("InvalidToken");
     }
 
-//    // 토큰 조회
-//    private String getToken(String key) {
-//        return (String) redisTemplate.opsForValue().get(key);
-//    }
-
     // 토큰 삭제
     private void deleteToken(String key) {
         redisTemplate.delete(key);
@@ -217,8 +216,4 @@ public class FcmService {
         return new SecretKeySpec(keyBytes, "AES");
     }
 
-//    @Scheduled(cron = "0 * * * * ?")
-//    public void tokenKey() throws Exception {
-//        System.out.println(EncryptionUtil.generateKey());
-//    }
 }
