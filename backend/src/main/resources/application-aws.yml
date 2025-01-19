@@ -48,3 +48,6 @@ jwt:
 
 weather:
   encoding-key: ${WEATHER_KEY}
+
+aes:
+  key: ${AES_KEY}
