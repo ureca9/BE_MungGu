@@ -44,6 +44,7 @@ jobs:
           ls -la src/main/resources
           echo '${{ secrets.BAN_WORDS_JSON }}' > src/main/resources/static/banWords.json
           echo '${{ secrets.EXCEPT_WORDS_JSON }}' > src/main/resources/static/exceptWords.json
+          echo '${{ secrets.FIREBASE_SERVICE_JSON }}' > src/main/resources/static/firebase_service_key.json
           echo "After creating JSON files:"
           ls -la src/main/resources/static
           echo "JSON files have been created successfully."
@@ -123,6 +124,7 @@ jobs:
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
               -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
+              -DAES_KEY=${{ secrets.AES_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-1."
 
