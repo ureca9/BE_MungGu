@@ -89,6 +89,9 @@ public class MemberService {
             throw AuthenticationException.noRefreshToken();
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication.getPrincipal() instanceof MemberDetails)) {
+            throw new AuthenticationException("잘못된 인증 정보입니다.");
+        }
         Long memberId = ((MemberDetails) authentication.getPrincipal()).member().getMemberId();
 
         jwtProvider.validateToken(refreshToken);
