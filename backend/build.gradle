@@ -29,6 +29,12 @@ repositories {
 }
 
 dependencies {
+	// Slack
+	implementation 'com.slack.api:slack-api-client:1.28.0'
+	implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+	implementation 'com.slack.api:slack-app-backend:1.28.0'
+	implementation 'com.slack.api:slack-api-model:1.28.0'
+
 	// FFmpeg
 	implementation 'net.bramp.ffmpeg:ffmpeg:0.6.2'
 
@@ -101,7 +107,7 @@ jooq {
 					driver = 'com.mysql.cj.jdbc.Driver'
 					url = System.getProperty('dbUrl', 'jdbc:mysql://localhost:3306/meong9')
 					user = System.getProperty('dbUsername', 'root')
-					password = System.getProperty('dbPassword', 'root')
+					password = System.getProperty('dbPassword', '')
 				}
 				generator {
 					database {
