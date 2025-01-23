@@ -1,5 +1,6 @@
 package com.meong9.backend.domain.member.service;
 
+import com.meong9.backend.domain.alarm.service.FcmService;
 import com.meong9.backend.domain.member.dto.*;
 import com.meong9.backend.domain.member.entity.FavoriteRegion;
 import com.meong9.backend.domain.member.entity.Member;
@@ -11,6 +12,7 @@ import com.meong9.backend.domain.place.entity.PlcCategory;
 import com.meong9.backend.domain.place.repository.PlcCategoryRepository;
 import com.meong9.backend.domain.puppy.entity.Puppy;
 import com.meong9.backend.domain.puppy.repository.PuppyRepository;
+import com.meong9.backend.global.auth.entity.MemberDetails;
 import com.meong9.backend.global.auth.jwt.JwtProvider;
 import com.meong9.backend.global.auth.refreshtoken.RefreshToken;
 import com.meong9.backend.global.auth.refreshtoken.RefreshTokenService;
@@ -24,6 +26,8 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import com.meong9.backend.global.repository.RegionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,6 +52,7 @@ public class MemberService {
     private final MediaFileService mediaFileService;
     private final PuppyRepository puppyRepository;
     private final BlackListRepository blackListRepository;
+    private final FcmService fcmService;
 
     /**
      * refresh token 사용하여 access token 재발급하는 서비스 메서드
@@ -83,9 +88,13 @@ public class MemberService {
         if (refreshToken == null) {
             throw AuthenticationException.noRefreshToken();
         }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long memberId = ((MemberDetails) authentication.getPrincipal()).member().getMemberId();
 
         jwtProvider.validateToken(refreshToken);
         refreshTokenService.removeRefreshTokenByKeyEmail(jwtProvider.getSubjectFromToken(refreshToken));
+
+        fcmService.deleteToken("fcm_token:" + memberId);
     }
 
     /**
