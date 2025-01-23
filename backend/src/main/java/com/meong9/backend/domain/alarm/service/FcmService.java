@@ -150,18 +150,11 @@ public class FcmService {
         FcmMessage fcmMessage = FcmMessage.builder()
                 .message(FcmMessage.Message.builder()
                         .token(targetToken)
-                        .notification(FcmMessage.Notification.builder()
-                                .title(title)
-                                .body(body)
-                                .image(null)
-                                .build()
-                        )
-                        .webpush(FcmMessage.WebPush.builder()
-                                .fcmOptions(FcmMessage.WebpushFcmOptions.builder()
-                                        .link("https://mungtivity.vercel.app")
-                                        .build())
-                                .build())
-                        .build())
+                        .data(Map.of(
+                                "title", title,
+                                "body", body,
+                                "url", "https://mungtivity.vercel.app"
+                        )).build())
                 .validateOnly(false).build();
 
         return objectMapper.writeValueAsString(fcmMessage);
@@ -205,7 +198,7 @@ public class FcmService {
     }
 
     // 토큰 삭제
-    private void deleteToken(String key) {
+    public void deleteToken(String key) {
         redisTemplate.delete(key);
     }
 
