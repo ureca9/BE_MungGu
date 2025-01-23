@@ -31,6 +31,7 @@ public class PensionDetailResponseDto {
     private final String introduction;
     private final String limitInfo;
     private final Boolean likeStatus;
+    private final Integer viewCount;
 
     private final List<String> images;
 
@@ -51,7 +52,8 @@ public class PensionDetailResponseDto {
      */
     public static PensionDetailResponseDto of(PensionInfoDto pensionInfo,List<String> tags, List<String> images , String address,
                                               Slice<PhotoReviewSummaryResponseDto> photoReviewSummaryList,
-                                              List<ReviewSummaryResponseDto> reviewSummaryList) {
+                                              List<ReviewSummaryResponseDto> reviewSummaryList,
+                                              Integer viewCount) {
         return PensionDetailResponseDto.builder()
                 .pensionId(pensionInfo.getPensionId())
                 .pensionName(pensionInfo.getPensionName())
@@ -78,6 +80,7 @@ public class PensionDetailResponseDto {
                         ? photoReviewSummaryList.getContent() // 4개 이상일 경우 내용 추가
                         : Collections.emptyList())
                 .review(reviewSummaryList)
+                .viewCount(viewCount)
                 .build();
     }
 }

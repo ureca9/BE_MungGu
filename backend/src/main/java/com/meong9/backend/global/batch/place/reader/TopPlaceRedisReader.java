@@ -5,6 +5,9 @@ import com.meong9.backend.domain.address.service.AddressService;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
 import com.meong9.backend.global.batch.place.dto.RedisTopPlaceDto;
+import com.meong9.backend.global.utils.CategoryMapper;
+import com.meong9.backend.global.utils.RedisKeys;
+import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
@@ -29,19 +32,9 @@ public class TopPlaceRedisReader implements ItemReader<RedisTopPlaceDto> {
     private int globalRank = 1; // 전역 rank 변수
     private Iterator<RedisTopPlaceDto> iterator;
 
-    private String currentCategoryKey;
-    private final List<Map.Entry<String, String>> categoryEntries = new ArrayList<>(categoryMap.entrySet());
+    private final List<String> categoryIds = CategoryMapper.getAllCategoryIds();
     private int categoryIndex = 0;
 
-    // 기본 카테고리 맵
-    private static final Map<String, String> categoryMap = Map.of(
-            "1", "공원",
-            "2", "관광지",
-            "3", "놀이터",
-            "4", "카페",
-            "5", "해수욕장",
-            "6", "마당"
-    );
 
     @Override
     public RedisTopPlaceDto read() {
@@ -54,13 +47,12 @@ public class TopPlaceRedisReader implements ItemReader<RedisTopPlaceDto> {
 
     private void loadNextPage() {
         // 모든 카테고리를 순환하며 Redis 데이터를 처리
-        while (categoryIndex < categoryEntries.size()) {
-            Map.Entry<String, String> currentCategoryEntry = categoryEntries.get(categoryIndex);
-            currentCategoryKey = currentCategoryEntry.getKey(); // ID를 사용
-            String categoryName = currentCategoryEntry.getValue();
+        while (categoryIndex < categoryIds.size()) {
+            String currentCategoryId = categoryIds.get(categoryIndex);
+            String categoryName = CategoryMapper.getCategoryName(currentCategoryId);
 
             // Redis에서 데이터 조회 (name으로 저장된 key 사용)
-            String redisKey = "place:category:" + categoryName;
+            String redisKey = RedisKeys.getPlaceDailyViewCountKey(categoryName, RedisUtils.formatRelativeToNowDate(1));
 
             Set<ZSetOperations.TypedTuple<String>> redisData = redisTemplate.opsForZSet()
                     .reverseRangeWithScores(redisKey, currentIndex, currentIndex + PAGE_SIZE - 1);
@@ -108,7 +100,7 @@ public class TopPlaceRedisReader implements ItemReader<RedisTopPlaceDto> {
                             place.getPlaceTags().stream()
                                     .map(tag -> tag.getTag().getTagId())
                                     .collect(Collectors.toList()),
-                            currentCategoryKey // ID 저장
+                            currentCategoryId // ID 저장
                     );
                     dtoList.add(dto); // DTO 추가
                 }
@@ -131,6 +123,3 @@ public class TopPlaceRedisReader implements ItemReader<RedisTopPlaceDto> {
         iterator = null;
     }
 }
-
-
-

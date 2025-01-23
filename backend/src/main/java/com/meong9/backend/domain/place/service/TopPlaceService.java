@@ -1,30 +1,22 @@
 package com.meong9.backend.domain.place.service;
 
-import com.meong9.backend.domain.address.entity.Address;
-import com.meong9.backend.domain.address.service.AddressService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meong9.backend.domain.place.dto.TopPlaceResponseDto;
-import com.meong9.backend.domain.place.entity.Place;
-import com.meong9.backend.domain.place.entity.PlaceFeature;
-import com.meong9.backend.domain.place.entity.TopPlace;
-import com.meong9.backend.domain.place.entity.id.PlaceFeatureId;
 import com.meong9.backend.domain.place.repository.PlaceRepository;
-import com.meong9.backend.domain.place.repository.TopPlaceRepository;
-import com.meong9.backend.global.topFeature.entity.TopFeature;
-import com.meong9.backend.global.topFeature.repository.TopFeatureRepository;
 import com.meong9.backend.global.utils.CategoryMapper;
+import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
-import com.meong9.backend.global.utils.TagToFeatureMapping;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -36,11 +28,8 @@ public class TopPlaceService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final RedisTemplate<String, Object> objectRedisTemplate;
-
     private final PlaceRepository placeRepository;
-    private final TopPlaceRepository topPlaceRepository;
-    private final AddressService addressService;
-    private final TopFeatureRepository topFeatureRepository;
+
 
     // ----------------- 공용 메서드 -----------------
 
@@ -51,266 +40,56 @@ public class TopPlaceService {
      */
     @Transactional(readOnly = true)
     public List<TopPlaceResponseDto> getTop9PlacesByCategory(String category) {
-        String cacheKey = "top_places:" + category;
+        // Step 1: Redis 캐시 키 정의
+        String categoryName = CategoryMapper.getCategoryName(category);
+        String cacheKey = RedisKeys.getTopPlacesKey(categoryName);
 
-        // Step 1: Redis에서 데이터 읽기
-        Object cachedData = objectRedisTemplate.opsForValue().get(cacheKey);
-        if (cachedData != null) {
-            return (List<TopPlaceResponseDto>) cachedData;
-        }
 
-        // Step 2: DB에서 데이터 조회
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(7);
-
-        List<TopPlaceResponseDto> places = topPlaceRepository.findTop9PlacesByDateRangeAndCategory(
-                startDate.getYear(),
-                startDate.getMonthValue(),
-                startDate.getDayOfMonth(),
-                endDate.getYear(),
-                endDate.getMonthValue(),
-                endDate.getDayOfMonth(),
-                category,
-                PageRequest.of(0, 9)
-        ).getContent();
-
-        /// Step 3: pensionIds 추출
-        List<Long> placeIds = places.stream().map(TopPlaceResponseDto::getPlaceId).toList();
-
-        // Step 4: 대표 이미지 조회
-        List<Object[]> images = topPlaceRepository.findRepresentativeImagesByPlaceIds(placeIds);
-
-        // Step 5: 이미지 매핑
-        Map<Long, String> imageMap = images.stream()
-                .collect(Collectors.toMap(obj -> (Long) obj[0], obj -> (String) obj[1]));
-
-        // 이미지 URL을 DTO에 매핑
-        places.forEach(p -> p.setPlaceImageUrl(imageMap.get(p.getPlaceId())));
-
-        // Step 6: Redis에 데이터 저장
-        long ttlUntilMidnight = RedisUtils.calculateTTLUntil2AM();
-        objectRedisTemplate.opsForValue().set(cacheKey, places, ttlUntilMidnight, TimeUnit.SECONDS);
-
-        return places;
-    }
-
-    /**
-     * 매일 자정에 실행되어 각 카테고리의 상위 TopPlace 데이터를 처리합니다.
-     */
-//    @Scheduled(cron = "0 0 0 * * ?")
-    @Transactional
-    public void aggregateDailyTopPlaces() {
-        List<String> categoryList = CategoryMapper.getAllCategoryNames();
-
-        for (String category : categoryList) {
-            aggregateTopPlaces(category);
-        }
-        // 모든 펜션의 조회수 데이터를 삭제합니다.
-        clearAllPlaceViewCounts();
-    }
-
-    /**
-     * 특정 카테고리의 상위 TopPlace 데이터를 Redis에서 조회하여 데이터베이스에 저장합니다.
-     *
-     * @param categoryName 카테고리 이름
-     */
-    @Transactional
-    public void aggregateTopPlaces(String categoryName) {
-        List<TopPlace> topPlaces = fetchTopPlacesFromRedis(categoryName);
-        saveTopPlacesToDatabase(topPlaces);
-    }
-
-    /**
-     * Redis에서 특정 카테고리의 TopPlace 데이터를 조회하고 리스트로 반환합니다.
-     *
-     * @param category 카테고리 이름
-     * @return TopPlace 객체의 리스트
-     */
-    @Transactional
-    public List<TopPlace> fetchTopPlacesFromRedis(String category) {
-        LocalDate today = LocalDate.now();
-        Set<ZSetOperations.TypedTuple<String>> topViewPlaces = getTopViewPlacesFromRedis(category);
-
-        if (topViewPlaces == null || topViewPlaces.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        Map<Long, Place> placeMap = getPlaceMapFromDatabase(topViewPlaces);
-        return buildTopPlacesList(topViewPlaces, placeMap, today, category);
-    }
-
-    // ----------------- 핵심 비즈니스 로직 메서드 -----------------
-
-    /**
-     * TopPlace 리스트를 생성합니다.
-     *
-     * @param topViewPlaces Redis에서 가져온 조회수 데이터
-     * @param placeMap 데이터베이스에서 조회된 Place 객체의 Map
-     * @param today 현재 날짜
-     * @param category 카테고리 이름
-     * @return 생성된 TopPlace 객체의 리스트
-     */
-    private List<TopPlace> buildTopPlacesList(Set<ZSetOperations.TypedTuple<String>> topViewPlaces,
-                                              Map<Long, Place> placeMap,
-                                              LocalDate today,
-                                              String category) {
-
-        List<TopPlace> topPlaces = new ArrayList<>();
-        int rank = 1;
-
-        // 모든 placeId를 수집
-        List<Long> placeIds = placeMap.keySet().stream().toList();
-
-        // 배치 조회로 주소 데이터 가져오기
-        Map<Long, Address> addressMap = addressService.getAddressesForPensionsOrPlaces(placeIds, "010");
-
-        for (ZSetOperations.TypedTuple<String> place : topViewPlaces) {
-            Long placeId = Long.valueOf(place.getValue());
-            Double score = place.getScore();
-            Place placeEntity = placeMap.get(placeId);
-
-            if (placeEntity == null) {
-                continue;
+        try {
+            // Step 2: Redis에서 데이터 확인
+            // (Redis 키(cacheKey 또는 weeklyCountKey)가 존재하지 않는 경우.
+            // Redis 키는 존재하지만, 값이 비어 있는 경우(null 반환).
+            // 데이터가 만료(TTL)되어 삭제된 경우.
+            // Redis에서 캐시 데이터 확인
+            // Step 2: Redis에서 데이터 확인
+            String jsonData = (String) objectRedisTemplate.opsForValue().get(cacheKey);
+            if (jsonData != null) {
+                List<TopPlaceResponseDto> result = new ObjectMapper().readValue(
+                        jsonData,
+                        new TypeReference<List<TopPlaceResponseDto>>() {}
+                );
+                return result;
             }
 
-            List<Long> tagIds = placeEntity.getPlaceTags().stream()
-                    .map(placeTag -> placeTag.getTag().getTagId())
-                    .collect(Collectors.toList());
+            // Step 3: Redis에서 상위 9개 ID 가져오기
+            String weeklyCountKey = RedisKeys.getPlaceWeeklyViewCountKey(categoryName, RedisUtils.formatRelativeToNowDate(1));
+            List<Long> topIds = getTop9IdsFromRedis(weeklyCountKey);
 
-            TopFeature topFeature = createTopFeatureFromTags(tagIds);
+            // Redis에서 상위 ID 데이터가 없을 경우
+            if (topIds == null || topIds.isEmpty()) {
+                return handleRedisFailure(); // 실패 시 대체 로직 실행
+            }
 
-            // 배치로 가져온 주소 사용
-            Address address = addressMap.get(placeId);
+            // Step 4: DB에서 추가 정보 조회
+            List<TopPlaceResponseDto> placesFromDb = getPlacesFromDb(topIds);
 
-            TopPlace topPlace = createTopPlace(placeEntity, score, rank++, CategoryMapper.getCategoryId(category), today, address);
-            createAndAddPlaceFeature(topPlace, placeEntity, topFeature);
-
-            topPlaces.add(topPlace);
+            // Step 5: Redis에 데이터 저장 (다음 날 오전 2시까지 유지)
+            objectRedisTemplate.opsForValue().set(
+                    cacheKey,
+                    new ObjectMapper().writeValueAsString(placesFromDb),
+                    RedisUtils.calculateTTLUntil2AM(),
+                    TimeUnit.SECONDS
+                    
+            );
+            return placesFromDb;
+        }catch (Exception e) {
+            // Redis에서 조회 실패 시 예외 처리
+            log.error("Failed to fetch top IDs from Redis: {}", e.getMessage(), e);
+            return handleRedisFailure(); // 실패 시 대체 로직 실행
         }
-
-        return topPlaces;
-    }
-
-
-    /**
-     * TopPlace 객체를 생성합니다.
-     *
-     * @param placeEntity Place 객체
-     * @param score Redis에서 가져온 조회수
-     * @param rank 순위
-     * @param category 카테고리 이름
-     * @param today 현재 날짜
-     * @param address Address 객체
-     * @return 생성된 TopPlace 객체
-     */
-    private TopPlace createTopPlace(Place placeEntity, Double score, int rank, String category, LocalDate today, Address address) {
-        return TopPlace.builder()
-                .placeId(placeEntity.getPlaceId())
-                .placeName(placeEntity.getName())
-                .reviewCount(placeEntity.getReviewCount())
-                .reviewAvg(BigDecimal.valueOf(placeEntity.getReviewAvg()))
-                .likeCount(placeEntity.getLikeCount())
-                .category(category)
-                .province(address != null ? address.getProvince() : null)
-                .cityDistrict(address != null ? address.getCityDistrict() : null)
-                .subDistrict(address != null ? address.getSubDistrict() : null)
-                .viewCount(score.longValue())
-                .rank(rank)
-                .year(today.getYear())
-                .month(today.getMonthValue())
-                .date(today.getDayOfMonth())
-                .placeFeatures(new ArrayList<>())
-                .build();
-    }
-
-    /**
-     * PlaceFeature 객체를 생성하고 TopPlace에 추가합니다.
-     *
-     * @param topPlace TopPlace 객체
-     * @param placeEntity Place 객체
-     * @param topFeature TopFeature 객체
-     */
-    private void createAndAddPlaceFeature(TopPlace topPlace, Place placeEntity, TopFeature topFeature) {
-        topFeatureRepository.save(topFeature);
-
-        PlaceFeature placeFeature = new PlaceFeature(
-                new PlaceFeatureId(placeEntity.getPlaceId(), topFeature.getTopFeatureId()),
-                topPlace,
-                topFeature
-        );
-
-        topPlace.getPlaceFeatures().add(placeFeature);
-    }
-
-// ----------------- 데이터 접근 및 유틸리티 메서드 -----------------
-
-    /**
-     * Redis에서 특정 카테고리의 조회수 상위 데이터를 가져옵니다.
-     *
-     * @param category 카테고리 이름 (예: "공원", "레스토랑")
-     * @return 조회수 상위 20개의 ZSetOperations.TypedTuple 데이터
-     */
-    private Set<ZSetOperations.TypedTuple<String>> getTopViewPlacesFromRedis(String category) {
-        String sortedSetKey = "place:category:" + category; // Redis Sorted Set 키 생성
-        return redisTemplate.opsForZSet().reverseRangeWithScores(sortedSetKey, 0, 19); // 상위 20개 데이터 반환
-    }
-
-    /**
-     * Redis에서 가져온 placeId를 기반으로 Place 데이터를 데이터베이스에서 조회하고 Map으로 변환합니다.
-     *
-     * @param topViewPlaces Redis에서 가져온 조회수 데이터 (placeId 및 score 포함)
-     * @return placeId를 키로 갖는 Place 객체의 Map
-     */
-    private Map<Long, Place> getPlaceMapFromDatabase(Set<ZSetOperations.TypedTuple<String>> topViewPlaces) {
-        // Redis에서 가져온 placeId를 Long 타입으로 변환
-        List<Long> placeIds = topViewPlaces.stream()
-                .map(tuple -> {
-                    try {
-                        return Long.valueOf(Objects.requireNonNull(tuple.getValue(), "placeId cannot be null"));
-                    } catch (NumberFormatException e) {
-                        log.warn("유효하지 않은 placeId입니다: {}", tuple.getValue());
-                        return null; // 또는 예외 처리 로직 추가
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // Place 데이터를 데이터베이스에서 조회
-        List<Place> places = placeRepository.findByPlaceIds(placeIds);
-
-        // placeId를 키로 하는 Map 생성
-        return places.stream().collect(Collectors.toMap(Place::getPlaceId, place -> place));
-    }
-
-    /**
-     * 생성된 TopPlace 리스트를 데이터베이스에 저장합니다.
-     *
-     * @param topPlaces 저장할 TopPlace 리스트
-     */
-    private void saveTopPlacesToDatabase(List<TopPlace> topPlaces) {
-        topPlaceRepository.saveAll(topPlaces); // 리스트 전체를 저장
     }
 
 // ----------------- 기타 유틸리티 메서드 -----------------
-
-    /**
-     * 주어진 태그 ID 리스트를 기반으로 TopFeature 객체를 생성합니다.
-     *
-     * @param tagIds 태그 ID 리스트 (Long 타입)
-     *               - 각 태그 ID는 특정 TopFeature 필드를 설정하는 데 사용됩니다.
-     * @return 설정된 TopFeature 객체
-     *         - 태그 ID에 해당하는 필드가 true로 설정된 객체가 반환됩니다.
-     */
-    private TopFeature createTopFeatureFromTags(List<Long> tagIds) {
-        TopFeature topFeature = new TopFeature(); // 빈 TopFeature 객체 생성
-
-        // 태그 ID 리스트를 순회하며 각 태그 ID에 해당하는 설정 적용
-        for (Long tagId : tagIds) {
-            TagToFeatureMapping.applyFeature(tagId, topFeature); // 매핑된 설정 적용
-        }
-
-        return topFeature; // 설정이 완료된 TopFeature 객체 반환
-    }
 
     /**
      * 특정 카테고리의 조회수를 증가시키고 증가된 값을 반환합니다.
@@ -321,31 +100,81 @@ public class TopPlaceService {
      * @return 증가 후의 조회수
      */
     public Double incrementCategoryViewCount(String categoryName, Long placeId) {
-        String sortedSetKey = "place:category:" + categoryName; // Redis Sorted Set 키 생성
+        String sortedSetKey = RedisKeys.getPlaceDailyViewCountKey(categoryName, RedisUtils.formatCurrentDate()); // Redis Sorted Set 키 생성
         String placeIdStr = String.valueOf(placeId); // placeId를 String으로 변환
 
         // Sorted Set에 조회수 증가
-        Double incrementedScore = redisTemplate.opsForZSet().incrementScore(sortedSetKey, placeIdStr, 1);
+        Double viewCount = redisTemplate.opsForZSet().incrementScore(sortedSetKey, placeIdStr, 1);
+        redisTemplate.expire(sortedSetKey, Duration.ofDays(7)); // TTL 7일 설정
 
         // null 처리
-        if (incrementedScore == null) {
+        if (viewCount == null) {
             log.warn("Failed to increment score for placeId: {}", placeId);
             // 기본값을 반환하거나, 추가 처리를 수행
             return 0.0;
         }
 
         // Sorted Set에 조회수 증가
-        return incrementedScore;
+        return viewCount;
+    }
+    
+    /**
+     * 탑9 시설의 ids를 리스트 형식으로 반환합니다.
+     *
+     * @param redisKey 탑9 시설 ID
+     * @return 탑 9 시설의 ids
+     */
+    private List<Long> getTop9IdsFromRedis(String redisKey) {
+        Set<String> topIds = redisTemplate.opsForZSet().reverseRange(redisKey, 0, 8);
+
+        if (topIds == null || topIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return topIds.stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
     }
 
     /**
-     * 모든 펜션의 조회수 데이터를 삭제합니다.
+     * DB에서 주어진 ID 목록에 해당하는 시설 데이터를 조회하고,
+     * ID 순서를 유지하여 정렬된 결과를 반환합니다.
+     *
+     * @param ids 조회할 시설의 ID 목록
+     * @return ID 순서대로 정렬된 {@link TopPlaceResponseDto} 리스트
      */
-    private void clearAllPlaceViewCounts() {
-        List<String> categoryList = CategoryMapper.getAllCategoryNames();
+    private List<TopPlaceResponseDto> getPlacesFromDb(List<Long> ids) {
+        // 1. DB에서 ID 목록으로 데이터를 조회
+        List<TopPlaceResponseDto> places = placeRepository.findPlaceTop(ids, "010");
 
-        for (String category : categoryList) {
-            redisTemplate.delete("place:category:" + category);
-        }
+        // 2. 조회된 데이터를 Map으로 변환 (key: placeId)
+        Map<Long, TopPlaceResponseDto> placeMap = places.stream()
+                .collect(Collectors.toMap(TopPlaceResponseDto::getPlaceId, dto -> dto));
+
+        // 3. ids 순서대로 정렬
+        return ids.stream()
+                .map(placeMap::get) // ids 순서에 따라 Map에서 값 가져오기
+                .filter(Objects::nonNull) // 없는 ID는 제외
+                .toList(); // 최종 결과를 List로 변환
+    }
+
+    /**
+     * Redis 조회 실패 시 실행되는 백업 로직으로, DB에서 reviewCount 기준 상위 9개의
+     * 시설 데이터를 조회하여 반환합니다.
+     *
+     * @return 상위 9개의 {@link TopPlaceResponseDto} 리스트
+     */
+    private List<TopPlaceResponseDto> handleRedisFailure() {
+        // Redis 실패 시 DB에서 상위 9개 데이터를 조회
+        log.warn("Redis failure occurred. Fetching top places from DB as fallback.");
+
+        // Pageable 설정 (첫 번째 페이지, 9개 데이터)
+        Pageable pageable = PageRequest.of(0, 9);
+
+        // DB에서 상위 9개 데이터 조회
+        Page<TopPlaceResponseDto> topPlacesPage = placeRepository.findTopPlacesByReviewCount("010", pageable);
+
+        // 결과 반환
+        return topPlacesPage.getContent();
     }
 }

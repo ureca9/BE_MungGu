@@ -4,8 +4,8 @@ import com.meong9.backend.global.batch.pension.dto.CreatePensionFeatureDto;
 import com.meong9.backend.global.batch.pension.dto.RedisTopPensionDto;
 import com.meong9.backend.global.batch.pension.dto.TopPensionAndFeature;
 import com.meong9.backend.global.batch.pension.listener.PensionJobExecutionContextCleaner;
+import com.meong9.backend.global.batch.pension.listener.PensionWeeklyViewCountJobListener;
 import com.meong9.backend.global.batch.pension.listener.StepListener;
-import com.meong9.backend.global.batch.pension.listener.TopPensionJobListener;
 import com.meong9.backend.global.batch.pension.processor.PensionFeatureProcessor;
 import com.meong9.backend.global.batch.pension.processor.TopPensionAndFeatureProcessor;
 import com.meong9.backend.global.batch.pension.reader.PensionFeatureReader;
@@ -30,16 +30,16 @@ public class TopPensionBatchConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final TopPensionJobListener topPensionJobListener;
     private final PensionJobExecutionContextCleaner pensionJobExecutionContextCleaner;
+    private final PensionWeeklyViewCountJobListener weeklyViewCountJobListener;
 
     @Bean
     public Job aggregateTopPensionJob(
             Step saveTopPensionAndFeatureStep,
             Step savePensionFeatureStep) {
         return new JobBuilder("aggregateTopPensionJob", jobRepository)
-                .listener(topPensionJobListener)
                 .listener(pensionJobExecutionContextCleaner)
+                .listener(weeklyViewCountJobListener)
                 .start(saveTopPensionAndFeatureStep)
                 .on("FAILED").end() // Step 실패 시 Job 종료
                 .from(saveTopPensionAndFeatureStep)
