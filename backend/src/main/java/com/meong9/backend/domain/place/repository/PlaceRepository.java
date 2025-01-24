@@ -160,5 +160,5 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     )
     ORDER BY p.reviewCount DESC
 """)
-    Slice<TopPlaceResponseDto> findTopPlacesByReviewCount(@Param("type") String type, String category, Pageable pageable);
+    Slice<TopPlaceResponseDto> findTopPlacesByReviewCount(@Param("type") String type, @Param("category") String category, Pageable pageable);
 }

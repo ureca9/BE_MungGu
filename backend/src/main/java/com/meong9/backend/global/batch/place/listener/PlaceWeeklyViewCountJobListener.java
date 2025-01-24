@@ -42,14 +42,12 @@ public class PlaceWeeklyViewCountJobListener implements JobExecutionListener {
                         dailyKeys.subList(1, dailyKeys.size()),
                         weeklyKey
                 );
+                redisTemplate.expire(weeklyKey, Duration.ofDays(7)); // TTL 7일 설정
+                log.info("주간 시설 뷰 카운트 데이터가 성공적으로 생성되었습니다.");
             }catch (Exception e){
-                log.error("Redis 주간 데이터 집계 중 오류 발생: {}", e.getMessage());
+                log.error("Redis 주간 뷰 데이터 집계 중 오류 발생: {}", e.getMessage());
             }
-
-            redisTemplate.expire(weeklyKey, Duration.ofDays(7)); // TTL 7일 설정
-
         }
 
-        log.info("주간 시설 뷰 카운트 데이터가 성공적으로 생성되었습니다.");
     }
 }
