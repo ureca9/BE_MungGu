@@ -1,10 +1,10 @@
 name: Build and Deploy to EC2 with Predefined Environment Variables
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - dev
+  push:
+    branches:
+      - main
+      - dev
   pull_request:
     branches:
       - main
@@ -44,6 +44,7 @@ jobs:
           ls -la src/main/resources
           echo '${{ secrets.BAN_WORDS_JSON }}' > src/main/resources/static/banWords.json
           echo '${{ secrets.EXCEPT_WORDS_JSON }}' > src/main/resources/static/exceptWords.json
+          echo '${{ secrets.FIREBASE_SERVICE_JSON }}' > src/main/resources/static/firebase_service_key.json
           echo "After creating JSON files:"
           ls -la src/main/resources/static
           echo "JSON files have been created successfully."
@@ -110,6 +111,10 @@ jobs:
 
             echo "Starting new application on EC2-1..."
             nohup java \
+              -javaagent:/home/ubuntu/pinpoint-agent-2.5.1/pinpoint-bootstrap-2.5.1.jar \
+              -Dpinpoint.agentId=muntivity \
+              -Dpinpoint.applicationName=backend \
+              -Dpinpoint.config=/home/ubuntu/pinpoint-agent-2.5.1/pinpoint-root.config \
               -Dspring.profiles.active=aws \
               -Dspring.datasource.url=${{ secrets.DB_URL }} \
               -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
@@ -123,6 +128,7 @@ jobs:
               -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
               -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
               -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
+              -DAES_KEY=${{ secrets.AES_KEY }} \
               -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
             echo "Application started successfully on EC2-1."
 
@@ -146,57 +152,57 @@ jobs:
               exit 1
             fi
 
-      - name: Deploy and Start Application on EC2-2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_PROD_NEW }}
-          username: ubuntu
-          key: ${{ secrets.PRIVATE_KEY }}
-          script: |
-            echo "Deploying application on EC2-2..."
-            mkdir -p /home/ubuntu/deployments
-            echo "Directory created successfully."
-            echo "Downloading JAR file from S3..."
-            aws s3 cp s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar
-            echo "JAR file downloaded successfully on EC2-2."
+      # - name: Deploy and Start Application on EC2-2
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.HOST_PROD_NEW }}
+      #     username: ubuntu
+      #     key: ${{ secrets.PRIVATE_KEY }}
+      #     script: |
+      #       echo "Deploying application on EC2-2..."
+      #       mkdir -p /home/ubuntu/deployments
+      #       echo "Directory created successfully."
+      #       echo "Downloading JAR file from S3..."
+      #       aws s3 cp s3://${{ secrets.S3_JAR_BUCKET_NAME }}/backend-0.0.1-SNAPSHOT.jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar
+      #       echo "JAR file downloaded successfully on EC2-2."
 
-            echo "Checking for existing application on EC2-2..."
-            if lsof -i:8080; then
-              PID=$(lsof -t -i:8080)
-              echo "Found process on port 8080 with PID: $PID. Stopping it..."
-              kill -9 $PID
-              sleep 5
-              echo "Application stopped successfully."
-            else
-              echo "No application running on port 8080."
-            fi
+      #       echo "Checking for existing application on EC2-2..."
+      #       if lsof -i:8080; then
+      #         PID=$(lsof -t -i:8080)
+      #         echo "Found process on port 8080 with PID: $PID. Stopping it..."
+      #         kill -9 $PID
+      #         sleep 5
+      #         echo "Application stopped successfully."
+      #       else
+      #         echo "No application running on port 8080."
+      #       fi
 
-            echo "Starting new application on EC2-2..."
-            nohup java \
-              -Dspring.profiles.active=aws \
-              -Dspring.datasource.url=${{ secrets.DB_URL }} \
-              -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
-              -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
-              -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-              -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-              -DAWS_REGION=${{ secrets.AWS_REGION }} \
-              -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
-              -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }} \
-              -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
-              -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
-              -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
-              -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
-              -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
-            echo "Application started successfully on EC2-2."
+      #       echo "Starting new application on EC2-2..."
+      #       nohup java \
+      #         -Dspring.profiles.active=aws \
+      #         -Dspring.datasource.url=${{ secrets.DB_URL }} \
+      #         -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
+      #         -Dspring.datasource.password=${{ secrets.DB_PASSWORD }} \
+      #         -DAWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+      #         -DAWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+      #         -DAWS_REGION=${{ secrets.AWS_REGION }} \
+      #         -DS3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME}} \
+      #         -DS3_RESIZE_BUCKET_NAME=${{ secrets.S3_RESIZE_BUCKET_NAME }} \
+      #         -DKAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY}} \
+      #         -DKAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET}} \
+      #         -DJWT_SECRET=${{ secrets.JWT_SECRET}} \
+      #         -DWEATHER_KEY=${{ secrets.WEATHER_KEY }} \
+      #         -jar /home/ubuntu/deployments/backend-0.0.1-SNAPSHOT.jar > /home/ubuntu/deployments/app.log 2>&1 &
+      #       echo "Application started successfully on EC2-2."
 
-            echo "Sleeping for 30 seconds to allow the application to initialize..."
-            sleep 30
+      #       echo "Sleeping for 30 seconds to allow the application to initialize..."
+      #       sleep 30
 
-            echo "Checking the log file..."
-            if [ -f /home/ubuntu/deployments/app.log ]; then
-              echo "Log file exists. Displaying the last 10 lines:"
-              tail -n 10 /home/ubuntu/deployments/app.log
-            else
-              echo "Log file not found. Application might have failed to start."
-              exit 1
-            fi
+      #       echo "Checking the log file..."
+      #       if [ -f /home/ubuntu/deployments/app.log ]; then
+      #         echo "Log file exists. Displaying the last 10 lines:"
+      #         tail -n 10 /home/ubuntu/deployments/app.log
+      #       else
+      #         echo "Log file not found. Application might have failed to start."
+      #         exit 1
+      #       fi

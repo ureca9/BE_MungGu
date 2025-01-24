@@ -2,16 +2,23 @@ package com.meong9.backend.domain.place.service;
 
 import com.meong9.backend.domain.address.service.AddressService;
 import com.meong9.backend.domain.place.dto.PlaceDetailResponseDto;
+import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.repository.PlaceFileRepository;
 import com.meong9.backend.domain.place.repository.PlaceTagRepository;
 import com.meong9.backend.domain.review.service.ReviewService;
+import com.meong9.backend.global.utils.RedisKeys;
+import com.meong9.backend.global.utils.RedisUtils;
+import io.lettuce.core.RedisConnectionException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PlaceDetailService {
 
@@ -20,6 +27,7 @@ public class PlaceDetailService {
     private final PlaceService placeService;
     private final PlaceTagRepository placeTagRepository;
     private final PlaceFileRepository placeFileRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
 
     /**
@@ -34,14 +42,27 @@ public class PlaceDetailService {
     @Transactional(readOnly = true)
     public PlaceDetailResponseDto getPlaceDetail(Long placeId, Long memberId) {
         Pageable pageable = PageRequest.of(0, 5); // 페이지 크기를 5으로 고정
+        PlaceInfoDto placeInfoDto = placeService.getPlaceInfoDto(placeId, memberId);
 
+        Double score;
+        try {
+            score = redisTemplate.opsForZSet().score(
+                    RedisKeys.getPlaceWeeklyViewCountKey(placeInfoDto.getPlaceCategoryName(), RedisUtils.formatRelativeToNowDate(1)),
+                    String.valueOf(placeId));
+        }catch (RedisConnectionException e) {
+            log.error("Redis 연결 오류: {}", e.getMessage());
+            score = null;
+        }
+
+        Integer integerScore = (score != null) ? score.intValue() : null; // score가 null인 경우도 처리
         return PlaceDetailResponseDto.of(
-                placeService.getPlaceInfoDto(placeId, memberId),
+                placeInfoDto,
                 addressService.getAddress(placeId, "010"),
                 placeTagRepository.findNamesByPlaceId(placeId),
                 placeFileRepository.findImagesByPlaceId(placeId),
                 reviewService.getPhotoReviewSummaryResponseDtoList(placeId, "010", pageable),
-                reviewService.getReviews("010", placeId, pageable).getContent()
+                reviewService.getReviews("010", placeId, pageable).getContent(),
+                integerScore
         );
     }
 

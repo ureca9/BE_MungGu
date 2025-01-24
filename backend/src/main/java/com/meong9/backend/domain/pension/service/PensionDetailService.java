@@ -6,10 +6,14 @@ import com.meong9.backend.domain.pension.repository.PensionFileRepository;
 import com.meong9.backend.domain.pension.repository.PensionTagRepository;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.utils.RedisKeys;
+import com.meong9.backend.global.utils.RedisUtils;
+import io.lettuce.core.RedisConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,7 @@ public class PensionDetailService {
     private final PensionService pensionService;
     private final PensionFileRepository pensionFileRepository;
     private final PensionTagRepository pensionTagRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     /**
      * 주어진 고유 ID를 기준으로 펜션의 상세 정보를 조회합니다.
@@ -39,13 +44,27 @@ public class PensionDetailService {
     public PensionDetailResponseDto getPensionDetail(Long pensionId, Long memberId) {
         Pageable pageable = PageRequest.of(0, 5); // 페이지 크기를 5으로 고정
 
+        Double score;
+        try {
+            score = redisTemplate.opsForZSet().score(
+                    RedisKeys.getPensionWeeklyViewCountKey(RedisUtils.formatRelativeToNowDate(1)),
+                    String.valueOf(pensionId));
+        }catch (RedisConnectionException e) {
+            log.error("Redis 연결 오류: {}", e.getMessage());
+            score = null;
+        }
+
+        Integer integerScore = (score != null) ? score.intValue() : null; // score가 null인 경우도 처리
+
         return PensionDetailResponseDto.of(
                 pensionService.getPensionInfo(pensionId, memberId),
                 pensionTagRepository.findTagsByPensionId(pensionId),
                 pensionFileRepository.findImagesByPensionId(pensionId),
                 addressService.getAddress(pensionId, "020"),
                 reviewService.getPhotoReviewSummaryResponseDtoList(pensionId,"020",pageable),
-                reviewService.getReviews("020", pensionId, pageable).getContent()
+                reviewService.getReviews("020", pensionId, pageable).getContent(),
+                integerScore
+
         );
     }
 

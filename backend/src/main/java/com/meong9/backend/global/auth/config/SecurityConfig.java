@@ -63,6 +63,7 @@ public class SecurityConfig {
         // 필터링에서 제외할 요청들
         final RequestMatcher ignoredRequests = new OrRequestMatcher(
                 List.of(new AntPathRequestMatcher("/api/v1/auth/callback/kakao", HttpMethod.GET.name()),
+                        new AntPathRequestMatcher("/api/v1/auth/token", HttpMethod.POST.name()),
                         new AntPathRequestMatcher("/api/v1/members/check", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/rankings", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/api/v1/spots/reviews", HttpMethod.GET.name()),
@@ -78,7 +79,9 @@ public class SecurityConfig {
                         new AntPathRequestMatcher("/api/v1/weather", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/", HttpMethod.GET.name()),
                         new AntPathRequestMatcher("/actuator/health", HttpMethod.GET.name()),
-                        new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name())
+                        new AntPathRequestMatcher("/**", HttpMethod.OPTIONS.name()),
+                        new AntPathRequestMatcher("/api/v1/fcm/token", HttpMethod.POST.name())
+
                 ));
 
         // 요청별 권한 관리
