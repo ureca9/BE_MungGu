@@ -33,14 +33,18 @@ public class PlaceWeeklyViewCountJobListener implements JobExecutionListener {
         for (String name : categoryNames) {
             String weeklyKey = RedisKeys.getPlaceWeeklyViewCountKey(name, RedisUtils.formatRelativeToNowDate(1));
 
-            List<String> dailyKeys = IntStream.range(1, 8)
-                    .mapToObj(dayOffset -> RedisKeys.getPlaceDailyViewCountKey(name, RedisUtils.formatRelativeToNowDate(dayOffset)))
-                    .toList();
-            redisTemplate.opsForZSet().unionAndStore(
-                    dailyKeys.get(0),
-                    dailyKeys.subList(1, dailyKeys.size()),
-                    weeklyKey
-            );
+            try {
+                List<String> dailyKeys = IntStream.range(1, 8)
+                        .mapToObj(dayOffset -> RedisKeys.getPlaceDailyViewCountKey(name, RedisUtils.formatRelativeToNowDate(dayOffset)))
+                        .toList();
+                redisTemplate.opsForZSet().unionAndStore(
+                        dailyKeys.get(0),
+                        dailyKeys.subList(1, dailyKeys.size()),
+                        weeklyKey
+                );
+            }catch (Exception e){
+                log.error("Redis 주간 데이터 집계 중 오류 발생: {}", e.getMessage());
+            }
 
             redisTemplate.expire(weeklyKey, Duration.ofDays(7)); // TTL 7일 설정
 

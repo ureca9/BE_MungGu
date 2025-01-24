@@ -1,14 +1,13 @@
 package com.meong9.backend.domain.pension.repository;
 
 import com.meong9.backend.domain.pension.dto.PensionInfoDto;
-import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
 import com.meong9.backend.domain.pension.dto.TopPensionResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -178,5 +177,5 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
     )
     ORDER BY p.reviewCount DESC
 """)
-    Page<TopPensionResponseDto> findTopPensionsByReviewCount(@Param("type") String type, Pageable pageable);
+    Slice<TopPensionResponseDto> findTopPensionsByReviewCount(@Param("type") String type, Pageable pageable);
 }

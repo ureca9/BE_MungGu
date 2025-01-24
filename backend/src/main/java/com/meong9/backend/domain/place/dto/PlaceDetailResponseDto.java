@@ -63,7 +63,7 @@ public class PlaceDetailResponseDto {
         return PlaceDetailResponseDto.builder()
                 .placeId(placeInfoDto.getPlaceId()) // 장소 ID
                 .placeName(placeInfoDto.getPlaceName()) // 장소 이름
-                .plcCategoryId(placeInfoDto.getPlacCategoryId())
+                .plcCategoryId(placeInfoDto.getPlaceCategoryId())
                 .category(placeInfoDto.getPlaceCategoryName()) // 카테고리
                 .reviewCount(placeInfoDto.getReviewCount()) // 리뷰 수
                 .reviewAvg(placeInfoDto.getReviewAvg()!= null
