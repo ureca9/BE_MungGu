@@ -1,14 +1,13 @@
 package com.meong9.backend.domain.place.repository;
 
-import com.meong9.backend.domain.pension.dto.TopPensionResponseDto;
 import com.meong9.backend.domain.place.dto.PlaceInfoDto;
 import com.meong9.backend.domain.place.dto.PlaceSummaryResponseDto;
 import com.meong9.backend.domain.place.dto.TopPlaceResponseDto;
 import com.meong9.backend.domain.place.entity.Place;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -154,12 +153,12 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
     LEFT JOIN Address a ON a.addressId = pp.address.addressId
     LEFT JOIN PlaceFile pf ON pf.place.placeId = p.placeId
     LEFT JOIN MediaFile mf ON mf.mediaFileId = pf.mediaFile.mediaFileId AND mf.isDeleted = false
-    WHERE pf.mediaFile.mediaFileId = (
+    WHERE p.plcCategory.plcCategoryId = :category AND pf.mediaFile.mediaFileId = (
         SELECT MIN(pf_sub.mediaFile.mediaFileId)
         FROM PlaceFile pf_sub
         WHERE pf_sub.place.placeId = p.placeId
     )
     ORDER BY p.reviewCount DESC
 """)
-    Page<TopPlaceResponseDto> findTopPlacesByReviewCount(@Param("type") String type, Pageable pageable);
+    Slice<TopPlaceResponseDto> findTopPlacesByReviewCount(@Param("type") String type, @Param("category") String category, Pageable pageable);
 }

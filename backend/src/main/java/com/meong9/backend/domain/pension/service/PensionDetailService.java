@@ -8,6 +8,7 @@ import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
+import io.lettuce.core.RedisConnectionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -43,9 +44,16 @@ public class PensionDetailService {
     public PensionDetailResponseDto getPensionDetail(Long pensionId, Long memberId) {
         Pageable pageable = PageRequest.of(0, 5); // 페이지 크기를 5으로 고정
 
-        Double score = redisTemplate.opsForZSet().score(
-                RedisKeys.getPensionWeeklyViewCountKey(RedisUtils.formatRelativeToNowDate(1)),
-                String.valueOf(pensionId));
+        Double score;
+        try {
+            score = redisTemplate.opsForZSet().score(
+                    RedisKeys.getPensionWeeklyViewCountKey(RedisUtils.formatRelativeToNowDate(1)),
+                    String.valueOf(pensionId));
+        }catch (RedisConnectionException e) {
+            log.error("Redis 연결 오류: {}", e.getMessage());
+            score = null;
+        }
+
         Integer integerScore = (score != null) ? score.intValue() : null; // score가 null인 경우도 처리
 
         return PensionDetailResponseDto.of(

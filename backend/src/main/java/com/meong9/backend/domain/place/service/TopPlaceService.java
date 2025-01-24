@@ -9,9 +9,9 @@ import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +67,7 @@ public class TopPlaceService {
 
             // Redis에서 상위 ID 데이터가 없을 경우
             if (topIds == null || topIds.isEmpty()) {
-                return handleRedisFailure(); // 실패 시 대체 로직 실행
+                return handleRedisFailure(category); // 실패 시 대체 로직 실행
             }
 
             // Step 4: DB에서 추가 정보 조회
@@ -85,7 +85,7 @@ public class TopPlaceService {
         }catch (Exception e) {
             // Redis에서 조회 실패 시 예외 처리
             log.error("Failed to fetch top IDs from Redis: {}", e.getMessage(), e);
-            return handleRedisFailure(); // 실패 시 대체 로직 실행
+            return handleRedisFailure(category); // 실패 시 대체 로직 실행
         }
     }
 
@@ -164,7 +164,7 @@ public class TopPlaceService {
      *
      * @return 상위 9개의 {@link TopPlaceResponseDto} 리스트
      */
-    private List<TopPlaceResponseDto> handleRedisFailure() {
+    private List<TopPlaceResponseDto> handleRedisFailure(String category) {
         // Redis 실패 시 DB에서 상위 9개 데이터를 조회
         log.warn("Redis failure occurred. Fetching top places from DB as fallback.");
 
@@ -172,7 +172,7 @@ public class TopPlaceService {
         Pageable pageable = PageRequest.of(0, 9);
 
         // DB에서 상위 9개 데이터 조회
-        Page<TopPlaceResponseDto> topPlacesPage = placeRepository.findTopPlacesByReviewCount("010", pageable);
+        Slice<TopPlaceResponseDto> topPlacesPage = placeRepository.findTopPlacesByReviewCount("010", category, pageable);
 
         // 결과 반환
         return topPlacesPage.getContent();

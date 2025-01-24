@@ -33,19 +33,21 @@ public class PlaceWeeklyViewCountJobListener implements JobExecutionListener {
         for (String name : categoryNames) {
             String weeklyKey = RedisKeys.getPlaceWeeklyViewCountKey(name, RedisUtils.formatRelativeToNowDate(1));
 
-            List<String> dailyKeys = IntStream.range(1, 8)
-                    .mapToObj(dayOffset -> RedisKeys.getPlaceDailyViewCountKey(name, RedisUtils.formatRelativeToNowDate(dayOffset)))
-                    .toList();
-            redisTemplate.opsForZSet().unionAndStore(
-                    dailyKeys.get(0),
-                    dailyKeys.subList(1, dailyKeys.size()),
-                    weeklyKey
-            );
-
-            redisTemplate.expire(weeklyKey, Duration.ofDays(7)); // TTL 7일 설정
-
+            try {
+                List<String> dailyKeys = IntStream.range(1, 8)
+                        .mapToObj(dayOffset -> RedisKeys.getPlaceDailyViewCountKey(name, RedisUtils.formatRelativeToNowDate(dayOffset)))
+                        .toList();
+                redisTemplate.opsForZSet().unionAndStore(
+                        dailyKeys.get(0),
+                        dailyKeys.subList(1, dailyKeys.size()),
+                        weeklyKey
+                );
+                redisTemplate.expire(weeklyKey, Duration.ofDays(7)); // TTL 7일 설정
+                log.info("주간 시설 뷰 카운트 데이터가 성공적으로 생성되었습니다.");
+            }catch (Exception e){
+                log.error("Redis 주간 뷰 데이터 집계 중 오류 발생: {}", e.getMessage());
+            }
         }
 
-        log.info("주간 시설 뷰 카운트 데이터가 성공적으로 생성되었습니다.");
     }
 }

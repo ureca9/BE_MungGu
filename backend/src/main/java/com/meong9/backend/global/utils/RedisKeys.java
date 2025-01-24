@@ -23,6 +23,12 @@ public final class RedisKeys {
      * @return 완성된 Redis 키
      */
     public static String format(String pattern, Object... args) {
+        if (pattern == null || pattern.trim().isEmpty()) {
+            throw new IllegalArgumentException("패턴은 null이거나 빈 문자열일 수 없습니다.");
+        }
+        if (args == null) {
+            throw new IllegalArgumentException("인자는 null일 수 없습니다.");
+        }
         return String.format(pattern, args);
     }
 

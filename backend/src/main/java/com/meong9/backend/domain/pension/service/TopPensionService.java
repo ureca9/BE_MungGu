@@ -10,9 +10,9 @@ import com.meong9.backend.global.utils.RedisKeys;
 import com.meong9.backend.global.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -158,7 +158,7 @@ public class TopPensionService {
         Pageable pageable = PageRequest.of(0, 9);
 
         // DB에서 상위 9개 데이터 조회
-        Page<TopPensionResponseDto> topPensionsPage = pensionRepository.findTopPensionsByReviewCount("020", pageable);
+        Slice<TopPensionResponseDto> topPensionsPage = pensionRepository.findTopPensionsByReviewCount("020", pageable);
 
         // 결과 반환
         return topPensionsPage.getContent();
