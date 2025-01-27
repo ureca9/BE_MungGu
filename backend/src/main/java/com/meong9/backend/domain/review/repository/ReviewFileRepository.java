@@ -28,7 +28,7 @@ public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFi
     SELECT rf
     FROM ReviewFile rf
     JOIN FETCH rf.file
-    WHERE rf.file.mediaFileId IN :mediaFileId
+    WHERE rf.file.mediaFileId = :mediaFileId
 """)
     Optional<ReviewFile> findByMediaFileId(@Param("mediaFileId") Long mediaFileId);
 }
