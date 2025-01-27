@@ -88,12 +88,12 @@ public class VideoProcessingService {
 
                 // 360p 설정
                 .addExtraArgs("-map", "0:v:0")
-                .addExtraArgs("-b:v:2", "1000k")
-                .addExtraArgs("-maxrate:v:2", "1000k")
-                .addExtraArgs("-bufsize:v:2", "2000k")
-                .addExtraArgs("-s:v:2", "854x480")
-                .addExtraArgs("-crf:v:2", "28")
-                .addExtraArgs("-b:a:2", "64k")
+                .addExtraArgs("-b:v:0", "1000k")
+                .addExtraArgs("-maxrate:v:0", "1000k")
+                .addExtraArgs("-bufsize:v:0", "2000k")
+                .addExtraArgs("-s:v:0", "854x480")
+                .addExtraArgs("-crf:v:0", "28")
+                .addExtraArgs("-b:a:0", "64k")
 
                 // 720p 설정
                 .addExtraArgs("-map", "0:v:0")
