@@ -31,8 +31,6 @@ public class SlackNotificationService {
     @Value("${slack.webhook.url}")
     private String webhookUrl;
 
-    private final StringBuilder sb = new StringBuilder();
-
     // Slack 알림 전송
     @Retryable(
             retryFor = IOException.class,
