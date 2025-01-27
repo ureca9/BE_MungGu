@@ -27,6 +27,17 @@ spring:
       enabled: false
     jdbc:
       initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      enable-auto-commit: false
+      group-id: video-transcoding-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    template:
+      default-topic: video-transcoding
 
 s3:
   credentials:
@@ -56,3 +67,7 @@ ffmpeg:
   path: /usr/bin/ffmpeg
 ffprobe:
   path: /usr/bin/ffprobe
+
+slack:
+  webhook:
+    url: https://hooks.slack.com/services/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
