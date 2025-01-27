@@ -22,9 +22,6 @@ public class ReviewFile{ // 복합 키 클래스
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile file;
 
-    @Setter
-    private String status = "UPLOADED";
-
     @Builder
     public ReviewFile(Review review, MediaFile file,ReviewFileId reviewFileId) {
         this.review = review;

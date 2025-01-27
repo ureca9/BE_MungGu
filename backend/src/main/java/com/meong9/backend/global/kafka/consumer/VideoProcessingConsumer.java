@@ -71,10 +71,6 @@ public class VideoProcessingConsumer {
             ReviewFile reviewFile = reviewFileRepository.findByMediaFileId(mediaFile.getMediaFileId())
                     .orElseThrow(() -> new NotFoundException("Review file not found for mediaFileId: " + mediaFile.getMediaFileId()));
 
-            // ReviewFile 상태 업데이트
-            reviewFile.setStatus("FAILED");
-            reviewFileRepository.save(reviewFile);
-
             // Outbox 상태 관리
             outboxService.updateOutbox(mediaFile.getMediaFileId());
 

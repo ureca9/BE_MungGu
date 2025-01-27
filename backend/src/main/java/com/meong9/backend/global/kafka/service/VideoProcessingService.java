@@ -4,6 +4,10 @@ import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.kafka.dto.VideoMessage;
+import com.meong9.backend.global.kafka.entity.EventType;
+import com.meong9.backend.global.kafka.entity.Outbox;
+import com.meong9.backend.global.kafka.entity.OutboxStatus;
+import com.meong9.backend.global.kafka.repository.OutboxRepository;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
@@ -27,8 +31,8 @@ public class VideoProcessingService {
 
     private final MediaFileService mediaFileService;
     private final MediaFileRepository mediaFileRepository;
-    private final ReviewFileRepository reviewFileRepository;
     private final FFmpegExecutor ffmpegExecutor;
+    private final OutboxRepository outboxRepository;
 
     @Value("${s3.buckets.source}")
     private String bucket;
@@ -39,7 +43,7 @@ public class VideoProcessingService {
         // 1. 비디오 파일 검증 및 가져오기
         MediaFile mediaFile = mediaFileRepository.findByFileUrl(fileUrl)
                 .orElseThrow(() -> NotFoundException.entityNotFound(String.format("media file url - %s", fileUrl)));
-        ReviewFile reviewFile = reviewFileRepository.findByMediaFileId(mediaFile.getMediaFileId())
+        Outbox outbox = outboxRepository.findByRelatedIdAndEventType(mediaFile.getMediaFileId(), EventType.TRANSCODE)
                 .orElseThrow(() -> NotFoundException.entityNotFound(String.format("review file - %s", mediaFile.getMediaFileId())));
 
         // 2. 트랜스 코딩
@@ -49,10 +53,10 @@ public class VideoProcessingService {
         String s3Directory = "Review/" + extractFileNameWithoutExtension(fileUrl) + "_hls";
         mediaFileService.uploadHlsToS3(outputDirPath, s3Directory);
 
-        // 4. MediaFile, ReviewFile 상태 업데이트
+        // 4. MediaFile, Oubtox 상태 업데이트
         String s3BaseUrl = "https://" + bucket + ".s3.ap-northeast-2.amazonaws.com";
         mediaFile.setFileUrl(s3BaseUrl + "/" + s3Directory + "/master.m3u8"); // HLS 마스터 플레이리스트 경로
-        reviewFile.setStatus("TRANSCODED");
+        outbox.setStatus(OutboxStatus.SENT);
 
         // 5. 영상 원본 및 로컬 디렉토리 삭제
         String fileKey = extractFileKey(fileUrl);
