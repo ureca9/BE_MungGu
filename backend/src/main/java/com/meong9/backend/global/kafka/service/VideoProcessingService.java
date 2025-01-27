@@ -1,7 +1,5 @@
 package com.meong9.backend.global.kafka.service;
 
-import com.meong9.backend.domain.review.entity.ReviewFile;
-import com.meong9.backend.domain.review.repository.ReviewFileRepository;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.kafka.dto.VideoMessage;
 import com.meong9.backend.global.kafka.entity.EventType;
