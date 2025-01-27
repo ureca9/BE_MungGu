@@ -5,7 +5,7 @@ import com.meong9.backend.global.batch.place.dto.RedisTopPlaceDto;
 import com.meong9.backend.global.batch.place.dto.TopPlaceAndFeature;
 import com.meong9.backend.global.batch.place.listener.PlaceJobExecutionContextCleaner;
 import com.meong9.backend.global.batch.pension.listener.StepListener;
-import com.meong9.backend.global.batch.place.listener.TopPlaceJobListener;
+import com.meong9.backend.global.batch.place.listener.PlaceWeeklyViewCountJobListener;
 import com.meong9.backend.global.batch.place.processor.PlaceFeatureProcessor;
 import com.meong9.backend.global.batch.place.processor.TopPlaceAndFeatureProcessor;
 import com.meong9.backend.global.batch.place.reader.PlaceFeatureReader;
@@ -30,16 +30,16 @@ public class TopPlaceBatchConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final TopPlaceJobListener topPlaceJobListener;
     private final PlaceJobExecutionContextCleaner placeJobExecutionContextCleaner;
+    private final PlaceWeeklyViewCountJobListener placWeeklyViewCountJobListener;
 
     @Bean
     public Job aggregateTopPlaceJob(
             Step saveTopPlaceAndFeatureStep,
             Step savePlaceFeatureStep) {
         return new JobBuilder("aggregateTopPlaceJob", jobRepository)
-                .listener(topPlaceJobListener)
                 .listener(placeJobExecutionContextCleaner)
+                .listener(placWeeklyViewCountJobListener)
                 .start(saveTopPlaceAndFeatureStep)
                 .on("FAILED").end() // Step 실패 시 Job 종료
                 .from(saveTopPlaceAndFeatureStep)

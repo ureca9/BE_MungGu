@@ -49,6 +49,9 @@ jwt:
 weather:
   encoding-key: ${WEATHER_KEY}
 
+aes:
+  key: ${AES_KEY}
+
 ffmpeg:
   path: /usr/bin/ffmpeg
 ffprobe:

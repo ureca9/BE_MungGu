@@ -1,11 +1,13 @@
 package com.meong9.backend.domain.pension.repository;
 
 import com.meong9.backend.domain.pension.dto.PensionInfoDto;
-import com.meong9.backend.domain.member.entity.Member;
 import com.meong9.backend.domain.pension.dto.PensionSummaryResponseDto;
+import com.meong9.backend.domain.pension.dto.TopPensionResponseDto;
 import com.meong9.backend.domain.pension.entity.Pension;
 import com.meong9.backend.domain.recommendation.recommendation.projection.PlcPenProjection;
 import com.meong9.backend.domain.review.dto.ReviewInfoQueryResult;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -126,4 +128,54 @@ public interface PensionRepository extends JpaRepository<Pension, Long> {
         FROM Pension p 
     """)
     List<PlcPenProjection> findPensionProjection();
+
+    @Query("""
+            SELECT new com.meong9.backend.domain.pension.dto.TopPensionResponseDto(
+        p.pensionId,
+        p.name,
+        p.reviewCount,
+        p.reviewAvg,
+        a.province,
+        a.cityDistrict,
+        a.subDistrict,
+        mf.fileUrl
+    )
+    FROM Pension p
+    LEFT JOIN PlcPenAddress pp ON pp.plcPenId = p.pensionId AND pp.type = :type
+    LEFT JOIN Address a ON a.addressId = pp.address.addressId
+    LEFT JOIN PensionFile pf ON pf.pension.pensionId = p.pensionId
+    LEFT JOIN MediaFile mf ON mf.mediaFileId = pf.mediaFile.mediaFileId AND mf.isDeleted = false
+    WHERE p.pensionId IN :ids
+    AND pf.mediaFile.mediaFileId = (
+        SELECT MIN(pf_sub.mediaFile.mediaFileId)
+        FROM PensionFile pf_sub
+        WHERE pf_sub.pension.pensionId = p.pensionId
+    )
+    """)
+    List<TopPensionResponseDto> findPensionTop(@Param("ids") List<Long> ids, @Param("type") String type);
+
+    @Query("""
+    SELECT new com.meong9.backend.domain.pension.dto.TopPensionResponseDto(
+        p.pensionId,
+        p.name,
+        p.reviewCount,
+        p.reviewAvg,
+        a.province,
+        a.cityDistrict,
+        a.subDistrict,
+        mf.fileUrl
+    )
+    FROM Pension p
+    LEFT JOIN PlcPenAddress pp ON pp.plcPenId = p.pensionId AND pp.type = :type
+    LEFT JOIN Address a ON a.addressId = pp.address.addressId
+    LEFT JOIN PensionFile pf ON pf.pension.pensionId = p.pensionId
+    LEFT JOIN MediaFile mf ON mf.mediaFileId = pf.mediaFile.mediaFileId AND mf.isDeleted = false
+    WHERE pf.mediaFile.mediaFileId = (
+        SELECT MIN(pf_sub.mediaFile.mediaFileId)
+        FROM PensionFile pf_sub
+        WHERE pf_sub.pension.pensionId = p.pensionId
+    )
+    ORDER BY p.reviewCount DESC
+""")
+    Slice<TopPensionResponseDto> findTopPensionsByReviewCount(@Param("type") String type, Pageable pageable);
 }

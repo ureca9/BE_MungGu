@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class TopPensionResponseDto {
+public class TopPensionResponseDto{
     private Long pensionId;
     private String pensionName;
     private Integer reviewCount;
@@ -20,13 +20,12 @@ public class TopPensionResponseDto {
     private String province;
     private String cityDistrict;
     private String subDistrict;
-    private Long totalViewCount;
     private String address;
 
     private String pensionImageUrl;
 
     public TopPensionResponseDto(Long pensionId, String pensionName, Integer reviewCount, Double reviewAvg,
-                                 String province, String cityDistrict, String subDistrict, Long totalViewCount) {
+                                 String province, String cityDistrict, String subDistrict, String pensionImageUrl) {
         this.pensionId = pensionId;
         this.pensionName = pensionName;
         this.reviewCount = reviewCount;
@@ -34,7 +33,7 @@ public class TopPensionResponseDto {
         this.province = province;
         this.cityDistrict = cityDistrict;
         this.subDistrict = subDistrict;
-        this.totalViewCount = totalViewCount;
         this.address = AddressMapper.formatAddress(province, cityDistrict, subDistrict);
+        this.pensionImageUrl = pensionImageUrl;
     }
 }
