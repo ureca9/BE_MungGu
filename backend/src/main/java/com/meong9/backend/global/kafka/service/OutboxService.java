@@ -1,7 +1,10 @@
 package com.meong9.backend.global.kafka.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meong9.backend.global.exception.NotFoundException;
 import com.meong9.backend.global.kafka.dto.KafkaVideoDto;
+import com.meong9.backend.global.kafka.dto.VideoMessage;
 import com.meong9.backend.global.kafka.entity.EventType;
 import com.meong9.backend.global.kafka.entity.Outbox;
 import com.meong9.backend.global.kafka.entity.OutboxStatus;
@@ -10,10 +13,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -22,17 +27,25 @@ public class OutboxService {
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
+    @Transactional
     public void saveOutboxMessages(List<KafkaVideoDto> kafkaVideoDtos) {
         for (KafkaVideoDto dto : kafkaVideoDtos) {
-            Outbox outbox = Outbox.builder()
-                    .relatedId(dto.getMediaFileId())
-                    .relatedType("REVIEW_VIDEO")
-                    .eventType(EventType.TRANSCODE)
-                    .payload(dto.getFileUrl())
-                    .status(OutboxStatus.PENDING)
-                    .build();
-            outboxRepository.save(outbox);
-            registerTransactionSync(outbox);
+            try {
+                String videoId = UUID.randomUUID().toString();
+                String payload = new ObjectMapper().writeValueAsString(new VideoMessage(videoId, dto.getFileUrl()));
+
+                Outbox outbox = Outbox.builder()
+                        .relatedId(dto.getMediaFileId())
+                        .relatedType("REVIEW_VIDEO")
+                        .eventType(EventType.TRANSCODE)
+                        .payload(payload)
+                        .status(OutboxStatus.PENDING)
+                        .build();
+                outboxRepository.save(outbox);
+                registerTransactionSync(outbox);
+            } catch (JsonProcessingException e) {
+                log.error("Kafka json 파싱 오류 : {}", e.getMessage());
+            }
         }
     }
 
