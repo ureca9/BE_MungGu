@@ -27,6 +27,17 @@ spring:
       enabled: false
     jdbc:
       initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      enable-auto-commit: false
+      group-id: video-transcoding-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    template:
+      default-topic: video-transcoding
 
 s3:
   credentials:
@@ -39,7 +50,7 @@ s3:
 
 kakao:
   client-id: ${KAKAO_REST_API_KEY}
-  redirect-uri: http://localhost:5173/login
+  redirect-uri: https://mungtivity.vercel.app/login
   client-secret: ${KAKAO_CLIENT_SECRET}
 
 jwt:
@@ -51,3 +62,12 @@ weather:
 
 aes:
   key: ${AES_KEY}
+
+ffmpeg:
+  path: /usr/bin/ffmpeg
+ffprobe:
+  path: /usr/bin/ffprobe
+
+slack:
+  webhook:
+    url: https://hooks.slack.com/services/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

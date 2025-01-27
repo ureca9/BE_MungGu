@@ -29,6 +29,22 @@ repositories {
 }
 
 dependencies {
+	// Rate Limiter
+	implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.0.2'
+
+	// Slack
+	implementation 'com.slack.api:slack-api-client:1.28.0'
+	implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+	implementation 'com.slack.api:slack-app-backend:1.28.0'
+	implementation 'com.slack.api:slack-api-model:1.28.0'
+
+	// FFmpeg
+	implementation 'net.bramp.ffmpeg:ffmpeg:0.6.2'
+
+	// Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.apache.kafka:kafka-clients'
+
 	// Jooq
 	implementation 'org.jooq:jooq:3.18.0'
 	implementation 'org.jooq:jooq-meta:3.18.0'

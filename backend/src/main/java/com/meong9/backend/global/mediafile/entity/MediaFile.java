@@ -28,6 +28,7 @@ public class MediaFile extends BaseTimeEntity {
     @Column(nullable = false)
     private String fileName;
 
+    @Setter
     private String fileUrl;
 
     private Double height;
@@ -56,4 +57,5 @@ public class MediaFile extends BaseTimeEntity {
     public void delete(){
         this.isDeleted = true;
     }
+
 }

@@ -19,6 +19,7 @@ import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.banword.inspector.BanWordInspector;
 import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
+import com.meong9.backend.global.kafka.dto.KafkaVideoDto;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
@@ -30,7 +31,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
@@ -41,15 +41,15 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URI;
+import java.nio.file.Paths;
+import java.text.DecimalFormat;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.text.DecimalFormat;
-import java.util.*;
 
 @Slf4j
 @Service
@@ -65,7 +65,6 @@ public class ReviewService {
     private final MemberRepository memberRepository;
     private final BanWordInspector banWordInspector;
     private final MemberScoreService memberScoreService;
-
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -122,34 +121,82 @@ public class ReviewService {
     }
 
     @Transactional
-    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
-        List<MediaFile> mediaFiles = new ArrayList<>();
+    public List<KafkaVideoDto> createReview(ReviewRequestDto dto, Member member) {
+        // 1. review 객체를 생성 및 저장한다
         Review review = Review.builder()
                 .member(member)
-                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member))
+                .content(banWordInspector.mask(dto.getContent(), "멍멍", member))
                 .nickname(member.getNickname())
-                .score(reviewRequestDto.getScore())
-                .type(reviewRequestDto.getType())
-                .placePensionId(reviewRequestDto.getPlcPenId())
-                .visitDate(reviewRequestDto.getVisitDate())
+                .score(dto.getScore())
+                .type(dto.getType())
+                .placePensionId(dto.getPlcPenId())
+                .visitDate(dto.getVisitDate())
                 .reviewFiles(null)
                 .build();
+        reviewRepository.save(review);
 
-        Review savedReview = reviewRepository.save(review);
-        if(Objects.equals(reviewRequestDto.getType(), "010")){
-            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
-            place.increaseReviewCount();
-            place.calcReviewAvg(place.getReviewCount()-1 , place.getReviewCount(), 0.0, Double.valueOf(reviewRequestDto.getScore()));
-        }
-        if(Objects.equals(reviewRequestDto.getType(), "020")){
-            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
-            pension.increaseReviewCount();
-            pension.calcReviewAvg(pension.getReviewCount()-1,pension.getReviewCount(), 0.0, Double.valueOf(reviewRequestDto.getScore()));
-        }
-        processFileAsync(files, savedReview, mediaFiles);
+        /**
+         * Review 저장 후 MediaFile과 ReviewFile 저장이 실패하면 Review 데이터가 남는 경우를 처리해야 함
+         */
+        // 2. MediaFile 객체를 생성 및 저장한다
+        List<KafkaVideoDto> kafkaVideoDtos = new ArrayList<>();
+        for (String fileUrl : dto.getFileUrls()) {
 
-        memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
+            FileType fileType = determineFileType(fileUrl);
+
+            MediaFile file = MediaFile.builder()
+                    .fileName(extractFileName(fileUrl))
+                    .fileUrl(fileUrl)
+                    .fileType(fileType)
+                    .build();
+
+            mediaFileRepository.save(file);
+
+            ReviewFileId reviewFileId = new ReviewFileId(review.getReviewId(), file.getMediaFileId());
+            ReviewFile reviewFile = new ReviewFile(review, file, reviewFileId);
+            reviewFileRepository.save(reviewFile);
+
+            if (fileType.equals(FileType.VIDEO)) {
+                kafkaVideoDtos.add(new KafkaVideoDto(file.getMediaFileId(), fileUrl));
+            }
+        }
+
+        // 3. 부차적인 내용 업데이트
+        updatePlaceOrPension(dto);
+        memberScoreService.addReview(member.getMemberId(), dto.getPlcPenId(), dto.getScore(), dto.getType());
+        return kafkaVideoDtos;
     }
+
+    private void updatePlaceOrPension(ReviewRequestDto dto) {
+        if (Objects.equals(dto.getType(), "010")) {
+            Place place = placeRepository.findById(dto.getPlcPenId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+            place.increaseReviewCount();
+            place.calcReviewAvg(place.getReviewCount() - 1, place.getReviewCount(), 0.0, Double.valueOf(dto.getScore()));
+        }
+        if (Objects.equals(dto.getType(), "020")) {
+            Pension pension = pensionRepository.findById(dto.getPlcPenId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
+            pension.increaseReviewCount();
+            pension.calcReviewAvg(pension.getReviewCount() - 1, pension.getReviewCount(), 0.0, Double.valueOf(dto.getScore()));
+        }
+    }
+
+    private String extractFileName(String fileUrl) {
+        return Paths.get(URI.create(fileUrl).getPath()).getFileName().toString();
+    }
+
+    /**
+     * 프론트에서 입력 시 filetype 확인해서 확장자와 함께 s3에 올려줘야 함
+     */
+    private FileType determineFileType(String fileUrl) {
+        if (fileUrl.endsWith(".jpg") || fileUrl.endsWith(".jpeg") || fileUrl.endsWith(".png") || fileUrl.endsWith(".webp")) {
+            return FileType.IMAGE;
+        } else if (fileUrl.endsWith(".mp4") || fileUrl.endsWith(".mov")) {
+            return FileType.VIDEO;
+        } else {
+            throw new IllegalArgumentException("Unsupported file type: " + fileUrl);
+        }
+    }
+
 
     @Transactional
     public void updateReview(Long reviewId, ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
@@ -613,6 +660,36 @@ public class ReviewService {
         });
     }
 
+
+//    @Transactional
+//    public void createReview(ReviewRequestDto reviewRequestDto, List<MultipartFile> files, Member member) {
+//        List<MediaFile> mediaFiles = new ArrayList<>();
+//        Review review = Review.builder()
+//                .member(member)
+//                .content(banWordInspector.mask(reviewRequestDto.getContent(),"멍멍", member))
+//                .nickname(member.getNickname())
+//                .score(reviewRequestDto.getScore())
+//                .type(reviewRequestDto.getType())
+//                .placePensionId(reviewRequestDto.getPlcPenId())
+//                .visitDate(reviewRequestDto.getVisitDate())
+//                .reviewFiles(null)
+//                .build();
+//
+//        Review savedReview = reviewRepository.save(review);
+//        if(Objects.equals(reviewRequestDto.getType(), "010")){
+//            Place place=placeRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
+//            place.increaseReviewCount();
+//            place.calcReviewAvg(place.getReviewCount()-1 , place.getReviewCount(), 0.0, Double.valueOf(reviewRequestDto.getScore()));
+//        }
+//        if(Objects.equals(reviewRequestDto.getType(), "020")){
+//            Pension pension=pensionRepository.findById(savedReview.getPlacePensionId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
+//            pension.increaseReviewCount();
+//            pension.calcReviewAvg(pension.getReviewCount()-1,pension.getReviewCount(), 0.0, Double.valueOf(reviewRequestDto.getScore()));
+//        }
+//        processFileAsync(files, savedReview, mediaFiles);
+//
+//        memberScoreService.addReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), reviewRequestDto.getScore(), reviewRequestDto.getType());
+//    }
 
 }
 

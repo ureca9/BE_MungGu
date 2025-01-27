@@ -5,6 +5,7 @@ import com.meong9.backend.domain.review.dto.PresignedUrlDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
+import com.meong9.backend.domain.review.service.ReviewCreationService;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class ReviewController {
     private final ReviewService reviewService;
+    private final ReviewCreationService reviewCreationService;
     private final MediaFileService mediaFileService;
 
     @GetMapping("/reviews/{reviewId}")
@@ -54,17 +56,15 @@ public class ReviewController {
     }
 
     @PostMapping("/reviews")
-    public ResponseEntity<?> createReview(
-            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
-            @RequestPart(value = "file", required = false) List<MultipartFile> files,
-            @CurrentMember Member member)  {
+    public ResponseEntity<?> createReview(@RequestBody ReviewRequestDto requestDto,
+                                               @CurrentMember Member member) {
         // @PreAuthorize로 관리할 경우 403을 반환하기 때문에 200을 반환하되 메시지를 명확히 적어 주도록 함
         if (member.getBlackList() != null && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
             String date = member.getBlackList().getLockedUntil().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String message = String.format("%s일까지 리뷰 작성 권한이 제한됩니다.", date);
+            String message = String.format("%s 까지 리뷰 작성 권한이 제한됩니다.", date);
             return CommonResponse.ok(message);
         }
-        reviewService.createReview(reviewRequestDto,files,member);
+        reviewCreationService.createReviewWithVideos(requestDto, member);
         return CommonResponse.created("success");
     }
 
@@ -80,9 +80,9 @@ public class ReviewController {
 
 
     @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<?> updateReview(
+    public ResponseEntity<?> deleteReview(
             @PathVariable Long reviewId,
-            @CurrentMember Member member) throws IOException, IllegalAccessException {
+            @CurrentMember Member member) throws IllegalAccessException {
         reviewService.deleteReview(reviewId, member);
         return CommonResponse.ok("success");
     }
@@ -96,5 +96,21 @@ public class ReviewController {
 
         return CommonResponse.ok("success", response);
     }
+
+
+//    @PostMapping("/reviews")
+//    public ResponseEntity<?> createReview(
+//            @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
+//            @RequestPart(value = "file", required = false) List<MultipartFile> files,
+//            @CurrentMember Member member)  {
+//        // @PreAuthorize로 관리할 경우 403을 반환하기 때문에 200을 반환하되 메시지를 명확히 적어 주도록 함
+//        if (member.getBlackList() != null && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
+//            String date = member.getBlackList().getLockedUntil().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+//            String message = String.format("%s 까지 리뷰 작성 권한이 제한됩니다.", date);
+//            return CommonResponse.ok(message);
+//        }
+//        reviewService.createReview(reviewRequestDto,files,member);
+//        return CommonResponse.created("success");
+//    }
 
 }

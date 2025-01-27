@@ -374,23 +374,6 @@ public class MediaFileService {
         );
     }
 
-    public String getResizeBucketUrl(String fileKey) {
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", resizeBucket, region, fileKey);
-    }
-
-    public MediaFile registerFileKey(String fileKey) {
-
-        String fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, fileKey);
-
-        return MediaFile.builder()
-                .fileType(FileType.IMAGE)
-                .fileKey(fileKey)
-                .fileName("profile.jpg")
-                .fileUrl(fileUrl)
-                .build();
-    }
-
-
     public Map<String, String> getPresingedUrl(String objectKey) {
         // PreSigned URL 생성
         Date expiration = new Date(System.currentTimeMillis() + 1000 * 60 * 10); // 10분 유효
@@ -424,5 +407,29 @@ public class MediaFileService {
 
         // Presigned URL 생성 및 반환
         return amazonS3.generatePresignedUrl(presignedUrlRequest);
+    }
+
+    /**
+     * 트랜스코딩된 파일을 S3에 업로드
+     */
+    public void uploadHlsToS3(String localDirectory, String s3Directory) {
+        File dir = new File(localDirectory);
+        if (!dir.isDirectory()) {
+            throw new IllegalArgumentException("로컬 경로가 디렉토리가 아닙니다: " + localDirectory);
+        }
+
+        for (File file : dir.listFiles()) {
+            String s3Key = s3Directory + "/" + file.getName();
+            try (FileInputStream fileInputStream = new FileInputStream(file)) {
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentLength(file.length());
+                metadata.setContentType(file.getName().endsWith(".m3u8") ? "application/vnd.apple.mpegurl" : "video/MP2T");
+
+                s3Client.putObject(bucket, s3Key, fileInputStream, metadata);
+                System.out.println("S3 업로드 완료: " + s3Key);
+            } catch (IOException e) {
+                throw new RuntimeException("S3 업로드 중 오류 발생: " + e.getMessage(), e);
+            }
+        }
     }
 }

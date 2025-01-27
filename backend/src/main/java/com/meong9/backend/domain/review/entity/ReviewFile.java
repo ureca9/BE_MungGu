@@ -3,10 +3,7 @@ package com.meong9.backend.domain.review.entity;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
