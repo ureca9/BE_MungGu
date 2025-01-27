@@ -80,9 +80,9 @@ public class ReviewController {
 
 
     @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<?> updateReview(
+    public ResponseEntity<?> deleteReview(
             @PathVariable Long reviewId,
-            @CurrentMember Member member) throws IOException, IllegalAccessException {
+            @CurrentMember Member member) throws IllegalAccessException {
         reviewService.deleteReview(reviewId, member);
         return CommonResponse.ok("success");
     }
