@@ -7,6 +7,7 @@ import org.springframework.batch.core.JobExecutionException;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -26,6 +27,7 @@ public class TopPlaceBatchLauncher {
 
     private final JobLauncher jobLauncher;
 
+    @Qualifier("aggregateTopPlaceJob")
     private final Job aggregateTopPlaceJob;
 
     @Retryable(
