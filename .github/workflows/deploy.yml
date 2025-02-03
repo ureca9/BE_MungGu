@@ -111,7 +111,7 @@ jobs:
 
             echo "Starting new application on EC2-1..."
             nohup java \
-              -javaagent:/home/ubuntu/scouter/agent.java/lib/scouter.agent.jar \
+              -javaagent:/home/ubuntu/scouter/agent.java/scouter.agent.jar \
               -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
               -Dspring.profiles.active=aws \
               -Dspring.datasource.url=${{ secrets.DB_URL }} \
