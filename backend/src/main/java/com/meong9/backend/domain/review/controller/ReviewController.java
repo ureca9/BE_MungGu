@@ -73,7 +73,7 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> newFiles,
-            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
+            @CurrentMember Member member) {
         reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
@@ -81,8 +81,7 @@ public class ReviewController {
 
     @DeleteMapping("/reviews/{reviewId}")
     public ResponseEntity<?> deleteReview(
-            @PathVariable Long reviewId,
-            @CurrentMember Member member) throws IllegalAccessException {
+            @PathVariable Long reviewId, @CurrentMember Member member) {
         reviewService.deleteReview(reviewId, member);
         return CommonResponse.ok("success");
     }
