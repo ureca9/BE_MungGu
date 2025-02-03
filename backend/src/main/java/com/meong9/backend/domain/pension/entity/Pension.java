@@ -2,6 +2,7 @@ package com.meong9.backend.domain.pension.entity;
 
 import com.meong9.backend.domain.like.entity.PensionLike;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
 import lombok.*;
 
 import java.util.*;
@@ -39,6 +40,7 @@ public class Pension {
     private Integer reviewCount = 0;
 
     @Column(nullable = false)
+    @Max(5)
     private Double reviewAvg = 0.0; // 정수부 + 소수부 합쳐서 2자리. 소수부 1자리
 
     private String startTime;
