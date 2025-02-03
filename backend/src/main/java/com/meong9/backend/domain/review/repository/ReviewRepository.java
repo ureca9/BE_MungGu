@@ -59,30 +59,30 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                     AND r.type = '020' 
                 LEFT JOIN ReviewFile rf 
                     ON r.reviewId = rf.review.reviewId 
-                LEFT JOIN MediaFile mf 
-                    ON rf.file.mediaFileId = mf.mediaFileId 
-                WHERE r.member = :member 
                     AND rf.file.mediaFileId = (
                         SELECT MIN(rf2.file.mediaFileId) 
                         FROM ReviewFile rf2 
                         WHERE rf2.review.reviewId = r.reviewId
                     )
+                LEFT JOIN MediaFile mf 
+                    ON rf.file.mediaFileId = mf.mediaFileId 
+                WHERE r.member = :member
             """)
     List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
 
 
     @Query("""
-    SELECT new com.meong9.backend.domain.review.dto.FileResponseDto(
-        rf.review.reviewId, 
-        mf.fileType, 
-        mf.fileSize, 
-        mf.fileUrl, 
-        mf.fileName
-    ) 
-    FROM ReviewFile rf 
-    JOIN rf.file mf 
-    WHERE rf.review.reviewId IN :reviewIds
-""")
+                SELECT new com.meong9.backend.domain.review.dto.FileResponseDto(
+                    rf.review.reviewId, 
+                    mf.fileType, 
+                    mf.fileSize, 
+                    mf.fileUrl, 
+                    mf.fileName
+                ) 
+                FROM ReviewFile rf 
+                JOIN rf.file mf 
+                WHERE rf.review.reviewId IN :reviewIds
+            """)
     List<FileResponseDto> findFilesByReviewIds(@Param("reviewIds") List<Long> reviewIds);
 
 

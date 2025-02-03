@@ -142,6 +142,9 @@ public class ReviewService {
          */
         // 2. MediaFile 객체를 생성 및 저장한다
         List<KafkaVideoDto> kafkaVideoDtos = new ArrayList<>();
+        if (dto.getFileUrls() == null) {
+            return Collections.emptyList();
+        }
         for (String fileUrl : dto.getFileUrls()) {
 
             FileType fileType = determineFileType(fileUrl);
