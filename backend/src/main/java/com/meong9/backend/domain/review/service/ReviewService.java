@@ -216,7 +216,8 @@ public class ReviewService {
         for (ReviewFile reviewFile : existingFiles) {
             reviewFileRepository.delete(reviewFile);
             reviewFile.getFile().delete(); // mediafile 소프트 삭제
-            mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey()); // S3에서 파일 삭제
+            String fileUrl = reviewFile.getFile().getFileUrl();
+            mediaFileService.deleteFromS3(extractFileKey(fileUrl));
         }
         Float oldScore = review.getScore(); // 예전 점수
         Float newScore = reviewRequestDto.getScore(); // 최신 점수
