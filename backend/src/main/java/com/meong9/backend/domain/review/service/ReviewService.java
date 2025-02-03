@@ -80,10 +80,6 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<MyReviewResponseDto> getMyReviews(Member member) {
         List<MyReviewResponseDto> reviews = reviewRepository.findReviewsByMember(member);
-        List<Long> reviewIds = reviews.stream().map(MyReviewResponseDto::getReviewId).collect(Collectors.toList());
-        List<FileResponseDto> files = reviewFileRepository.findMediaFilesByReviewIds(reviewIds);
-        Map<Long, List<FileResponseDto>> fileMap = files.stream().collect(Collectors.groupingBy(FileResponseDto::getReviewId));
-        reviews.forEach(review -> review.setFile(fileMap.getOrDefault(review.getReviewId(), new ArrayList<>())));
         reviews.sort((r1, r2) -> Long.compare(r2.getReviewId(), r1.getReviewId()));
         
         return reviews;
