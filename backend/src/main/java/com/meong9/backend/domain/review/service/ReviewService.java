@@ -41,7 +41,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -329,7 +331,7 @@ public class ReviewService {
     }
 
     @Transactional
-    public void deleteReview(Long reviewId, Member member) throws IllegalAccessException {
+    public void deleteReview(Long reviewId, Member member) {
         // 리뷰 조회 및 권한 확인
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new NotFoundException("리뷰"));
@@ -341,7 +343,8 @@ public class ReviewService {
         // 연관된 파일 삭제
         if (review.getReviewFiles() != null) {
             for (ReviewFile reviewFile : review.getReviewFiles()) {
-                mediaFileService.deleteFromS3(reviewFile.getFile().getFileKey());
+                String fileUrl = reviewFile.getFile().getFileUrl();
+                mediaFileService.deleteFromS3(extractFileKey(fileUrl));
                 reviewFile.getFile().delete(); // mediafile 소프트 삭제
             }
         }
@@ -362,6 +365,15 @@ public class ReviewService {
         }
 
         memberScoreService.deleteReview(member.getMemberId(), review.getPlacePensionId(), review.getScore(), review.getType());
+    }
+
+    private String extractFileKey(String fileUrl) {
+        try {
+            URL url = new URL(fileUrl);
+            return url.getPath().substring(1);
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("Invalid S3 URL: " + fileUrl, e);
+        }
     }
 
     // 최근 리뷰 10개 조회
