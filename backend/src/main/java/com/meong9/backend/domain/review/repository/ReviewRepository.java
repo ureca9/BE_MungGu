@@ -41,7 +41,14 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                         WHEN r.type = '020' THEN ps.name 
                         ELSE null 
                     END, 
-                    r.nickname
+                    r.nickname,
+                    new com.meong9.backend.domain.review.dto.FileResponseDto(
+                        rf.review.reviewId,
+                        mf.fileType,
+                        mf.fileSize,
+                        mf.fileUrl,
+                        mf.fileName
+                    )
                 ) 
                 FROM Review r 
                 LEFT JOIN Place p 
@@ -50,9 +57,19 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                 LEFT JOIN Pension ps 
                     ON r.placePensionId = ps.pensionId 
                     AND r.type = '020' 
-                WHERE r.member = :member
+                LEFT JOIN ReviewFile rf 
+                    ON r.reviewId = rf.review.reviewId 
+                LEFT JOIN MediaFile mf 
+                    ON rf.file.mediaFileId = mf.mediaFileId 
+                WHERE r.member = :member 
+                    AND rf.file.mediaFileId = (
+                        SELECT MIN(rf2.file.mediaFileId) 
+                        FROM ReviewFile rf2 
+                        WHERE rf2.review.reviewId = r.reviewId
+                    )
             """)
     List<MyReviewResponseDto> findReviewsByMember(@Param("member") Member member);
+
 
     @Query("""
     SELECT new com.meong9.backend.domain.review.dto.FileResponseDto(

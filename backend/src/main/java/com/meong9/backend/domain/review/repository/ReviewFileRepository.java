@@ -1,6 +1,5 @@
 package com.meong9.backend.domain.review.repository;
 
-import com.meong9.backend.domain.review.dto.FileResponseDto;
 import com.meong9.backend.domain.review.entity.Review;
 import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.domain.review.entity.id.ReviewFileId;
@@ -33,17 +32,4 @@ public interface ReviewFileRepository extends JpaRepository<ReviewFile, ReviewFi
 """)
     Optional<ReviewFile> findByMediaFileId(@Param("mediaFileId") Long mediaFileId);
 
-    @Query("""
-                SELECT new com.meong9.backend.domain.review.dto.FileResponseDto(
-                    rf.review.reviewId, 
-                    mf.fileType, 
-                    mf.fileSize, 
-                    mf.fileUrl, 
-                    mf.fileName
-                ) 
-                FROM ReviewFile rf 
-                JOIN rf.file mf 
-                WHERE rf.review.reviewId IN :reviewIds
-            """)
-    List<FileResponseDto> findMediaFilesByReviewIds(List<Long> reviewIds);
 }
