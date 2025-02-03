@@ -73,7 +73,7 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestPart("data") ReviewRequestDto reviewRequestDto,
             @RequestPart(value = "file", required = false) List<MultipartFile> newFiles,
-            @CurrentMember Member member) throws IOException, IllegalAccessException, InterruptedException, TimeoutException {
+            @CurrentMember Member member) {
         reviewService.updateReview(reviewId, reviewRequestDto, newFiles, member);
         return CommonResponse.ok("success");
     }
