@@ -1,32 +1,28 @@
 package com.meong9.backend.domain.review.dto;
 
-import com.meong9.backend.domain.review.entity.Review;
-import com.meong9.backend.domain.review.entity.ReviewFile;
-import com.meong9.backend.global.mediafile.entity.FileType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
 @Getter
+@NoArgsConstructor
 public class MyReviewResponseDto {
-    private final Long reviewId;
-    private final String content;
-    private final Float score;
-    private final LocalDate visitDate;
-    private final FileResponseDto file;
-    private final String type;
-    private final Long plcPenId;
-    private final String plcPenName;
-    private final String nickname;
+    private Long reviewId;
+    private String content;
+    private Float score;
+    private LocalDate visitDate;
+    @Setter
+    private List<FileResponseDto> file;
+    private String type;
+    private Long plcPenId;
+    private String plcPenName;
+    private String nickname;
 
     public MyReviewResponseDto(Long reviewId, String content, Float score, LocalDate visitDate,
-                               String type, Long plcPenId, String plcPenName, String nickname,
-                               FileResponseDto file) {
+                               String type, Long plcPenId, String plcPenName, String nickname) {
         this.reviewId = reviewId;
         this.content = content;
         this.score = score;
@@ -35,6 +31,5 @@ public class MyReviewResponseDto {
         this.plcPenId = plcPenId;
         this.plcPenName = plcPenName;
         this.nickname = nickname;
-        this.file=file;
     }
 }

@@ -3,15 +3,17 @@ package com.meong9.backend.domain.review.dto;
 import com.meong9.backend.domain.review.entity.ReviewFile;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
 public class FileResponseDto {
-    private final FileType fileType;
-    private final Integer fileSize;
-    private final String fileUrl;
-    private final String fileName;
+    private Long reviewId;
+    private FileType fileType;
+    private Integer fileSize;
+    private String fileUrl;
+    private String fileName;
 
     public FileResponseDto(ReviewFile reviewFile) {
         MediaFile file = reviewFile.getFile();
@@ -21,7 +23,8 @@ public class FileResponseDto {
         this.fileName = file.getFileName();
     }
 
-    public FileResponseDto(FileType fileType, Integer fileSize, String fileUrl, String fileName) {
+    public FileResponseDto(Long reviewId, FileType fileType, Integer fileSize, String fileUrl, String fileName) {
+        this.reviewId = reviewId;
         this.fileType = fileType;
         this.fileSize = fileSize;
         this.fileUrl = fileUrl;
