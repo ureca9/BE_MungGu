@@ -111,10 +111,8 @@ jobs:
 
             echo "Starting new application on EC2-1..."
             nohup java \
-              -javaagent:/home/ubuntu/pinpoint-agent-2.5.1/pinpoint-bootstrap-2.5.1.jar \
-              -Dpinpoint.agentId=muntivity \
-              -Dpinpoint.applicationName=backend \
-              -Dpinpoint.config=/home/ubuntu/pinpoint-agent-2.5.1/pinpoint-root.config \
+              -javaagent:/home/ubuntu/scouter/agent.java/lib/scouter.agent.jar \
+              -Dscouter.config=/home/ubuntu/scouter/agent.java/conf/scouter.conf \
               -Dspring.profiles.active=aws \
               -Dspring.datasource.url=${{ secrets.DB_URL }} \
               -Dspring.datasource.username=${{ secrets.DB_USERNAME }} \
