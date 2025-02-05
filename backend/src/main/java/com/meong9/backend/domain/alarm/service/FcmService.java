@@ -44,8 +44,8 @@ public class FcmService {
     private String aesKey;
 
     // 매일 오후 3시에 FCM 알람
-//    @Scheduled(cron = "0 0 15 * * ?") // 매일 오후 3시에 실행
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 15 * * ?") // 매일 오후 3시에 실행
+//    @Scheduled(cron = "0 * * * * ?")
     @Transactional
     public void sendAnniversaryNotifications() {
         Set<String> tokenKeys = getAllTokensUsingScan();
