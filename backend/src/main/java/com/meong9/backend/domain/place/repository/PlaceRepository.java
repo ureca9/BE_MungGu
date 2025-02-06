@@ -76,14 +76,13 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
         p.latitude, p.longitude, p.closedDays,
         p.priceContent, p.petLimitInfo,
         p.plcDescription, p.enterPetSize,
-        CASE
-            WHEN EXISTS (
-                SELECT 1 FROM PlaceLike l
-                WHERE l.member.memberId = :memberId
-                  AND l.place.placeId = p.placeId
-            ) THEN true
+        (SELECT CASE
+            WHEN COUNT(pl) > 0
+            THEN true
             ELSE false
         END
+        FROM PlaceLike pl
+        WHERE pl.member.memberId = :memberId AND pl.place.placeId = p.placeId)
     )
     FROM Place p
     WHERE p.placeId = :placeId
