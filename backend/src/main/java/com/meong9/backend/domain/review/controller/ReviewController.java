@@ -5,7 +5,6 @@ import com.meong9.backend.domain.review.dto.PresignedUrlDto;
 import com.meong9.backend.domain.review.dto.ReviewMainDto;
 import com.meong9.backend.domain.review.dto.ReviewRequestDto;
 import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
-import com.meong9.backend.domain.review.service.ReviewCreationService;
 import com.meong9.backend.domain.review.service.ReviewService;
 import com.meong9.backend.global.annotation.member.CurrentMember;
 import com.meong9.backend.global.dto.CommonResponse;
@@ -13,6 +12,7 @@ import com.meong9.backend.global.mediafile.service.MediaFileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,7 +31,6 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class ReviewController {
     private final ReviewService reviewService;
-    private final ReviewCreationService reviewCreationService;
     private final MediaFileService mediaFileService;
 
     @GetMapping("/reviews/{reviewId}")
@@ -49,22 +48,25 @@ public class ReviewController {
         return CommonResponse.ok("success", reviewService.getPlacePensionInfo(type,id));
     }
 
-    @PostMapping("/reviews/presigned-url")
-    public ResponseEntity<?> getPresignedUrlForReview(@RequestBody ReviewUrlRequestDto reviewUrlRequestDto) {
-        List<PresignedUrlDto> presignedUrls = mediaFileService.getPresignedUrlForReview(reviewUrlRequestDto);
-        return ResponseEntity.ok(presignedUrls);
-    }
-
     @PostMapping("/reviews")
-    public ResponseEntity<?> createReview(@RequestBody ReviewRequestDto requestDto,
-                                               @CurrentMember Member member) {
-        // @PreAuthorize로 관리할 경우 403을 반환하기 때문에 200을 반환하되 메시지를 명확히 적어 주도록 함
-        if (member.getBlackList() != null && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
-            String date = member.getBlackList().getLockedUntil().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String message = String.format("%s 까지 리뷰 작성 권한이 제한됩니다.", date);
-            return CommonResponse.ok(message);
+    public ResponseEntity<?> createReview(
+            @Valid @RequestPart("data") ReviewRequestDto dto,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files,
+            @CurrentMember Member member
+    ) {
+        // 블랙리스트 검사
+        if (member.getBlackList() != null
+                && member.getBlackList().getLockedUntil().isAfter(LocalDateTime.now())) {
+            String date = member.getBlackList().getLockedUntil()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            return CommonResponse.ok(date + " 까지 리뷰 작성 권한이 제한됩니다.");
         }
-        reviewCreationService.createReviewWithVideos(requestDto, member);
+
+        try {
+            reviewService.createReview(dto, files, member);
+        } catch (Exception e) {
+            return CommonResponse.ok("파일 처리 또는 리뷰 저장 중 오류가 발생했습니다. 나중에 다시 시도해주세요.");
+        }
         return CommonResponse.created("success");
     }
 

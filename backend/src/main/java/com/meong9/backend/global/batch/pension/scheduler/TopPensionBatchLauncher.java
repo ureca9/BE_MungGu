@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class TopPensionBatchLauncher {
 
     private final JobLauncher jobLauncher;
-
+    @Qualifier("aggregateTopPensionJob")
     private final Job aggregateTopPensionJob;
 
     @Retryable(

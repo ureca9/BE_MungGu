@@ -19,27 +19,31 @@ import com.meong9.backend.domain.review.repository.ReviewRepository;
 import com.meong9.backend.global.banword.inspector.BanWordInspector;
 import com.meong9.backend.global.exception.AuthorizationException;
 import com.meong9.backend.global.exception.NotFoundException;
-import com.meong9.backend.global.kafka.dto.KafkaVideoDto;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
+import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
 import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
 import com.meong9.backend.global.mediafile.service.MediaFileService;
+import com.meong9.backend.global.mediafile.service.VideoService;
 import com.meong9.backend.global.utils.AddressMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -48,6 +52,7 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -67,6 +72,10 @@ public class ReviewService {
     private final MemberRepository memberRepository;
     private final BanWordInspector banWordInspector;
     private final MemberScoreService memberScoreService;
+    private final VideoService videoService;
+
+    @Qualifier("videoTaskExecutor")
+    private final ThreadPoolTaskExecutor videoTaskExecutor;
 
     @Transactional(readOnly = true)
     public ReviewDetailsResponseDto getReviewDetails(Long reviewId) {
@@ -123,82 +132,40 @@ public class ReviewService {
     }
 
     @Transactional
-    public List<KafkaVideoDto> createReview(ReviewRequestDto dto, Member member) {
-        // 1. review 객체를 생성 및 저장한다
+    public void createReview(ReviewRequestDto dto, List<MultipartFile> files, Member member)
+            throws IOException, InterruptedException, TimeoutException {
+
+        // 1) 리뷰 저장
         Review review = Review.builder()
-                .member(member)
-                .content(banWordInspector.mask(dto.getContent(), "멍멍", member))
-                .nickname(member.getNickname())
-                .score(dto.getScore())
-                .type(dto.getType())
                 .placePensionId(dto.getPlcPenId())
+                .type(dto.getType())
+                .content(dto.getContent())
+                .score(dto.getScore())
                 .visitDate(dto.getVisitDate())
-                .reviewFiles(null)
+                .member(member)
                 .build();
         reviewRepository.save(review);
 
-        /**
-         * Review 저장 후 MediaFile과 ReviewFile 저장이 실패하면 Review 데이터가 남는 경우를 처리해야 함
-         */
-        // 2. MediaFile 객체를 생성 및 저장한다
-        List<KafkaVideoDto> kafkaVideoDtos = new ArrayList<>();
-        if (dto.getFileUrls() == null) {
-            return Collections.emptyList();
-        }
-        for (String fileUrl : dto.getFileUrls()) {
-
-            FileType fileType = determineFileType(fileUrl);
-
-            MediaFile file = MediaFile.builder()
-                    .fileName(extractFileName(fileUrl))
-                    .fileUrl(fileUrl)
-                    .fileType(fileType)
-                    .build();
-
-            mediaFileRepository.save(file);
-
-            ReviewFileId reviewFileId = new ReviewFileId(review.getReviewId(), file.getMediaFileId());
-            ReviewFile reviewFile = new ReviewFile(review, file, reviewFileId);
-            reviewFileRepository.save(reviewFile);
-
-            if (fileType.equals(FileType.VIDEO)) {
-                kafkaVideoDtos.add(new KafkaVideoDto(file.getMediaFileId(), fileUrl));
-            }
-        }
-
-        // 3. 부차적인 내용 업데이트
-        updatePlaceOrPension(dto);
-        memberScoreService.addReview(member.getMemberId(), dto.getPlcPenId(), dto.getScore(), dto.getType());
-        return kafkaVideoDtos;
-    }
-
-    private void updatePlaceOrPension(ReviewRequestDto dto) {
-        if (Objects.equals(dto.getType(), "010")) {
-            Place place = placeRepository.findById(dto.getPlcPenId()).orElseThrow(() -> NotFoundException.entityNotFound("장소"));
-            place.increaseReviewCount();
-            place.calcReviewAvg(place.getReviewCount() - 1, place.getReviewCount(), 0.0, Double.valueOf(dto.getScore()));
-        }
-        if (Objects.equals(dto.getType(), "020")) {
-            Pension pension = pensionRepository.findById(dto.getPlcPenId()).orElseThrow(() -> NotFoundException.entityNotFound("펜션"));
-            pension.increaseReviewCount();
-            pension.calcReviewAvg(pension.getReviewCount() - 1, pension.getReviewCount(), 0.0, Double.valueOf(dto.getScore()));
-        }
-    }
-
-    private String extractFileName(String fileUrl) {
-        return Paths.get(URI.create(fileUrl).getPath()).getFileName().toString();
-    }
-
-    /**
-     * 프론트에서 입력 시 filetype 확인해서 확장자와 함께 s3에 올려줘야 함
-     */
-    private FileType determineFileType(String fileUrl) {
-        if (fileUrl.endsWith(".jpg") || fileUrl.endsWith(".jpeg") || fileUrl.endsWith(".png") || fileUrl.endsWith(".webp")) {
-            return FileType.IMAGE;
-        } else if (fileUrl.endsWith(".mp4") || fileUrl.endsWith(".mov")) {
-            return FileType.VIDEO;
-        } else {
-            throw new IllegalArgumentException("Unsupported file type: " + fileUrl);
+        // 2) 커밋 후 파일 처리 스케줄링
+        if (files != null && !files.isEmpty()) {
+            List<MultipartFile> copy = new ArrayList<>(files);
+            AtomicInteger counter = new AtomicInteger(0);
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            for (MultipartFile file : copy) {
+                                videoTaskExecutor.execute(() -> {
+                                    try {
+                                        mediaFileService.handleMedia(file, review.getReviewId(), counter);
+                                    } catch (Exception ignored) {
+                                        // @Recover가 처리하므로 추가 로깅만 필요
+                                    }
+                                });
+                            }
+                        }
+                    }
+            );
         }
     }
 
@@ -240,81 +207,13 @@ public class ReviewService {
         }
         // 새로운 파일 처리
         List<MediaFile> mediaFiles = new ArrayList<>();
-        processFileAsync(files, review, mediaFiles);
+//        processFileAsync(files, review, mediaFiles);
 
         memberScoreService.updateReview(member.getMemberId(), reviewRequestDto.getPlcPenId(), oldScore, newScore, reviewRequestDto.getType());
     }
 
 
-    @Async // 비동기 실행
-    public CompletableFuture<Void> processFileAsync(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) {
-        try {
-            processFileWithRetry(files, review, mediaFiles); // 재시도 로직 호출
-        } catch (Exception e) {
-            // 에러 처리
-            log.error("파일 처리 중 오류 발생: {}", e.getMessage(), e);
-        }
-        return CompletableFuture.completedFuture(null);
-    }
 
-    @Retryable( // 재시도 로직
-            value = TimeoutException.class,
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 2000)
-    )
-    protected void processFileWithRetry(List<MultipartFile> files, Review review, List<MediaFile> mediaFiles) throws IOException, TimeoutException, InterruptedException {
-        if (files != null) {
-            List<ReviewFile> reviewFiles = new ArrayList<>();
-            AtomicInteger fileNum = new AtomicInteger(0);
-            for (MultipartFile mf : files) {
-                MediaFile file = handleFileUpload(mf, review.getReviewId(), fileNum);
-                mediaFiles.add(file);
-
-                // 복합 키 생성
-                ReviewFileId reviewFileId = new ReviewFileId(review.getReviewId(), file.getMediaFileId());
-
-                // 객체가 이미 존재하면 가져오고, 없으면 새로 생성
-                ReviewFile reviewFile = reviewFileRepository.findById(reviewFileId)
-                        .orElseGet(() ->
-                                ReviewFile.builder()
-                                        .review(review)
-                                        .file(file)
-                                        .reviewFileId(reviewFileId)
-                                        .build()
-                        );
-
-                reviewFiles.add(reviewFile);
-                reviewFileRepository.save(reviewFile);
-                fileNum.getAndIncrement();
-            }
-        }
-
-        synchronizeTransaction(mediaFiles); // 트랜잭션 동기화 처리
-    }
-
-    /**
-     * 파일(이미지, 동영상) 업로드 처리
-     * @param file 업로드할 파일
-     * @param reviewId 리뷰 id
-     * @return 저장된 MediaFile 엔티티
-     * @throws IOException 이미지 처리 오류
-     */
-    private MediaFile handleFileUpload(MultipartFile file, Long reviewId, AtomicInteger fileNum) throws IOException, InterruptedException, TimeoutException {
-        String contentType = file.getContentType();
-        String fileKey = generateFileKey(reviewId,fileNum); // 새 파일 키 생성
-        if (contentType == null) {
-            throw new IllegalArgumentException("파일 형식이 정의되지 않았습니다.");
-        }
-
-        if (contentType.startsWith("image/")) {
-            return saveImage(file, fileKey); // 이미지 저장
-        } else if (contentType.startsWith("video/")) {
-            // 동영상 처리
-            return saveVideo(file, fileKey);
-        } else {
-            throw new IllegalArgumentException("지원되지 않는 content type: " + contentType);
-        }
-    }
 
     private void synchronizeTransaction(List<MediaFile> mediaFiles){
         // 트랜잭션 동기화
@@ -479,41 +378,6 @@ public class ReviewService {
                         .build());
     }
 
-    private MediaFile saveVideo(MultipartFile video, String fileKey) throws IOException, InterruptedException, TimeoutException {
-        // S3에 파일 업로드
-        String videoUrl = mediaFileService.uploadToS3WithCustomKey(video, fileKey);
-
-        // 업로드한 파일의 메타데이터 추출
-        VideoMetaDataDto metadata = mediaFileService.extractVideoMetadata(video);
-
-        // MediaFile 엔티티 저장
-        return mediaFileRepository.save(
-                MediaFile.builder()
-                        .fileType(FileType.VIDEO)
-                        .fileSize((int) video.getSize())
-                        .fileName(video.getOriginalFilename())
-                        .fileUrl(videoUrl)
-                        .height((double) metadata.getHeight())
-                        .width((double) metadata.getWidth())
-                        .fileKey(fileKey)
-                        .build());
-    }
-
-    // 이미지/동영상 구분
-    public String determineFileType(MultipartFile file) {
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            throw new IllegalArgumentException("파일이 정의되지 않습니다.");
-        }
-
-        if (contentType.startsWith("image/")) {
-            return "IMAGE";
-        } else if (contentType.startsWith("video/")) {
-            return "VIDEO";
-        } else {
-            throw new IllegalArgumentException("지원하지 않는 파일 타입: " + contentType);
-        }
-    }
 
     /**
      * S3 파일 키 생성

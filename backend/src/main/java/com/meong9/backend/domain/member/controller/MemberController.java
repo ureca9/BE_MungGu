@@ -159,15 +159,15 @@ public class MemberController {
     /**
      * 프로필 이미지 생성을 위한 PreSigned URL 생성
      */
-    @GetMapping("/presigned-url")
-    public ResponseEntity<?> generatePreSignedUrlForMProfileImage(@CurrentMember Member member) {
-        // S3 경로 생성: {folder}/{memberId}_profile.jpg
-        String folder = "Mprofile";
-        String objectKey = String.format("%s/%d_profile.jpg", folder, member.getMemberId());
-
-        Map<String, String> response = mediaFileService.getPresingedUrl(objectKey);
-
-        return CommonResponse.ok("success", response);
-    }
+//    @GetMapping("/presigned-url")
+//    public ResponseEntity<?> generatePreSignedUrlForMProfileImage(@CurrentMember Member member) {
+//        // S3 경로 생성: {folder}/{memberId}_profile.jpg
+//        String folder = "Mprofile";
+//        String objectKey = String.format("%s/%d_profile.jpg", folder, member.getMemberId());
+//
+//        Map<String, String> response = mediaFileService.getPresingedUrl(objectKey);
+//
+//        return CommonResponse.ok("success", response);
+//    }
 
 }

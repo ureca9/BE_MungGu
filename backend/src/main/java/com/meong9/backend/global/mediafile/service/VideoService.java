@@ -32,15 +32,47 @@ public class VideoService { // 추후에 ME
         if (contentType == null) {
             throw new IllegalArgumentException("파일 타입은 null이 아닙니다.");
         }
-//        if (contentType.startsWith("image/")) {
-//            return uploadImage(file, memberId, prefix, suffix);
-//        } else if (contentType.startsWith("video/")) {
-//            return uploadVideo(file, memberId, prefix, suffix);
-//        } else {
-//            throw new IllegalArgumentException("Unsupported file type: " + contentType);
-//        }
+        if (contentType.startsWith("image/")) {
+            return uploadImage(file, memberId, prefix, suffix);
+        } else if (contentType.startsWith("video/")) {
+            return uploadVideo(file, memberId, prefix, suffix);
+        } else {
+            throw new IllegalArgumentException("Unsupported file type: " + contentType);
+        }
+    }
 
-        return uploadVideo(file, memberId, prefix, suffix);
+    /**
+     * 이미지 업로드
+     */
+    private S3UploadResultDto uploadImage(MultipartFile image, Long memberId, String prefix, String suffix) throws IOException {
+        validateImage(image);
+
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentType(image.getContentType());
+        metadata.setContentLength(image.getSize());
+
+        String fileKey = prefix + memberId + suffix;
+        s3Client.putObject(bucket, fileKey, image.getInputStream(), metadata);
+
+        String s3Url = s3Client.getUrl(bucket, fileKey).toString();
+        return new S3UploadResultDto(s3Url, fileKey);
+    }
+
+    private static void validateImage(MultipartFile image) {
+        String originalFilename = image.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.contains(".")) {
+            throw new IllegalArgumentException("허용되지 않은 이미지 포맷입니다.");
+        }
+
+        String ext = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+        if (!List.of("jpg", "jpeg", "png", "webp").contains(ext)) {
+            throw new IllegalArgumentException("지원되지 않는 이미지 형식: " + ext);
+        }
+
+        // 예: 최대 10MB 제한
+        if (image.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("이미지 사이즈는 10MB 이하여야 합니다.");
+        }
     }
 
     /**

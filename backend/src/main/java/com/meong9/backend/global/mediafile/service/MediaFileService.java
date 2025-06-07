@@ -5,8 +5,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.meong9.backend.domain.review.dto.PresignedUrlDto;
-import com.meong9.backend.domain.review.dto.ReviewUrlRequestDto;
 import com.meong9.backend.global.exception.BadRequestException;
 import com.meong9.backend.global.mediafile.dto.ImageMetadataDto;
 import com.meong9.backend.global.mediafile.dto.S3UploadResultDto;
@@ -14,9 +12,13 @@ import com.meong9.backend.global.mediafile.dto.VideoMetaDataDto;
 import com.meong9.backend.global.mediafile.entity.FileType;
 import com.meong9.backend.global.mediafile.entity.MediaFile;
 import com.meong9.backend.global.mediafile.repository.MediaFileRepository;
+import com.meong9.backend.global.mediafile.util.FileUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,16 +29,17 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -45,8 +48,10 @@ public class MediaFileService {
     private final AmazonS3Client s3Client;
     private final MediaFileRepository mediaFileRepository;
     private final AmazonS3 amazonS3;
+    private final TempStorageService tempStorageService;
+    private FileUtil fileUtil;
 
-    @Qualifier("taskExecutor")
+    @Qualifier("videoTaskExecutor")
     private final ThreadPoolTaskExecutor taskExecutor;
 
     @Value("${s3.buckets.source}")
@@ -288,148 +293,168 @@ public class MediaFileService {
     }
 
     /**
-     * MultipartFile에서 비디오 메타데이터 추출
+     * 이미지·동영상 업로드 & 메타정보 저장.
+     * - 동영상: H.265 2-pass, CRF20, scale=1280:-2
+     * - 이미지: WebP, q=85, scale=1024:-2
      */
-    public VideoMetaDataDto extractVideoMetadata(MultipartFile video) throws IOException, InterruptedException, TimeoutException {
-        // 타임아웃 설정 (초 단위)
-        int timeout = 30;
+    @Retryable(
+            value = { IOException.class, TimeoutException.class },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 2000)
+    )
+    public MediaFile handleMedia(MultipartFile file,
+                                 Long reviewId,
+                                 AtomicInteger fileNum)
+            throws IOException, InterruptedException, TimeoutException {
 
-        // FFprobe 명령어 설정
+        validateReviewFile(file);
+        String baseKey = "review/" + reviewId + "/" + fileNum.getAndIncrement();
+        String contentType = file.getContentType();
 
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "ffprobe",
-                "-v", "error",
-                "-select_streams", "v:0", // 비디오 스트림만 선택
-                "-show_entries", "stream=width,height,duration", // 필요한 메타데이터 필드 지정
-                "-of", "csv=p=0", // CSV 형식 출력
-                "pipe:0" // 입력 데이터를 파이프로 전달
+        // 로컬 임시 입력 저장
+        Path tmpIn = Files.createTempFile("orig-", "-" + file.getOriginalFilename());
+        try (InputStream is = file.getInputStream()) {
+            Files.copy(is, tmpIn, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        if (contentType != null && contentType.startsWith("video/")) {
+            // ——— 동영상 2-Pass H.265 인코딩 ———
+            Path stats = Files.createTempFile("ffmpeg-passlog-", ".log");
+            Path tmpOut = Files.createTempFile("enc-", ".mp4");
+
+            // 1st pass
+            ProcessBuilder pb1 = new ProcessBuilder(
+                    "ffmpeg", "-y",
+                    "-i", tmpIn.toString(),
+                    "-c:v", "libx265", "-preset", "medium",
+                    "-x265-params", "crf=20:pass=1:stats="+ stats,
+                    "-an", "-f", "null", "/dev/null"
+            ).redirectErrorStream(true);
+            Process p1 = pb1.start();
+            if (!p1.waitFor(60, TimeUnit.SECONDS) || p1.exitValue() != 0) {
+                throw new IOException("FFmpeg 1st-pass 실패");
+            }
+
+            // 2번째 단계
+            ProcessBuilder pb2 = new ProcessBuilder(
+                    "ffmpeg", "-y",
+                    "-i", tmpIn.toString(),
+                    "-c:v", "libx265", "-preset", "medium",
+                    "-x265-params", "crf=20:pass=2:stats="+ stats,
+                    "-c:a", "aac", "-b:a", "128k",
+                    "-vf", "scale=1280:-2",
+                    tmpOut.toString()
+            ).redirectErrorStream(true);
+            Process p2 = pb2.start();
+            if (!p2.waitFor(120, TimeUnit.SECONDS) || p2.exitValue() != 0) {
+                throw new IOException("FFmpeg 2nd-pass 실패");
+            }
+
+            // S3 업로드
+            String videoKey = baseKey + "_h265.mp4";
+            S3UploadResultDto upload = uploadToS3(tmpOut.toFile(), videoKey, "video/mp4");
+
+            // 메타정보 추출
+            VideoMetaDataDto vm = fileUtil.extractVideoMetadata(tmpOut.toFile());
+
+            // DB 저장
+            MediaFile saved = mediaFileRepository.save(MediaFile.builder()
+                    .fileType(FileType.VIDEO)
+                    .fileName(file.getOriginalFilename())
+                    .fileKey(upload.getFileKey())
+                    .fileUrl(upload.getS3Url())
+                    .fileSize((int) tmpOut.toFile().length())
+                    .width(vm.getWidth().doubleValue())
+                    .height(vm.getHeight().doubleValue())
+                    .build()
+            );
+
+            // 임시 파일 정리
+            Files.deleteIfExists(tmpIn);
+            Files.deleteIfExists(tmpOut);
+            Files.deleteIfExists(stats);
+            return saved;
+
+        } else if (contentType != null && contentType.startsWith("image/")) {
+            // 이미지 -> WebP 변환
+            Path tmpOut = Files.createTempFile("conv-", ".webp");
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffmpeg", "-y",
+                    "-i", tmpIn.toString(),
+                    "-vf", "scale=1024:-2",
+                    "-q:v", "85",
+                    tmpOut.toString()
+            ).redirectErrorStream(true);
+            Process proc = pb.start();
+            if (!proc.waitFor(30, TimeUnit.SECONDS) || proc.exitValue() != 0) {
+                throw new IOException("FFmpeg WebP 변환 실패");
+            }
+
+            // S3 업로드
+            String imgKey = baseKey + ".webp";
+            S3UploadResultDto upload = uploadToS3(tmpOut.toFile(), imgKey, "image/webp");
+
+            // 메타정보 추출
+            BufferedImage img = ImageIO.read(tmpOut.toFile());
+            int w = img.getWidth(), h = img.getHeight();
+            long size = Files.size(tmpOut);
+
+            // DB 저장
+            MediaFile saved = mediaFileRepository.save(MediaFile.builder()
+                    .fileType(FileType.IMAGE)
+                    .fileName(file.getOriginalFilename())
+                    .fileKey(upload.getFileKey())
+                    .fileUrl(upload.getS3Url())
+                    .fileSize((int) size)
+                    .width((double) w)
+                    .height((double) h)
+                    .build()
+            );
+
+            Files.deleteIfExists(tmpIn);
+            Files.deleteIfExists(tmpOut);
+            return saved;
+
+        } else {
+            Files.deleteIfExists(tmpIn);
+            throw BadRequestException.invalidImageVideoFormat();
+        }
+    }
+
+    // 3회 재시도 후에도 실패하면 호출—실패 정보 기록
+    @Recover
+    public void recoverMedia(Exception e,
+                             MultipartFile file,
+                             Long reviewId,
+                             AtomicInteger fileNum) {
+        tempStorageService.recordFailure(
+                reviewId,
+                file.getOriginalFilename(),
+                LocalDateTime.now(),
+                e.getMessage()
         );
+    }
 
-        Process process = null; // 프로세스 객체 선언
-        try {
-            // FFprobe 프로세스 시작
-            process = processBuilder.start();
-
-            // 비동기 작업 수행
-            CompletableFuture<String> future = executeWithTimeout(process, video);
-
-            // 결과 가져오기
-            String result = future.get(timeout, TimeUnit.SECONDS);
-
-            // FFprobe 출력 결과를 파싱하여 메타데이터 DTO로 변환
-            return parseMetadata(result);
-
-        } catch (TimeoutException e) {
-            throw new TimeoutException("비디오 메타데이터 추출 시간 초과");
-        } catch (Exception e) {
-            throw new IOException("비디오 메타데이터 추출 실패: " + e.getMessage());
-        } finally {
-            // 프로세스 종료 (강제 종료 포함)
-            if (process != null) {
-                process.destroyForcibly();
-            }
+    private void validateReviewFile(MultipartFile file) {
+        String name = Objects.requireNonNull(file.getOriginalFilename());
+        if (!name.contains(".")) {
+            throw BadRequestException.invalidImageVideoFormat();
         }
     }
 
-    /**
-     * FFprobe와 MultipartFile 연결 및 결과 반환 (비동기 방식)
-     */
-    private CompletableFuture<String> executeWithTimeout(Process process, MultipartFile video) {
-        return CompletableFuture.supplyAsync(() -> {
-            try (
-                    // FFprobe 입력 스트림과 출력 스트림 연결
-                    OutputStream stdin = process.getOutputStream();
-                    InputStream videoStream = video.getInputStream();
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(process.getInputStream())
-                    )
-            ) {
-                // MultipartFile 데이터를 FFprobe의 stdin으로 전달
-                videoStream.transferTo(stdin);
-                stdin.close(); // 입력 종료
-
-                // FFprobe 출력 결과를 읽어 반환
-                return reader.readLine();
-            } catch (IOException e) {
-                throw new RuntimeException("FFprobe 실행 중 오류 발생", e);
-            }
-        }, taskExecutor);
-    }
-
-    /**
-     * FFprobe 출력 데이터를 파싱하여 VideoMetaDataDto로 변환
-     */
-    private VideoMetaDataDto parseMetadata(String line) {
-        if (line == null || line.trim().isEmpty()) {
-            throw new IllegalArgumentException("메타데이터가 비어있습니다");
+    private S3UploadResultDto uploadToS3(File f,
+                                         String key,
+                                         String contentType) throws IOException {
+        ObjectMetadata meta = new ObjectMetadata();
+        meta.setContentType(contentType);
+        meta.setContentLength(f.length());
+        try (InputStream in = new FileInputStream(f)) {
+            s3Client.putObject(bucket, key, in, meta);
         }
-        String[] parts = line.split(",");
-        if (parts.length != 3) {
-            throw new IllegalArgumentException("잘못된 메타데이터 형식");
-        }
-        return new VideoMetaDataDto(
-                Double.parseDouble(parts[2]), // duration (초)
-                Integer.parseInt(parts[0]), // width (픽셀)
-                Integer.parseInt(parts[1])  // height (픽셀)
+        return new S3UploadResultDto(
+                s3Client.getUrl(bucket, key).toExternalForm(),
+                key
         );
     }
 
-    public Map<String, String> getPresingedUrl(String objectKey) {
-        // PreSigned URL 생성
-        Date expiration = new Date(System.currentTimeMillis() + 1000 * 60 * 10); // 10분 유효
-        GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, objectKey)
-                .withMethod(HttpMethod.PUT)
-                .withExpiration(expiration);
-
-        String presignedUrl = amazonS3.generatePresignedUrl(request).toString();
-
-        // PreSigned URL과 파일 경로 반환
-        Map<String, String> response = new HashMap<>();
-        response.put("presignedUrl", presignedUrl);
-        response.put("fileKey", objectKey); // 파일 경로
-        return response;
-    }
-
-    public List<PresignedUrlDto> getPresignedUrlForReview(ReviewUrlRequestDto requestDto) {
-        return requestDto.getFiles().stream()
-                .map(fileName -> {
-                    URL presignedUrl = generatePresignedUrl(fileName);
-                    return new PresignedUrlDto(fileName, presignedUrl.toString());
-                })
-                .collect(Collectors.toList());
-    }
-
-    private URL generatePresignedUrl(String objectKey) {
-        // Presigned URL 생성 요청
-        GeneratePresignedUrlRequest presignedUrlRequest = new GeneratePresignedUrlRequest(bucket, objectKey)
-                .withMethod(HttpMethod.PUT)
-                .withExpiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000)); // 15분 유효
-
-        // Presigned URL 생성 및 반환
-        return amazonS3.generatePresignedUrl(presignedUrlRequest);
-    }
-
-    /**
-     * 트랜스코딩된 파일을 S3에 업로드
-     */
-    public void uploadHlsToS3(String localDirectory, String s3Directory) {
-        File dir = new File(localDirectory);
-        if (!dir.isDirectory()) {
-            throw new IllegalArgumentException("로컬 경로가 디렉토리가 아닙니다: " + localDirectory);
-        }
-
-        for (File file : dir.listFiles()) {
-            String s3Key = s3Directory + "/" + file.getName();
-            try (FileInputStream fileInputStream = new FileInputStream(file)) {
-                ObjectMetadata metadata = new ObjectMetadata();
-                metadata.setContentLength(file.length());
-                metadata.setContentType(file.getName().endsWith(".m3u8") ? "application/vnd.apple.mpegurl" : "video/MP2T");
-
-                s3Client.putObject(bucket, s3Key, fileInputStream, metadata);
-                System.out.println("S3 업로드 완료: " + s3Key);
-            } catch (IOException e) {
-                throw new RuntimeException("S3 업로드 중 오류 발생: " + e.getMessage(), e);
-            }
-        }
-    }
 }

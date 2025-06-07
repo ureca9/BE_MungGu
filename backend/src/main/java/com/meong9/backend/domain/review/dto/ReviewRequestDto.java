@@ -36,6 +36,4 @@ public class ReviewRequestDto {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate visitDate; // 방문 날짜
 
-    private List<String> fileUrls;
-
 }

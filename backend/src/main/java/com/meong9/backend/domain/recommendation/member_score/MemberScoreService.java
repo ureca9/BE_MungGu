@@ -214,6 +214,4 @@ public class MemberScoreService {
         }
     }
 
-
-
 }
